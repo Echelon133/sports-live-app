@@ -13,4 +13,10 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
+    <modules>
+        <module>match-service</module>
+    </modules>
+
+    <packaging>pom</packaging>
+
 </project>
