@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: match-service
-          image: echelon133/match-service:0.1.0
+          image: echelon133/match-service:0.1.0-SNAPSHOT
           ports:
             - containerPort: 80
           readinessProbe:
