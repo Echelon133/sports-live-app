@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: match-service
+  namespace: sports-live-app
+  labels:
+    app: match-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: match-service
+  template:
+    metadata:
+      labels:
+        app: match-service
+    spec:
+      containers:
+        - name: match-service
+          image: echelon133/match-service:0.1.0
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /actuator/health/readiness
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              port: 80
+              path: /actuator/health/liveness
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: match-service
+  namespace: sports-live-app
+  labels:
+    app: match-service
+    spring-boot: "true"
+spec:
+  ports:
+    - protocol: "TCP"
+      port: 80
+  selector:
+    app: match-service
+  type: NodePort
