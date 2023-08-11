@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: match-service
+  cloud:
+    loadbalancer:
+      ribbon:
+        enabled: false
+    kubernetes:
+      discovery:
+        all-namespaces: true
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
