@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: match-service-postgres
+  namespace: sports-live-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: match-service-postgres
+  template:
+    metadata:
+      labels:
+        app: match-service-postgres
+    spec:
+      containers:
+        - name: match-service-postgres
+          image: postgres:14-bullseye
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: match-service-postgres-secret
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: match-service-postgres
+      volumes:
+        - name: match-service-postgres
+          persistentVolumeClaim:
+            claimName: match-service-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: match-service-postgres
+  namespace: sports-live-app
+  labels:
+    app: match-service-postgres
+spec:
+  ports:
+    - protocol: "TCP"
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: match-service-postgres
+  type: NodePort

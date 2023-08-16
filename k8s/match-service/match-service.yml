@@ -33,6 +33,22 @@ spec:
               path: /actuator/health/liveness
             initialDelaySeconds: 20
             periodSeconds: 10
+          env:
+            - name: SECRET_POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: match-service-postgres-secret
+                  key: POSTGRES_USER
+            - name: SECRET_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: match-service-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: SECRET_POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: match-service-postgres-secret
+                  key: POSTGRES_DB
 ---
 apiVersion: v1
 kind: Service
