@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.venue.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.venue.dto.VenueDto;
 import ml.echelon133.matchservice.venue.model.UpsertVenueDto;
+import ml.echelon133.matchservice.venue.model.Venue;
 import ml.echelon133.matchservice.venue.repository.VenueRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -13,11 +14,15 @@ import java.util.UUID;
 @Service
 public class VenueService {
 
-    private VenueRepository venueRepository;
+    private final VenueRepository venueRepository;
 
     @Autowired
     public VenueService(VenueRepository venueRepository) {
         this.venueRepository = venueRepository;
+    }
+
+    private static VenueDto entityToDto(Venue venue) {
+        return new VenueDto(venue.getId(), venue.getName(), venue.getCapacity());
     }
 
     /**
@@ -28,7 +33,10 @@ public class VenueService {
      * @throws ResourceNotFoundException thrown when the venue does not exist in the database
      */
     public VenueDto findById(UUID id) throws ResourceNotFoundException {
-        return null;
+        return this.venueRepository
+                .findById(id)
+                .map(VenueService::entityToDto)
+                .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
     }
 
     /**
