@@ -1,7 +1,6 @@
 package ml.echelon133.matchservice.venue.model;
 
 import ml.echelon133.common.entity.BaseEntity;
-import ml.echelon133.common.venue.dto.VenueDto;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -34,9 +33,5 @@ public class Venue extends BaseEntity {
 
     public void setCapacity(Integer capacity) {
         this.capacity = capacity;
-    }
-
-    public VenueDto toDto() {
-        return new VenueDto(this.getId(), this.getName(), this.getCapacity());
     }
 }
