@@ -12,11 +12,11 @@ spring:
       discovery:
         locator:
           enabled: true
-      routes:
-        - id: match-service
-          uri: http://match-service:80
-          predicates:
-            - Path=/api/test*
+#      routes:
+#        - id: match-service
+#          uri: http://match-service:80
+#          predicates:
+#            - Path=/api/
 
 management:
   endpoint:
