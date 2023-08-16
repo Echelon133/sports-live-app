@@ -58,7 +58,10 @@ public class VenueService {
      * @return a dto representing the newly saved venue
      */
     public VenueDto createVenue(UpsertVenueDto venueDto) {
-        return null;
+        return entityToDto(
+                this.venueRepository
+                        .save(new Venue(venueDto.getName(), venueDto.getCapacity()))
+        );
     }
 
     /**
