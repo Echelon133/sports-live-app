@@ -2,6 +2,7 @@ package ml.echelon133.matchservice.venue.controller;
 
 import ml.echelon133.common.exception.FormInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.venue.dto.VenueDto;
 import ml.echelon133.matchservice.venue.model.UpsertVenueDto;
 import ml.echelon133.matchservice.venue.service.VenueService;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.UUID;
 
 @RestController
@@ -40,8 +42,13 @@ public class VenueController {
     }
 
     @PostMapping
-    public VenueDto insertVenue(@RequestBody UpsertVenueDto venueDto, BindingResult result) throws FormInvalidException {
-        return null;
+    public VenueDto createVenue(@RequestBody @Valid UpsertVenueDto venueDto, BindingResult result) throws FormInvalidException {
+
+        if (result.hasErrors()) {
+            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        return venueService.createVenue(venueDto);
     }
 
     @DeleteMapping("/{id}")
