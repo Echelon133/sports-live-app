@@ -38,7 +38,7 @@ public class VenueServiceTests {
         var testId = UUID.randomUUID();
 
         // given
-        given(venueRepository.findById(testId)).willReturn(Optional.empty());
+        given(venueRepository.findVenueById(testId)).willReturn(Optional.empty());
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -52,19 +52,19 @@ public class VenueServiceTests {
     @Test
     @DisplayName("findById maps found entity into a dto with identical values")
     public void findById_EntityPresent_MapsIntoValidDto() throws ResourceNotFoundException {
-        var testEntity = new Venue("Camp Nou", 99354);
-        var testId = testEntity.getId();
+        var testDto = new VenueDto(UUID.randomUUID(), "Camp Nou", 99354);
+        var testId = testDto.getId();
 
         // given
-        given(venueRepository.findById(testId)).willReturn(Optional.of(testEntity));
+        given(venueRepository.findVenueById(testId)).willReturn(Optional.of(testDto));
 
         // when
         VenueDto dto = venueService.findById(testId);
 
         // then
-        assertEquals(testEntity.getId(), dto.getId());
-        assertEquals(testEntity.getName(), dto.getName());
-        assertEquals(testEntity.getCapacity(), dto.getCapacity());
+        assertEquals(testDto.getId(), dto.getId());
+        assertEquals(testDto.getName(), dto.getName());
+        assertEquals(testDto.getCapacity(), dto.getCapacity());
     }
 
     @Test

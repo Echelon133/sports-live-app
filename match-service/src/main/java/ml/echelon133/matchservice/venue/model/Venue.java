@@ -1,10 +1,24 @@
 package ml.echelon133.matchservice.venue.model;
 
 import ml.echelon133.common.entity.BaseEntity;
+import ml.echelon133.common.venue.dto.VenueDto;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
+import javax.persistence.*;
+import java.util.UUID;
 
+@NamedNativeQuery(
+        name = "Venue.findVenueById",
+        query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE id = :id",
+        resultSetMapping = "Mapping.VenueDto")
+@SqlResultSetMapping(
+        name = "Mapping.VenueDto",
+        classes = @ConstructorResult(
+                targetClass = VenueDto.class,
+                columns = {
+                        @ColumnResult(name = "id", type = UUID.class),
+                        @ColumnResult(name = "name", type = String.class),
+                        @ColumnResult(name = "capacity", type = Integer.class)
+                }))
 @Entity
 public class Venue extends BaseEntity {
 

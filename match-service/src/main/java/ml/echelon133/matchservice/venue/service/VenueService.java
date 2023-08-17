@@ -34,8 +34,7 @@ public class VenueService {
      */
     public VenueDto findById(UUID id) throws ResourceNotFoundException {
         return this.venueRepository
-                .findById(id)
-                .map(VenueService::entityToDto)
+                .findVenueById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
     }
 
