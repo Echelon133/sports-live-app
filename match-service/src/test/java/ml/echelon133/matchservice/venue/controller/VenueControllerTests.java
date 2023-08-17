@@ -96,7 +96,7 @@ public class VenueControllerTests {
 
     @Test
     @DisplayName("POST /api/venues returns 422 when name is not provided")
-    public void insertVenue_NameNotProvided_StatusUnprocessableEntity() throws Exception {
+    public void createVenue_NameNotProvided_StatusUnprocessableEntity() throws Exception {
         var contentDto = new UpsertVenueDto(null, 100);
         var json = jsonUpsertVenueDto.write(contentDto).getJson();
 
@@ -114,7 +114,7 @@ public class VenueControllerTests {
 
     @Test
     @DisplayName("POST /api/venues returns 422 when name length is incorrect")
-    public void insertVenue_NameLengthIncorrect_StatusUnprocessableEntity() throws Exception {
+    public void createVenue_NameLengthIncorrect_StatusUnprocessableEntity() throws Exception {
         var incorrectNameLengths = List.of(
                 // too short (0 characters)
                 "",
@@ -141,7 +141,7 @@ public class VenueControllerTests {
 
     @Test
     @DisplayName("POST /api/venues returns 422 when capacity is negative")
-    public void insertVenue_CapacityNotPositive_StatusUnprocessableEntity() throws Exception {
+    public void createVenue_CapacityNotPositive_StatusUnprocessableEntity() throws Exception {
         var incorrectCapacities = List.of(-100, -1);
 
         for (Integer incorrectCapacity: incorrectCapacities) {
@@ -163,7 +163,7 @@ public class VenueControllerTests {
 
     @Test
     @DisplayName("POST /api/venues returns 200 when name length is correct and capacity is positive")
-    public void insertVenue_NameLengthIsCorrectAndCapacityPositive_StatusOk() throws Exception {
+    public void createVenue_NameLengthIsCorrectAndCapacityPositive_StatusOk() throws Exception {
         var correctNameLengths = List.of(
                 // 1 character (lower limit)
                 "a",
