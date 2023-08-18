@@ -104,4 +104,65 @@ public class VenueServiceTests {
         // then
         assertEquals(1, countDeleted);
     }
+
+    @Test
+    @DisplayName("updateVenue throws when there is no entity in the repository")
+    public void updateVenue_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        //
+        // given
+        given(venueRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            venueService.updateVenue(testId, new UpsertVenueDto("Test", null));
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("venue %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("updateVenue throws when there is no entity in the repository because it's been deleted")
+    public void updateVenue_EntityMarkedAsDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var entity = new Venue("Test", 1000);
+        entity.setDeleted(true);
+
+        // given
+        given(venueRepository.findById(testId)).willReturn(Optional.of(entity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            venueService.updateVenue(testId, new UpsertVenueDto("Test", null));
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("venue %s could not be found", testId), message);
+    }
+
+
+    @Test
+    @DisplayName("updateVenue changes the fields of the entity")
+    public void updateVenue_EntityPresent_UpdatesFieldValuesOfEntity() throws ResourceNotFoundException {
+        var originalEntity = new Venue("Test", 2000);
+        var newName = "San Siro";
+        var newCapacity = 80018;
+        var expectedUpdatedEntity = new Venue(newName, newCapacity);
+        expectedUpdatedEntity.setId(originalEntity.getId());
+
+        // given
+        given(venueRepository.findById(originalEntity.getId())).willReturn(Optional.of(originalEntity));
+        given(venueRepository.save(
+                argThat(v -> v.getName().equals(newName) && v.getCapacity() == newCapacity)
+        )).willReturn(expectedUpdatedEntity);
+
+        // when
+        VenueDto updated = venueService.updateVenue(originalEntity.getId(), new UpsertVenueDto(newName, newCapacity));
+
+        // then
+        assertEquals(newName, updated.getName());
+        assertEquals(newCapacity, updated.getCapacity());
+    }
 }

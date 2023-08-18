@@ -49,7 +49,15 @@ public class VenueService {
      * @throws ResourceNotFoundException thrown when the venue does not exist in the database
      */
     public VenueDto updateVenue(UUID id, UpsertVenueDto venueDto) throws ResourceNotFoundException {
-        return null;
+        var venueToUpdate = this.venueRepository
+                .findById(id)
+                .filter(v -> !v.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
+
+        venueToUpdate.setName(venueDto.getName());
+        venueToUpdate.setCapacity(venueDto.getCapacity());
+
+        return entityToDto(this.venueRepository.save(venueToUpdate));
     }
 
     /**
