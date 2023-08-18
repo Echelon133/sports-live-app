@@ -83,4 +83,18 @@ public class VenueRepositoryTests {
         assertEquals(1, countDeleted);
         assertTrue(venue.isEmpty());
     }
+
+    @Test
+    @DisplayName("markVenueAsDeleted native query only affects not deleted venues")
+    public void markVenueAsDeleted_VenueAlreadyMarkedAsDeleted_IsNotTouchedByQuery() {
+        var venue0 = new Venue("Allianz Arena", null);
+        venue0.setDeleted(true); // make deleted by default
+        var saved0 = venueRepository.save(venue0);
+
+        // when
+        Integer countDeleted = venueRepository.markVenueAsDeleted(saved0.getId());
+
+        // then
+        assertEquals(0, countDeleted);
+    }
 }

@@ -15,6 +15,6 @@ public interface VenueRepository extends JpaRepository<Venue, UUID> {
     Optional<VenueDto> findVenueById(UUID id);
 
     @Modifying
-    @Query(value = "UPDATE venue v SET v.deleted = true WHERE v.id = :id", nativeQuery = true)
+    @Query(value = "UPDATE venue v SET v.deleted = true WHERE v.id = :id AND v.deleted = false", nativeQuery = true)
     Integer markVenueAsDeleted(UUID id);
 }
