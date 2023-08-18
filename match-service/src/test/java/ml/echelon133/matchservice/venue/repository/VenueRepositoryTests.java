@@ -62,4 +62,25 @@ public class VenueRepositoryTests {
         // then
         assertTrue(venueDto.isEmpty());
     }
+
+    @Test
+    @DisplayName("markVenueAsDeleted native query only affects the venue with specified id")
+    public void markVenueAsDeleted_SpecifiedVenueId_OnlyMarksSpecifiedVenue() {
+        var venue0 = new Venue("Allianz Arena", null);
+        var venue1 = new Venue("San Siro", null);
+        var venue2 = new Venue("Camp Nou", null);
+
+        var saved0 = venueRepository.save(venue0);
+        venueRepository.save(venue1);
+        venueRepository.save(venue2);
+
+        // when
+        Integer countDeleted = venueRepository.markVenueAsDeleted(saved0.getId());
+        // findVenueById filters out `deleted` entities
+        Optional<VenueDto> venue = venueRepository.findVenueById(saved0.getId());
+
+        // then
+        assertEquals(1, countDeleted);
+        assertTrue(venue.isEmpty());
+    }
 }
