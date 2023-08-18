@@ -12,6 +12,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -52,7 +53,7 @@ public class VenueController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteVenue(@PathVariable UUID id) throws ResourceNotFoundException {
-        return;
+    public Map<String, Integer> deleteVenue(@PathVariable UUID id) {
+        return Map.of("deleted", venueService.markVenueAsDeleted(id));
     }
 }

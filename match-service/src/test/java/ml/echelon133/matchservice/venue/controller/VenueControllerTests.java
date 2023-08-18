@@ -195,4 +195,21 @@ public class VenueControllerTests {
                     .andExpect(content().string(expectedJson));
         }
     }
+
+    @Test
+    @DisplayName("DELETE /api/venues/:id returns 200 and a counter of how many venues have been deleted")
+    public void deleteVenue_VenueIdProvided_StatusOkAndReturnsCounter() throws Exception {
+        var id = UUID.randomUUID();
+
+        // given
+        given(venueService.markVenueAsDeleted(id)).willReturn(1);
+
+        mvc.perform(
+                        delete("/api/venues/" + id)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string("{\"deleted\":1}"));
+    }
 }
