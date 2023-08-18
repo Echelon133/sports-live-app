@@ -37,9 +37,14 @@ public class VenueController {
     }
 
     @PutMapping("/{id}")
-    public VenueDto updateVenue(@PathVariable UUID id, @RequestBody UpsertVenueDto venueDto, BindingResult result)
+    public VenueDto updateVenue(@PathVariable UUID id, @RequestBody @Valid UpsertVenueDto venueDto, BindingResult result)
             throws ResourceNotFoundException, FormInvalidException {
-        return null;
+
+        if (result.hasErrors()) {
+            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        return venueService.updateVenue(id, venueDto);
     }
 
     @PostMapping
