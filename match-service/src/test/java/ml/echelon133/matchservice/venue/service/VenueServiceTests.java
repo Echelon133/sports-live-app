@@ -89,4 +89,19 @@ public class VenueServiceTests {
         assertEquals(entity.getName(), savedDto.getName());
         assertEquals(entity.getCapacity(), savedDto.getCapacity());
     }
+
+    @Test
+    @DisplayName("markVenueAsDeleted calls repository's method and returns correct number of entries marked as deleted")
+    public void markVenueAsDeleted_ProvidedId_CorrectlyCallsMethodAndReturnsCount() {
+        var idToDelete = UUID.randomUUID();
+
+        // given
+        given(venueRepository.markVenueAsDeleted(idToDelete)).willReturn(1);
+
+        // when
+        Integer countDeleted = venueService.markVenueAsDeleted(idToDelete);
+
+        // then
+        assertEquals(1, countDeleted);
+    }
 }

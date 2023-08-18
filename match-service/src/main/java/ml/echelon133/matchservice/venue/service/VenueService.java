@@ -74,12 +74,12 @@ public class VenueService {
     }
 
     /**
-     * Deletes a venue with the specified id.
+     * Marks a venue with the specified id as deleted.
      *
-     * @param id id of the venue to be deleted
-     * @throws ResourceNotFoundException thrown when the venue does not exist in the database at all
+     * @param id id of the venue to be marked as deleted
+     * @return how many entities have been affected
      */
-    public void deleteVenue(UUID id) throws ResourceNotFoundException {
-        return;
+    public Integer markVenueAsDeleted(UUID id)  {
+        return this.venueRepository.markVenueAsDeleted(id);
     }
 }
