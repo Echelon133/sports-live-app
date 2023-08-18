@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @NamedNativeQuery(
         name = "Venue.findVenueById",
-        query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE id = :id",
+        query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE id = :id AND v.deleted = false",
         resultSetMapping = "Mapping.VenueDto")
 @SqlResultSetMapping(
         name = "Mapping.VenueDto",

@@ -48,4 +48,18 @@ public class VenueRepositoryTests {
         assertEquals(result.getName(), saved.getName());
         assertEquals(result.getCapacity(), saved.getCapacity());
     }
+
+    @Test
+    @DisplayName("findVenueById native query does not fetch venues marked as deleted")
+    public void findVenueById_VenueMarkedAsDeleted_IsEmpty() {
+        var venueToSave = new Venue("San Siro", 80018);
+        venueToSave.setDeleted(true);
+        var saved = venueRepository.save(venueToSave);
+
+        // when
+        Optional<VenueDto> venueDto = venueRepository.findVenueById(saved.getId());
+
+        // then
+        assertTrue(venueDto.isEmpty());
+    }
 }

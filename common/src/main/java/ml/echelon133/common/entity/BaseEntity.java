@@ -28,6 +28,8 @@ public abstract class BaseEntity implements Serializable {
     @CreatedDate
     private Date dateCreated;
 
+    private boolean deleted;
+
     public UUID getId() {
         return id;
     }
@@ -50,6 +52,14 @@ public abstract class BaseEntity implements Serializable {
 
     public void setDateCreated(Date dateCreated) {
         this.dateCreated = dateCreated;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
     @Override
