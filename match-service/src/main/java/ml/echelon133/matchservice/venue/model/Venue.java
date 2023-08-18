@@ -6,10 +6,23 @@ import ml.echelon133.common.venue.dto.VenueDto;
 import javax.persistence.*;
 import java.util.UUID;
 
-@NamedNativeQuery(
-        name = "Venue.findVenueById",
-        query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE id = :id AND v.deleted = false",
-        resultSetMapping = "Mapping.VenueDto")
+@NamedNativeQueries({
+        @NamedNativeQuery(
+                name = "Venue.findVenueById",
+                query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE id = :id AND v.deleted = false",
+                resultSetMapping = "Mapping.VenueDto"
+        ),
+        @NamedNativeQuery(
+                name = "Venue.findAllByNameContaining",
+                query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE v.name LIKE '%' || :phrase || '%' AND v.deleted = false",
+                resultSetMapping = "Mapping.VenueDto"
+        ),
+        // this counting query is required when using Page<VenueDto>
+        @NamedNativeQuery(
+                name = "Venue.findAllByNameContaining.count",
+                query = "SELECT COUNT(*) FROM venue v WHERE v.name LIKE '%' || :phrase || '%' AND v.deleted = false"
+        )
+})
 @SqlResultSetMapping(
         name = "Mapping.VenueDto",
         classes = @ConstructorResult(

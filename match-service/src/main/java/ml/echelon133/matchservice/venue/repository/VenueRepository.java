@@ -2,6 +2,8 @@ package ml.echelon133.matchservice.venue.repository;
 
 import ml.echelon133.common.venue.dto.VenueDto;
 import ml.echelon133.matchservice.venue.model.Venue;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,4 +19,7 @@ public interface VenueRepository extends JpaRepository<Venue, UUID> {
     @Modifying
     @Query(value = "UPDATE venue SET deleted = true WHERE id = :id AND deleted = false", nativeQuery = true)
     Integer markVenueAsDeleted(UUID id);
+
+    @Query(nativeQuery = true)
+    Page<VenueDto> findAllByNameContaining(String phrase, Pageable pageable);
 }
