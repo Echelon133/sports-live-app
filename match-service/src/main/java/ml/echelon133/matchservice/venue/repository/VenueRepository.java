@@ -21,8 +21,8 @@ public interface VenueRepository extends JpaRepository<Venue, UUID> {
     @Query(value = "UPDATE venue SET deleted = true WHERE id = :id AND deleted = false", nativeQuery = true)
     Integer markVenueAsDeleted(UUID id);
 
-    @Query(value = "SELECT id, name, capacity FROM venue WHERE name LIKE '%' || :phrase || '%' AND deleted = false",
-            countQuery = "SELECT COUNT(*) FROM venue WHERE name LIKE '%' || :phrase || '%' AND deleted = false",
+    @Query(value = "SELECT id, name, capacity FROM venue WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
+            countQuery = "SELECT COUNT(*) FROM venue WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             nativeQuery = true)
     Page<VenueDto> findAllByNameContaining(String phrase, Pageable pageable);
 }
