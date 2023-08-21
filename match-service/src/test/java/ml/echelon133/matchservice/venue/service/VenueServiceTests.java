@@ -11,14 +11,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -164,5 +166,26 @@ public class VenueServiceTests {
         // then
         assertEquals(newName, updated.getName());
         assertEquals(newCapacity, updated.getCapacity());
+    }
+
+    @Test
+    @DisplayName("findVenuesByName correctly calls the repository method")
+    public void findVenuesByName_CustomPhraseAndPageable_CorrectlyCallsRepository() {
+        var phrase = "test";
+        var pageable = Pageable.ofSize(7).withPage(4);
+        var expectedDto = VenueDto.from(UUID.randomUUID(), "test", 1000);
+        var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
+
+        // given
+        given(venueRepository.findAllByNameContaining(
+                eq(phrase),
+                argThat(p -> p.getPageSize() == 7 && p.getPageNumber() == 4)
+        )).willReturn(expectedPage);
+
+        // when
+        var result = venueService.findVenuesByName(phrase, pageable);
+
+        // then
+        assertEquals(1, result.getNumberOfElements());
     }
 }

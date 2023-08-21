@@ -7,6 +7,7 @@ import ml.echelon133.matchservice.venue.model.Venue;
 import ml.echelon133.matchservice.venue.repository.VenueRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -74,13 +75,14 @@ public class VenueService {
     }
 
     /**
-     * Finds all venues whose names contain a specified phrase.
+     * Finds all venues whose names contain the specified phrase.
      *
      * @param phrase phrase which needs to appear in the name of the venue
+     * @param pageable information about the wanted page
      * @return a page of venues which match the filter
      */
-    public Page<VenueDto> findVenuesByName(String phrase) {
-        return null;
+    public Page<VenueDto> findVenuesByName(String phrase, Pageable pageable) {
+        return this.venueRepository.findAllByNameContaining(phrase, pageable);
     }
 
     /**
