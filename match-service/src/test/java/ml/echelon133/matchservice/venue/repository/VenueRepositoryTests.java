@@ -121,6 +121,41 @@ public class VenueRepositoryTests {
     }
 
     @Test
+    @DisplayName("findAllByNameContaining native query is case-insensitive")
+    public void findAllByNameContaining_MultipleVenues_SearchIsCaseInsensitive() {
+        venueRepository.save(new Venue("Nou Camp Nou", null));
+        venueRepository.save(new Venue("Camp Nou", null));
+        venueRepository.save(new Venue("San Siro", null));
+
+        // when
+        Page<VenueDto> result = venueRepository.findAllByNameContaining("nou", Pageable.ofSize(10));
+
+        // then
+        assertEquals(2, result.getTotalElements());
+        List<String> names = result.getContent().stream().map(VenueDto::getName).collect(Collectors.toList());
+        assertTrue(names.contains("Nou Camp Nou"));
+        assertTrue(names.contains("Camp Nou"));
+    }
+
+    @Test
+    @DisplayName("findAllByNameContaining native query only finds non-deleted results which contain the specified phrase")
+    public void findAllByNameContaining_SomeDeletedVenues_OnlyFindsMatchingNonDeletedVenues() {
+        var deletedVenue = new Venue("Nou Camp Nou", null);
+        deletedVenue.setDeleted(true);
+        venueRepository.save(deletedVenue);
+        venueRepository.save(new Venue("Camp Nou", null));
+        venueRepository.save(new Venue("San Siro", null));
+
+        // when
+        Page<VenueDto> result = venueRepository.findAllByNameContaining("Nou", Pageable.ofSize(10));
+
+        // then
+        assertEquals(1, result.getTotalElements());
+        List<String> names = result.getContent().stream().map(VenueDto::getName).collect(Collectors.toList());
+        assertTrue(names.contains("Camp Nou"));
+    }
+
+    @Test
     @DisplayName("findAllByNameContaining native query takes page size information from Pageable into account")
     public void findAllByNameContaining_PageableCustomPageSize_UsesPageableInfo() {
         // when
