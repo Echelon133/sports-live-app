@@ -19,7 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -81,7 +80,7 @@ public class VenueControllerTests {
     @DisplayName("GET /api/venues/:id returns 200 and a valid entity if entity found")
     public void getVenueById_VenueFound_StatusOk() throws Exception {
         var testId = UUID.randomUUID();
-        var venueDto = new VenueDto(testId, "San Siro", 80018);
+        var venueDto = VenueDto.from(testId, "San Siro", 80018);
 
         var expectedJson = jsonVenueDto.write(venueDto).getJson();
 
@@ -176,7 +175,7 @@ public class VenueControllerTests {
 
         for (String correctName : correctNameLengths) {
             // expected from the database
-            var dto = new VenueDto(UUID.randomUUID(), correctName, 0);
+            var dto = VenueDto.from(UUID.randomUUID(), correctName, 0);
             var expectedJson = jsonVenueDto.write(dto).getJson();
 
             // what is given in the request body
@@ -324,7 +323,7 @@ public class VenueControllerTests {
 
         for (String correctName : correctNameLengths) {
             // expected from the database
-            var dto = new VenueDto(UUID.randomUUID(), correctName, 0);
+            var dto = VenueDto.from(UUID.randomUUID(), correctName, 0);
             var expectedJson = jsonVenueDto.write(dto).getJson();
 
             // what is given in the request body

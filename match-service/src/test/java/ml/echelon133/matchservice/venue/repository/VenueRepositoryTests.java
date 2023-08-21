@@ -28,7 +28,7 @@ public class VenueRepositoryTests {
     private VenueRepository venueRepository;
 
     @Test
-    @DisplayName("findVenueById native query finds null when the venue does not exist")
+    @DisplayName("findVenueById native query finds empty when the venue does not exist")
     public void findVenueById_VenueDoesNotExist_IsEmpty() {
         var id = UUID.randomUUID();
 
@@ -59,7 +59,7 @@ public class VenueRepositoryTests {
     public void findVenueById_VenueMarkedAsDeleted_IsEmpty() {
         var venueToSave = new Venue("San Siro", 80018);
         venueToSave.setDeleted(true);
-        var saved = venueRepository.save(venueToSave);
+        var saved = venueRepository.saveAndFlush(venueToSave);
 
         // when
         Optional<VenueDto> venueDto = venueRepository.findVenueById(saved.getId());
@@ -130,8 +130,6 @@ public class VenueRepositoryTests {
         assertEquals(8, result.getPageable().getPageSize());
     }
 
-    // TODO: needs fixing, because some Pageable settings (e.g. setting the page number) cause the native query to fail with
-    //  "InvalidDataAccessApiUsage Named query exists but its result type is not compatible"
     @Test
     @DisplayName("findAllByNameContaining native query takes page number information from Pageable into account")
     public void findAllByNameContaining_PageableCustomPageNumber_UsesPageableInfo() {

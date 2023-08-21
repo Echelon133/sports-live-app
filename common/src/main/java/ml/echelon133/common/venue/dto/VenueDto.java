@@ -2,39 +2,27 @@ package ml.echelon133.common.venue.dto;
 
 import java.util.UUID;
 
-public class VenueDto {
-    private UUID id;
-    private String name;
-    private Integer capacity;
+public interface VenueDto {
+    UUID getId();
+    String getName();
+    Integer getCapacity();
 
-    public VenueDto() {}
-    public VenueDto(UUID id, String name, Integer capacity) {
-        this.id = id;
-        this.name = name;
-        this.capacity = capacity;
-    }
+    static VenueDto from(UUID id, String name, Integer capacity) {
+        return new VenueDto() {
+            @Override
+            public UUID getId() {
+                return id;
+            }
 
-    public UUID getId() {
-        return id;
-    }
+            @Override
+            public String getName() {
+                return name;
+            }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getCapacity() {
-        return capacity;
-    }
-
-    public void setCapacity(Integer capacity) {
-        this.capacity = capacity;
+            @Override
+            public Integer getCapacity() {
+                return capacity;
+            }
+        };
     }
 }

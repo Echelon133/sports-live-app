@@ -1,37 +1,9 @@
 package ml.echelon133.matchservice.venue.model;
 
 import ml.echelon133.common.entity.BaseEntity;
-import ml.echelon133.common.venue.dto.VenueDto;
 
 import javax.persistence.*;
-import java.util.UUID;
 
-@NamedNativeQueries({
-        @NamedNativeQuery(
-                name = "Venue.findVenueById",
-                query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE id = :id AND v.deleted = false",
-                resultSetMapping = "Mapping.VenueDto"
-        ),
-        @NamedNativeQuery(
-                name = "Venue.findAllByNameContaining",
-                query = "SELECT v.id as id, v.name as name, v.capacity as capacity FROM venue v WHERE v.name LIKE '%' || :phrase || '%' AND v.deleted = false",
-                resultSetMapping = "Mapping.VenueDto"
-        ),
-        // this counting query is required when using Page<VenueDto>
-        @NamedNativeQuery(
-                name = "Venue.findAllByNameContaining.count",
-                query = "SELECT COUNT(*) FROM venue v WHERE v.name LIKE '%' || :phrase || '%' AND v.deleted = false"
-        )
-})
-@SqlResultSetMapping(
-        name = "Mapping.VenueDto",
-        classes = @ConstructorResult(
-                targetClass = VenueDto.class,
-                columns = {
-                        @ColumnResult(name = "id", type = UUID.class),
-                        @ColumnResult(name = "name", type = String.class),
-                        @ColumnResult(name = "capacity", type = Integer.class)
-                }))
 @Entity
 public class Venue extends BaseEntity {
 

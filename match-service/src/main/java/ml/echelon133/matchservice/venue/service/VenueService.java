@@ -24,7 +24,7 @@ public class VenueService {
     }
 
     private static VenueDto entityToDto(Venue venue) {
-        return new VenueDto(venue.getId(), venue.getName(), venue.getCapacity());
+        return VenueDto.from(venue.getId(), venue.getName(), venue.getCapacity());
     }
 
     /**

@@ -52,7 +52,7 @@ public class VenueServiceTests {
     @Test
     @DisplayName("findById maps found entity into a dto with identical values")
     public void findById_EntityPresent_MapsIntoValidDto() throws ResourceNotFoundException {
-        var testDto = new VenueDto(UUID.randomUUID(), "Camp Nou", 99354);
+        var testDto = VenueDto.from(UUID.randomUUID(), "Camp Nou", 99354);
         var testId = testDto.getId();
 
         // given
