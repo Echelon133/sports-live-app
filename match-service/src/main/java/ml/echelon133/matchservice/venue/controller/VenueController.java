@@ -8,6 +8,7 @@ import ml.echelon133.matchservice.venue.model.UpsertVenueDto;
 import ml.echelon133.matchservice.venue.service.VenueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,8 +33,8 @@ public class VenueController {
     }
 
     @GetMapping
-    public Page<VenueDto> getVenuesByName(@RequestParam String name) {
-        return null;
+    public Page<VenueDto> getVenuesByName(Pageable pageable, @RequestParam String name) {
+        return venueService.findVenuesByName(name, pageable);
     }
 
     @PutMapping("/{id}")

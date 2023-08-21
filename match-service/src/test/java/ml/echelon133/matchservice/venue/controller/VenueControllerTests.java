@@ -15,6 +15,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.json.JacksonTester;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -52,7 +56,13 @@ public class VenueControllerTests {
     @BeforeEach
     public void beforeEach() {
         JacksonTester.initFields(this, new ObjectMapper());
-        mvc = MockMvcBuilders.standaloneSetup(venueController).setControllerAdvice(venueExceptionHandler).build();
+        mvc = MockMvcBuilders.standaloneSetup(venueController)
+                .setControllerAdvice(venueExceptionHandler)
+                .setCustomArgumentResolvers(
+                        // required while testing controller methods which use Pageable
+                        new PageableHandlerMethodArgumentResolver()
+                )
+                .build();
     }
 
     @Test
@@ -345,5 +355,71 @@ public class VenueControllerTests {
                     .andExpect(status().isOk())
                     .andExpect(content().string(expectedJson));
         }
+    }
+
+    @Test
+    @DisplayName("GET /api/venues?name= returns 400 when `name` is not provided")
+    public void getVenuesByName_NameNotProvided_StatusBadRequest() throws Exception {
+        mvc.perform(
+                        get("/api/venues")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages[0]", is("'name' request parameter is required")));
+    }
+
+    @Test
+    @DisplayName("GET /api/venues?name returns 200 when `name` is provided and pageable is default")
+    public void getVenuesByName_NameProvidedWithDefaultPageable_StatusOk() throws Exception {
+        var pValue = "test";
+        var defaultPageNumber = 0;
+        var defaultPageSize = 20;
+
+        Page<VenueDto> expectedPage = Page.empty();
+
+        //given
+        given(venueService.findVenuesByName(
+                eq(pValue),
+                argThat(p -> p.getPageSize() == defaultPageSize && p.getPageNumber() == defaultPageNumber)
+        )).willReturn(expectedPage);
+
+        mvc.perform(
+                        get("/api/venues")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("name", pValue)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/venues?name returns 200 when `name` is provided and pageable values are custom")
+    public void getVenuesByName_NameProvidedWithCustomPageParameters_StatusOk() throws Exception {
+        var pValue = "test";
+        var testPageSize = 7;
+        var testPageNumber = 4;
+        var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
+        var expectedContent = List.of(VenueDto.from(UUID.randomUUID(), "test", null));
+        Page<VenueDto> expectedPage = new PageImpl<>(expectedContent, expectedPageable, 1);
+
+        //given
+        given(venueService.findVenuesByName(
+                eq(pValue),
+                argThat(p -> p.getPageNumber() == testPageNumber && p.getPageSize() == testPageSize)
+        )).willReturn(expectedPage);
+
+        mvc.perform(
+                        get("/api/venues")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("name", pValue)
+                                .param("page", String.valueOf(testPageNumber))
+                                .param("size", String.valueOf(testPageSize))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(1)))
+                .andExpect(jsonPath("$.content[0].name", is(pValue)));
     }
 }
