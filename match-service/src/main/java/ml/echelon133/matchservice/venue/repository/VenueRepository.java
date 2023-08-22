@@ -19,7 +19,8 @@ public interface VenueRepository extends JpaRepository<Venue, UUID> {
      * @param id id of the venue
      * @return empty {@link Optional} if the venue was not found or is marked as deleted, otherwise contains a {@link VenueDto}
      */
-    @Query(value = "SELECT id, name, capacity FROM venue WHERE deleted = false AND id = ?1",
+    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
+    @Query(value = "SELECT CAST(id as varchar) as id, name, capacity FROM venue WHERE deleted = false AND id = ?1",
             nativeQuery = true)
     Optional<VenueDto> findVenueById(UUID id);
 
@@ -40,7 +41,8 @@ public interface VenueRepository extends JpaRepository<Venue, UUID> {
      * @param pageable information about the wanted page
      * @return a page containing all venues whose names contain the phrase
      */
-    @Query(value = "SELECT id, name, capacity FROM venue WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
+    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
+    @Query(value = "SELECT CAST(id as varchar) as id, name, capacity FROM venue WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             countQuery = "SELECT COUNT(*) FROM venue WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             nativeQuery = true)
     Page<VenueDto> findAllByNameContaining(String phrase, Pageable pageable);
