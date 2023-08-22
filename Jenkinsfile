@@ -59,6 +59,22 @@ pipeline {
             }
         }
 
+        stage("Configure secrets used in the k8s cluster") {
+            steps {
+                withKubeConfig([credentialsId: "${KUBERNETES_USER_CRED}", serverUrl: "${KUBERNETES_SERVER_URL}"]) {
+                    withCredentials([file(credentialsId: 'match-service-postgres-secret', variable: 'POSTGRES_SECRET')]) {
+                        sh(returnStatus: true, script:
+                            '''
+                                kubectl create secret generic match-service-postgres-secret \
+                                    --from-env-file=$POSTGRES_SECRET \
+                                    -n $KUBERNETES_APP_NAMESPACE
+                            '''
+                        )
+                    }
+                }
+            }
+        }
+
         stage("Create/Update resources in the cluster") {
             steps {
                 withKubeConfig([credentialsId: "${KUBERNETES_USER_CRED}", serverUrl: "${KUBERNETES_SERVER_URL}"]) {

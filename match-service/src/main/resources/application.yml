@@ -11,6 +11,18 @@ spring:
     kubernetes:
       discovery:
         all-namespaces: true
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL10Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    url: jdbc:postgresql://match-service-postgres:5432/${SECRET_POSTGRES_DB}
+    username: ${SECRET_POSTGRES_USERNAME}
+    password: ${SECRET_POSTGRES_PASSWORD}
+
 
 management:
   endpoint:
