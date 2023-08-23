@@ -16,7 +16,7 @@ spring:
         - id: match-service
           uri: http://match-service:80
           predicates:
-            - Path=/api/venues*, /api/venues/**
+            - Path=/api/venues*, /api/venues/**, /api/referees*, /api/referees/**
 
 management:
   endpoint:
