@@ -1,12 +1,15 @@
 package ml.echelon133.common.exception;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import javax.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -88,5 +91,13 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
     protected ResponseEntity<MapErrorMessage> handleFormInvalidException(FormInvalidException ex, WebRequest request) {
         MapErrorMessage error = new MapErrorMessage(HttpStatus.UNPROCESSABLE_ENTITY, request, ex.getValidationErrors());
         return error.asResponseEntity();
+    }
+
+    @NotNull
+    @Override
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+        String errorMessage = String.format("'%s' request parameter is required", ex.getParameterName());
+        AbstractExceptionHandler.ErrorMessage error = new AbstractExceptionHandler.ErrorMessage(HttpStatus.BAD_REQUEST, request, errorMessage);
+        return new ResponseEntity<>(error, new HttpHeaders(), error.getStatus());
     }
 }
