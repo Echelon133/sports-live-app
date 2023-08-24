@@ -11,7 +11,7 @@ public class Country extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 2)
+    @Column(nullable = false, length = 2, name = "country_code")
     private String countryCode;
 
     public Country() {}
