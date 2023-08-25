@@ -41,7 +41,7 @@ public class RefereeRepositoryTests {
 
     @Test
     @DisplayName("findRefereeById native query finds referee when the referee exists")
-    public void findRefereeById_RefereeDoesNotExist_IsPresent() {
+    public void findRefereeById_RefereeExists_IsPresent() {
         var saved = refereeRepository.save(new Referee("Szymon Marciniak"));
 
         // when

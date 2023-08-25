@@ -41,7 +41,7 @@ public class VenueRepositoryTests {
 
     @Test
     @DisplayName("findVenueById native query finds venue when the venue exists")
-    public void findVenueById_VenueDoesNotExist_IsPresent() {
+    public void findVenueById_VenueExists_IsPresent() {
         var saved = venueRepository.save(new Venue("San Siro", 80018));
 
         // when
