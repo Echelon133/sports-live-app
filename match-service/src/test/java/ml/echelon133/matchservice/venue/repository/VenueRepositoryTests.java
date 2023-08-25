@@ -11,10 +11,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.TestPropertySource;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -106,53 +104,50 @@ public class VenueRepositoryTests {
     @Test
     @DisplayName("findAllByNameContaining native query only finds results which contain the specified phrase")
     public void findAllByNameContaining_MultipleVenues_OnlyFindsMatchingVenues() {
-        venueRepository.save(new Venue("Nou Camp Nou", null));
-        venueRepository.save(new Venue("Camp Nou", null));
-        venueRepository.save(new Venue("San Siro", null));
+        venueRepository.save(new Venue("Nou Camp Nou", 1));
+        venueRepository.save(new Venue("Camp Nou", 2));
+        venueRepository.save(new Venue("San Siro", 3));
 
         // when
         Page<VenueDto> result = venueRepository.findAllByNameContaining("Nou", Pageable.ofSize(10));
 
         // then
         assertEquals(2, result.getTotalElements());
-        List<String> names = result.getContent().stream().map(VenueDto::getName).collect(Collectors.toList());
-        assertTrue(names.contains("Nou Camp Nou"));
-        assertTrue(names.contains("Camp Nou"));
+        assertTrue(result.stream().anyMatch(v -> v.getName().equals("Nou Camp Nou") && v.getCapacity() == 1));
+        assertTrue(result.stream().anyMatch(v -> v.getName().equals("Camp Nou") && v.getCapacity() == 2));
     }
 
     @Test
     @DisplayName("findAllByNameContaining native query is case-insensitive")
     public void findAllByNameContaining_MultipleVenues_SearchIsCaseInsensitive() {
-        venueRepository.save(new Venue("Nou Camp Nou", null));
-        venueRepository.save(new Venue("Camp Nou", null));
-        venueRepository.save(new Venue("San Siro", null));
+        venueRepository.save(new Venue("Nou Camp Nou", 1));
+        venueRepository.save(new Venue("Camp Nou", 2));
+        venueRepository.save(new Venue("San Siro", 3));
 
         // when
         Page<VenueDto> result = venueRepository.findAllByNameContaining("nou", Pageable.ofSize(10));
 
         // then
         assertEquals(2, result.getTotalElements());
-        List<String> names = result.getContent().stream().map(VenueDto::getName).collect(Collectors.toList());
-        assertTrue(names.contains("Nou Camp Nou"));
-        assertTrue(names.contains("Camp Nou"));
+        assertTrue(result.stream().anyMatch(v -> v.getName().equals("Nou Camp Nou") && v.getCapacity() == 1));
+        assertTrue(result.stream().anyMatch(v -> v.getName().equals("Camp Nou") && v.getCapacity() == 2));
     }
 
     @Test
     @DisplayName("findAllByNameContaining native query only finds non-deleted results which contain the specified phrase")
     public void findAllByNameContaining_SomeDeletedVenues_OnlyFindsMatchingNonDeletedVenues() {
-        var deletedVenue = new Venue("Nou Camp Nou", null);
+        var deletedVenue = new Venue("Nou Camp Nou", 1);
         deletedVenue.setDeleted(true);
         venueRepository.save(deletedVenue);
-        venueRepository.save(new Venue("Camp Nou", null));
-        venueRepository.save(new Venue("San Siro", null));
+        venueRepository.save(new Venue("Camp Nou", 2));
+        venueRepository.save(new Venue("San Siro", 3));
 
         // when
         Page<VenueDto> result = venueRepository.findAllByNameContaining("Nou", Pageable.ofSize(10));
 
         // then
         assertEquals(1, result.getTotalElements());
-        List<String> names = result.getContent().stream().map(VenueDto::getName).collect(Collectors.toList());
-        assertTrue(names.contains("Camp Nou"));
+        assertTrue(result.stream().anyMatch(v -> v.getName().equals("Camp Nou") && v.getCapacity() == 2));
     }
 
     @Test
