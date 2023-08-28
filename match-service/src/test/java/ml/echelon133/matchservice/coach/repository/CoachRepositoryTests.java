@@ -41,7 +41,7 @@ public class CoachRepositoryTests {
 
     @Test
     @DisplayName("findCoachById native query finds coach when the coach exists")
-    public void findCoachById_CoachDoesNotExist_IsPresent() {
+    public void findCoachById_CoachExists_IsPresent() {
         var saved = coachRepository.save(new Coach("Pep Guardiola"));
 
         // when
