@@ -44,4 +44,53 @@ public interface PlayerDto {
             }
         };
     }
+
+    static Builder builder() {
+        return new Builder();
+    }
+
+    class Builder {
+        private UUID id = UUID.randomUUID();
+        private String name = "Test Player";
+        private String position = "FORWARD";
+        private LocalDate dateOfBirth = LocalDate.of(1970, 1, 1);
+        private CountryDto countryDto = CountryDto.from(UUID.randomUUID(), "Test Country", "TC");
+
+        private Builder() {}
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder position(String position) {
+            this.position = position;
+            return this;
+        }
+
+        public Builder dateOfBirth(LocalDate dateOfBirth) {
+            this.dateOfBirth = dateOfBirth;
+            return this;
+        }
+
+        public Builder countryDto(CountryDto countryDto) {
+            this.countryDto = countryDto;
+            return this;
+        }
+
+        public PlayerDto build() {
+            return PlayerDto.from(
+                    id,
+                    name,
+                    position,
+                    dateOfBirth,
+                    countryDto
+            );
+        }
+    }
 }
