@@ -49,7 +49,8 @@ public class PlayerController {
     }
 
     @PostMapping
-    public PlayerDto createPlayer(@RequestBody @Valid UpsertPlayerDto playerDto, BindingResult result) throws FormInvalidException {
+    public PlayerDto createPlayer(@RequestBody @Valid UpsertPlayerDto playerDto, BindingResult result)
+            throws FormInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
             throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
