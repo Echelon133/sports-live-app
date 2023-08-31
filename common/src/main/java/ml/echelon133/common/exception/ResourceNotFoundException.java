@@ -7,7 +7,14 @@ import java.util.UUID;
  */
 public class ResourceNotFoundException extends Exception {
 
+    private Class resourceClass;
+
     public ResourceNotFoundException(Class cls, UUID id) {
         super(String.format("%s %s could not be found", cls.getSimpleName().toLowerCase(), id));
+        this.resourceClass = cls;
+    }
+
+    public Class getResourceClass() {
+        return resourceClass;
     }
 }

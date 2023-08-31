@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.player.controller;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.player.dto.PlayerDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
+import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.service.PlayerService;
@@ -28,7 +29,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -71,37 +73,37 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("GET /api/players/:id returns 404 when resource not found")
     public void getPlayerById_PlayerNotFound_StatusNotFound() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
 
         // given
-        given(playerService.findById(testId)).willThrow(
-                new ResourceNotFoundException(Player.class, testId)
+        given(playerService.findById(playerId)).willThrow(
+                new ResourceNotFoundException(Player.class, playerId)
         );
 
         mvc.perform(
-                        get("/api/players/" + testId)
+                        get("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.messages[0]", is(
-                        String.format("player %s could not be found", testId)
+                        String.format("player %s could not be found", playerId)
                 )));
     }
 
     @Test
     @DisplayName("GET /api/players/:id returns 200 and a valid entity if entity found")
     public void getPlayerById_PlayerFound_StatusOk() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
 
         var playerDto = PlayerDto.builder().build();
         var expectedJson = jsonPlayerDto.write(playerDto).getJson();
 
         // given
-        given(playerService.findById(testId)).willReturn(playerDto);
+        given(playerService.findById(playerId)).willReturn(playerDto);
 
         mvc.perform(
-                        get("/api/players/" + testId)
+                        get("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                 )
@@ -342,6 +344,35 @@ public class PlayerControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/players returns 422 when the service throws ResourceNotFoundException caused by Country")
+    public void createPlayer_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
+        var contentDto = UpsertPlayerDto.builder().build();
+        var json = jsonUpsertPlayerDto.write(contentDto).getJson();
+        var countryId = UUID.fromString(contentDto.getCountryId());
+
+        // given
+        given(playerService.createPlayer(argThat(a ->
+                a.getName().equals(contentDto.getName()) &&
+                        a.getCountryId().equals(contentDto.getCountryId()) &&
+                        a.getPosition().equals(contentDto.getPosition()) &&
+                        a.getDateOfBirth().equals(contentDto.getDateOfBirth())
+        ))).willThrow(new ResourceNotFoundException(Country.class, countryId));
+
+        // when
+        var expectedError = String.format("country %s could not be found", countryId);
+        mvc.perform(
+                        post("/api/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("countryId", List.of(expectedError)))
+                );
+    }
+
+    @Test
     @DisplayName("POST /api/players returns 200 and calls the service when request body valid")
     public void createPlayer_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
         var contentDto = UpsertPlayerDto.builder().build();
@@ -392,36 +423,36 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 404 when resource not found")
     public void updatePlayer_PlayerNotFound_StatusNotFound() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var upsertDto = UpsertPlayerDto.builder().build();
         var upsertJson = jsonUpsertPlayerDto.write(upsertDto).getJson();
 
         // given
-        given(playerService.updatePlayer(eq(testId), ArgumentMatchers.any())).willThrow(
-                new ResourceNotFoundException(Player.class, testId)
+        given(playerService.updatePlayer(eq(playerId), ArgumentMatchers.any())).willThrow(
+                new ResourceNotFoundException(Player.class, playerId)
         );
 
         mvc.perform(
-                        put("/api/players/" + testId)
+                        put("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(upsertJson)
                 )
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.messages[0]", is(
-                        String.format("player %s could not be found", testId)
+                        String.format("player %s could not be found", playerId)
                 )));
     }
 
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when name is not provided")
     public void updatePlayer_NameNotProvided_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var contentDto = UpsertPlayerDto.builder().name(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
-                        put("/api/players/" + testId)
+                        put("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(json)
@@ -435,7 +466,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when name length is incorrect")
     public void updatePlayer_NameLengthIncorrect_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var incorrectNameLengths = List.of(
                 // too short (0 characters)
                 "",
@@ -448,7 +479,7 @@ public class PlayerControllerTests {
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
-                            put("/api/players/" + testId)
+                            put("/api/players/" + playerId)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content(json)
@@ -463,7 +494,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 200 when name length is correct")
     public void updatePlayer_NameLengthCorrect_StatusOk() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var correctNameLengths = List.of(
                 // minimum 1 character
                 "a",
@@ -476,7 +507,7 @@ public class PlayerControllerTests {
             var bodyJson = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
-                            put("/api/players/" + testId)
+                            put("/api/players/" + playerId)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content(bodyJson)
@@ -488,12 +519,12 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when countryId is not provided")
     public void updatePlayer_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var contentDto = UpsertPlayerDto.builder().countryId(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
-                        put("/api/players/" + testId)
+                        put("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(json)
@@ -507,12 +538,12 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when countryId is not an uuid")
     public void updatePlayer_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var contentDto = UpsertPlayerDto.builder().countryId("a").build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
-                        put("/api/players/" + testId)
+                        put("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(json)
@@ -526,12 +557,12 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when position is not provided")
     public void updatePlayer_PositionNotProvided_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var contentDto = UpsertPlayerDto.builder().position(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
-                        put("/api/players/" + testId)
+                        put("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(json)
@@ -545,7 +576,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when position value is incorrect")
     public void updatePlayer_PositionIncorrect_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var incorrectPositions = List.of(
                 "asdf", "", "TEST", "test", "aaaaaaaaaaaaaaaaaaaaaa"
         );
@@ -555,7 +586,7 @@ public class PlayerControllerTests {
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
-                            put("/api/players/" + testId)
+                            put("/api/players/" + playerId)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content(json)
@@ -568,7 +599,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 200 when position value is correct")
     public void updatePlayer_PositionCorrect_StatusOk() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var correctPositions = List.of(
                 "GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD", // uppercase
                 "goalkeeper", "defender", "midfielder", "forward", // lowercase
@@ -580,7 +611,7 @@ public class PlayerControllerTests {
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
-                            put("/api/players/" + testId)
+                            put("/api/players/" + playerId)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content(json)
@@ -592,12 +623,12 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when dateOfBirth is not provided")
     public void updatePlayer_DateOfBirthNotProvided_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var contentDto = UpsertPlayerDto.builder().dateOfBirth(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
-                        put("/api/players/" + testId)
+                        put("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(json)
@@ -611,7 +642,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 422 when dateOfBirth is incorrect")
     public void updatePlayer_DateOfBirthIncorrect_StatusUnprocessableEntity() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         // any value that's not a date in yyyy/MM/dd format will be rejected
         var incorrectDates = List.of(
                 "1970/01/01/01", "asdf", "", "01-01-1970", "01/01/1970", "1970-01-01"
@@ -622,7 +653,7 @@ public class PlayerControllerTests {
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
-                            put("/api/players/" + testId)
+                            put("/api/players/" + playerId)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content(json)
@@ -637,7 +668,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("PUT /api/players/:id returns 200 when dateOfBirth is correct")
     public void updatePlayer_DateOfBirthCorrect_StatusOk() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var correctDates = List.of(
                 "1970/01/01", "1988/08/10", "2000/03/05"
         );
@@ -647,7 +678,7 @@ public class PlayerControllerTests {
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
-                            put("/api/players/" + testId)
+                            put("/api/players/" + playerId)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content(json)
@@ -657,9 +688,42 @@ public class PlayerControllerTests {
     }
 
     @Test
+    @DisplayName("PUT /api/players/:id returns 422 when the service throws ResourceNotFoundException caused by Country")
+    public void updatePlayer_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
+        var playerId = UUID.randomUUID();
+        var contentDto = UpsertPlayerDto.builder().build();
+        var json = jsonUpsertPlayerDto.write(contentDto).getJson();
+        var countryId = UUID.fromString(contentDto.getCountryId());
+
+        // given
+        given(playerService.updatePlayer(
+                eq(playerId),
+                argThat(a ->
+                        a.getName().equals(contentDto.getName()) &&
+                        a.getCountryId().equals(contentDto.getCountryId()) &&
+                        a.getPosition().equals(contentDto.getPosition()) &&
+                        a.getDateOfBirth().equals(contentDto.getDateOfBirth())
+                )
+        )).willThrow(new ResourceNotFoundException(Country.class, countryId));
+
+        // when
+        var expectedError = String.format("country %s could not be found", countryId);
+        mvc.perform(
+                        put("/api/players/" + playerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("countryId", List.of(expectedError)))
+                );
+    }
+
+    @Test
     @DisplayName("PUT /api/players/:id returns 200 and calls the service when request body valid")
     public void updatePlayer_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
-        var testId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var contentDto = UpsertPlayerDto.builder().build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
@@ -672,7 +736,7 @@ public class PlayerControllerTests {
 
         // given
         given(playerService.updatePlayer(
-                eq(testId),
+                eq(playerId),
                 argThat(a ->
                 a.getName().equals(contentDto.getName()) &&
                         a.getCountryId().equals(contentDto.getCountryId()) &&
@@ -681,7 +745,7 @@ public class PlayerControllerTests {
         ))).willReturn(expectedDto);
 
         mvc.perform(
-                        put("/api/players/" + testId)
+                        put("/api/players/" + playerId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(json)
