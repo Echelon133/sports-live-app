@@ -109,7 +109,6 @@ public class CountryServiceTests {
     public void updateCountry_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
-        //
         // given
         given(countryRepository.findById(testId)).willReturn(Optional.empty());
 

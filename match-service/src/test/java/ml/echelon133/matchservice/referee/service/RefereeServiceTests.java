@@ -108,7 +108,6 @@ public class RefereeServiceTests {
     public void updateReferee_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
-        //
         // given
         given(refereeRepository.findById(testId)).willReturn(Optional.empty());
 
