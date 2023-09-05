@@ -46,8 +46,11 @@ public class TeamService {
     /**
      * Updates the team's information.
      *
+     * The values in {@link UpsertTeamDto} have to be pre-validated before being used here,
+     * otherwise incorrect data will be placed into the database.
+     *
      * @param id id of the team to update
-     * @param teamDto dto containing values to be placed in the database
+     * @param teamDto dto containing updated information about the team
      * @return a dto representing the updated team
      * @throws ResourceNotFoundException thrown when the team or their country does not exist in the database
      */
@@ -73,6 +76,9 @@ public class TeamService {
 
     /**
      * Creates the team's entry in the database.
+     *
+     * The values in {@link UpsertTeamDto} have to be pre-validated before being used here,
+     * otherwise incorrect data will be placed into the database.
      *
      * @param teamDto dto representing the information about a team that will be saved in the database
      * @return a dto representing the newly saved team
