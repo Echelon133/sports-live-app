@@ -35,7 +35,7 @@ public class VenueServiceTests {
     private VenueService venueService;
 
     @Test
-    @DisplayName("findById throws when there is no entity in the repository")
+    @DisplayName("findById throws when the repository does not store an entity with given id")
     public void findById_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
@@ -52,8 +52,8 @@ public class VenueServiceTests {
     }
 
     @Test
-    @DisplayName("findById maps found entity into a dto with identical values")
-    public void findById_EntityPresent_MapsIntoValidDto() throws ResourceNotFoundException {
+    @DisplayName("findById returns the dto when the venue is present")
+    public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
         var testDto = VenueDto.from(UUID.randomUUID(), "Camp Nou", 99354);
         var testId = testDto.getId();
 
@@ -64,9 +64,7 @@ public class VenueServiceTests {
         VenueDto dto = venueService.findById(testId);
 
         // then
-        assertEquals(testDto.getId(), dto.getId());
-        assertEquals(testDto.getName(), dto.getName());
-        assertEquals(testDto.getCapacity(), dto.getCapacity());
+        assertEquals(testDto, dto);
     }
 
     @Test
@@ -108,11 +106,10 @@ public class VenueServiceTests {
     }
 
     @Test
-    @DisplayName("updateVenue throws when there is no entity in the repository")
+    @DisplayName("updateVenue throws when the repository does not store an entity with the given id")
     public void updateVenue_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
-        //
         // given
         given(venueRepository.findById(testId)).willReturn(Optional.empty());
 

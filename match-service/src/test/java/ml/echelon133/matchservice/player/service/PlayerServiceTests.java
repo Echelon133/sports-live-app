@@ -41,7 +41,7 @@ public class PlayerServiceTests {
 
 
     @Test
-    @DisplayName("findById throws when there is no entity in the repository")
+    @DisplayName("findById throws when the repository does not store an entity with the given id")
     public void findById_EntityNotPresent_Throws() {
         var playerId = UUID.randomUUID();
 
@@ -70,7 +70,7 @@ public class PlayerServiceTests {
         PlayerDto dto = playerService.findById(playerId);
 
         // then
-        assertEquals(dto, testDto);
+        assertEquals(testDto, dto);
     }
 
     @Test

@@ -36,7 +36,7 @@ public class RefereeServiceTests {
 
 
     @Test
-    @DisplayName("findById throws when there is no entity in the repository")
+    @DisplayName("findById throws when the repository does not store an entity with the given id")
     public void findById_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
@@ -53,8 +53,8 @@ public class RefereeServiceTests {
     }
 
     @Test
-    @DisplayName("findById maps found entity into a dto with identical values")
-    public void findById_EntityPresent_MapsIntoValidDto() throws ResourceNotFoundException {
+    @DisplayName("findById returns the dto when the referee is present")
+    public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
         var testDto = RefereeDto.from(UUID.randomUUID(), "Test");
         var testId = testDto.getId();
 
@@ -65,8 +65,7 @@ public class RefereeServiceTests {
         RefereeDto dto = refereeService.findById(testId);
 
         // then
-        assertEquals(testDto.getId(), dto.getId());
-        assertEquals(testDto.getName(), dto.getName());
+        assertEquals(testDto, dto);
     }
 
     @Test
@@ -105,11 +104,10 @@ public class RefereeServiceTests {
     }
 
     @Test
-    @DisplayName("updateReferee throws when there is no entity in the repository")
+    @DisplayName("updateReferee throws when the repository does not store an entity with the given id")
     public void updateReferee_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
-        //
         // given
         given(refereeRepository.findById(testId)).willReturn(Optional.empty());
 

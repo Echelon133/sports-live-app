@@ -3,8 +3,8 @@ package ml.echelon133.matchservice.referee.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.referee.dto.RefereeDto;
 import ml.echelon133.matchservice.referee.model.Referee;
-import ml.echelon133.matchservice.referee.repository.RefereeRepository;
 import ml.echelon133.matchservice.referee.model.UpsertRefereeDto;
+import ml.echelon133.matchservice.referee.repository.RefereeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,8 +44,11 @@ public class RefereeService {
     /**
      * Updates the referee's information.
      *
+     * The values in {@link UpsertRefereeDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
+     *
      * @param id id of the referee to update
-     * @param refereeDto dto containing values to be placed in the database
+     * @param refereeDto dto containing updated information about the referee
      * @return a dto representing the updated referee
      * @throws ResourceNotFoundException thrown when the referee does not exist in the database
      */
@@ -62,6 +65,9 @@ public class RefereeService {
 
     /**
      * Creates the referee's entry in the database.
+     *
+     * The values in {@link UpsertRefereeDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
      *
      * @param refereeDto dto representing the information about a referee that will be saved in the database
      * @return a dto representing the newly saved referee

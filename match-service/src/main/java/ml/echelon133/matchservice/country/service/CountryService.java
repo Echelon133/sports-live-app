@@ -17,7 +17,7 @@ import java.util.UUID;
 @Transactional
 public class CountryService {
 
-    private CountryRepository countryRepository;
+    private final CountryRepository countryRepository;
 
     @Autowired
     public CountryService(CountryRepository countryRepository) {
@@ -44,8 +44,11 @@ public class CountryService {
     /**
      * Updates the country's information.
      *
+     * The values in {@link UpsertCountryDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
+     *
      * @param id id of the country to update
-     * @param countryDto dto containing values to be placed in the database
+     * @param countryDto dto containing updated information about the country
      * @return a dto representing the updated country
      * @throws ResourceNotFoundException thrown when the country does not exist in the database
      */
@@ -63,6 +66,9 @@ public class CountryService {
 
     /**
      * Creates the country's entry in the database.
+     *
+     * The values in {@link UpsertCountryDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
      *
      * @param countryDto dto representing the information about a country that will be saved in the database
      * @return a dto representing the newly saved country
