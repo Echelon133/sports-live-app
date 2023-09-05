@@ -37,7 +37,7 @@ public class CountryServiceTests {
 
 
     @Test
-    @DisplayName("findById throws when there is no entity in the repository")
+    @DisplayName("findById throws when the repository does not store an entity with the given id")
     public void findById_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
@@ -105,7 +105,7 @@ public class CountryServiceTests {
     }
 
     @Test
-    @DisplayName("updateCountry throws when there is no entity in the repository")
+    @DisplayName("updateCountry throws when the repository does not store an entity with the given id")
     public void updateCountry_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
