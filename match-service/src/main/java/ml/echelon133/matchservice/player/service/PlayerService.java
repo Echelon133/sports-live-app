@@ -52,8 +52,11 @@ public class PlayerService {
     /**
      * Updates the player's information.
      *
+     * The values in {@link UpsertPlayerDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
+     *
      * @param id id of the player to update
-     * @param playerDto dto containing values to be placed in the database
+     * @param playerDto dto containing updated information about the player
      * @return a dto representing the updated player
      * @throws ResourceNotFoundException thrown when the player or their country does not exist in the database
      */
@@ -85,6 +88,9 @@ public class PlayerService {
 
     /**
      * Creates the player's entry in the database.
+     *
+     * The values in {@link UpsertPlayerDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
      *
      * @param playerDto dto representing the information about a player that will be saved in the database
      * @return a dto representing the newly saved player

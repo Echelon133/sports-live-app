@@ -44,8 +44,11 @@ public class VenueService {
     /**
      * Updates the venue's information.
      *
+     * The values in {@link UpsertVenueDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
+     *
      * @param id id of the venue to update
-     * @param venueDto dto containing values to be placed in the database
+     * @param venueDto dto containing updated information about the venue
      * @return a dto representing the updated venue
      * @throws ResourceNotFoundException thrown when the venue does not exist in the database
      */
@@ -63,6 +66,9 @@ public class VenueService {
 
     /**
      * Creates the venue's entry in the database.
+     *
+     * The values in {@link UpsertVenueDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
      *
      * @param venueDto dto representing the information about a venue that will be saved in the database
      * @return a dto representing the newly saved venue
