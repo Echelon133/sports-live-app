@@ -82,7 +82,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, new UpsertTeamDto());
+            teamService.updateTeam(teamId, UpsertTeamDto.builder().build());
         }).getMessage();
 
         // then
@@ -101,7 +101,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, new UpsertTeamDto());
+            teamService.updateTeam(teamId, UpsertTeamDto.builder().build());
         }).getMessage();
 
         // then
@@ -121,7 +121,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, new UpsertTeamDto("test", countryId.toString()));
+            teamService.updateTeam(teamId, UpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -143,7 +143,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, new UpsertTeamDto("test", countryId.toString()));
+            teamService.updateTeam(teamId, UpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -156,7 +156,7 @@ public class TeamServiceTests {
         var oldTeam = new Team("Test", new Country("Poland", "PL"));
         var newCountry = new Country("Portugal", "PT");
         var newCountryId = newCountry.getId();
-        var updateDto = new UpsertTeamDto("new team name", newCountryId.toString());
+        var updateDto = UpsertTeamDto.builder().countryId(newCountryId.toString()).build();
         var expectedTeam = new Team(
                 updateDto.getName(),
                 newCountry
@@ -231,7 +231,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(new UpsertTeamDto("test", countryId.toString()));
+            teamService.createTeam(UpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -250,7 +250,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(new UpsertTeamDto("test", countryId.toString()));
+            teamService.createTeam(UpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -261,7 +261,7 @@ public class TeamServiceTests {
     @DisplayName("createTeam returns the expected dto after correctly creating a team")
     public void createTeam_TeamCreated_ReturnsDto() throws ResourceNotFoundException {
         var country = new Country("Portugal", "PT");
-        var createDto = new UpsertTeamDto("some name", country.getId().toString());
+        var createDto = UpsertTeamDto.builder().countryId(country.getId().toString()).build();
         var expectedTeam = new Team(
                 createDto.getName(),
                 country
@@ -273,8 +273,7 @@ public class TeamServiceTests {
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team whose values
                 // are taken from received upsert DTO
-                p.getName().equals(createDto.getName()) &&
-                        p.getCountry().getId().toString().equals(createDto.getCountryId())
+                p.getName().equals(createDto.getName()) && p.getCountry().getId().toString().equals(createDto.getCountryId())
         ))).willReturn(expectedTeam);
 
         // when
