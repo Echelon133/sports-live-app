@@ -17,7 +17,7 @@ import java.util.UUID;
 @Transactional
 public class CountryService {
 
-    private CountryRepository countryRepository;
+    private final CountryRepository countryRepository;
 
     @Autowired
     public CountryService(CountryRepository countryRepository) {

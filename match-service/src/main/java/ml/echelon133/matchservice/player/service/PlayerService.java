@@ -25,10 +25,10 @@ public class PlayerService {
     public static final String DATE_OF_BIRTH_FORMAT = "yyyy/MM/d";
     public static final DateTimeFormatter DATE_OF_BIRTH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_BIRTH_FORMAT);
 
-    private PlayerRepository playerRepository;
+    private final PlayerRepository playerRepository;
 
     // ONLY USE IT FOR READING DATA
-    private CountryRepository countryRepository;
+    private final CountryRepository countryRepository;
 
     @Autowired
     public PlayerService(PlayerRepository playerRepository, CountryRepository countryRepository) {
