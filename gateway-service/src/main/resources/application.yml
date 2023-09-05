@@ -20,7 +20,8 @@ spring:
                     /api/referees*, /api/referees/**,
                     /api/coaches*, /api/coaches/**,
                     /api/countries*, /api/countries/**,
-                    /api/players*, /api/players/**
+                    /api/players*, /api/players/**,
+                    /api/teams*, /api/teams/**
 
 management:
   endpoint:
