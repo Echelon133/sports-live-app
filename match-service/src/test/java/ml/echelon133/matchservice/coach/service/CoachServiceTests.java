@@ -108,7 +108,6 @@ public class CoachServiceTests {
     public void updateCoach_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
-        //
         // given
         given(coachRepository.findById(testId)).willReturn(Optional.empty());
 

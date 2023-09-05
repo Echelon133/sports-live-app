@@ -110,7 +110,6 @@ public class VenueServiceTests {
     public void updateVenue_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
-        //
         // given
         given(venueRepository.findById(testId)).willReturn(Optional.empty());
 
