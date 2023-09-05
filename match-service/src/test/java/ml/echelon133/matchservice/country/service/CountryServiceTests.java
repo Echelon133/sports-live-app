@@ -54,8 +54,8 @@ public class CountryServiceTests {
     }
 
     @Test
-    @DisplayName("findById maps found entity into a dto with identical values")
-    public void findById_EntityPresent_MapsIntoValidDto() throws ResourceNotFoundException {
+    @DisplayName("findById returns the dto when the country is present")
+    public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
         var testDto = CountryDto.from(UUID.randomUUID(), "Test", "PL");
         var testId = testDto.getId();
 
@@ -66,8 +66,7 @@ public class CountryServiceTests {
         CountryDto dto = countryService.findById(testId);
 
         // then
-        assertEquals(testDto.getId(), dto.getId());
-        assertEquals(testDto.getName(), dto.getName());
+        assertEquals(testDto, dto);
     }
 
     @Test

@@ -70,7 +70,7 @@ public class PlayerServiceTests {
         PlayerDto dto = playerService.findById(playerId);
 
         // then
-        assertEquals(dto, testDto);
+        assertEquals(testDto, dto);
     }
 
     @Test
