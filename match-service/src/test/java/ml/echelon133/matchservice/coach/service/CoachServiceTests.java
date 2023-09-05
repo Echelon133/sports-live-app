@@ -53,8 +53,8 @@ public class CoachServiceTests {
     }
 
     @Test
-    @DisplayName("findById maps found entity into a dto with identical values")
-    public void findById_EntityPresent_MapsIntoValidDto() throws ResourceNotFoundException {
+    @DisplayName("findById returns the dto when the coach is present")
+    public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
         var testDto = CoachDto.from(UUID.randomUUID(), "Test");
         var testId = testDto.getId();
 
@@ -65,8 +65,7 @@ public class CoachServiceTests {
         CoachDto dto = coachService.findById(testId);
 
         // then
-        assertEquals(testDto.getId(), dto.getId());
-        assertEquals(testDto.getName(), dto.getName());
+        assertEquals(testDto, dto);
     }
 
     @Test
