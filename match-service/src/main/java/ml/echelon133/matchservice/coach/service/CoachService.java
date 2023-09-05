@@ -44,8 +44,11 @@ public class CoachService {
     /**
      * Updates the coach's information.
      *
+     * The values in {@link UpsertCoachDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
+     *
      * @param id id of the coach to update
-     * @param coachDto dto containing values to be placed in the database
+     * @param coachDto dto containing updated information about the coach
      * @return a dto representing the updated coach
      * @throws ResourceNotFoundException thrown when the coach does not exist in the database
      */
@@ -62,6 +65,9 @@ public class CoachService {
 
     /**
      * Creates the coach's entry in the database.
+     *
+     * The values in {@link UpsertCoachDto} have to be pre-validated before being used here, otherwise
+     * incorrect data will be placed into the database.
      *
      * @param coachDto dto representing the information about a coach that will be saved in the database
      * @return a dto representing the newly saved coach
