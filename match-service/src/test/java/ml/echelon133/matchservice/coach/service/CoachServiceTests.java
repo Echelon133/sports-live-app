@@ -36,7 +36,7 @@ public class CoachServiceTests {
 
 
     @Test
-    @DisplayName("findById throws when there is no entity in the repository")
+    @DisplayName("findById throws when the repository does not store an entity with the given id")
     public void findById_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
@@ -104,7 +104,7 @@ public class CoachServiceTests {
     }
 
     @Test
-    @DisplayName("updateCoach throws when there is no entity in the repository")
+    @DisplayName("updateCoach throws when the repository does not store an entity with the given id")
     public void updateCoach_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 

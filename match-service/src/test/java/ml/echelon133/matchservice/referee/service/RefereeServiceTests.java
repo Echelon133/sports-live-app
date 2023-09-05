@@ -36,7 +36,7 @@ public class RefereeServiceTests {
 
 
     @Test
-    @DisplayName("findById throws when there is no entity in the repository")
+    @DisplayName("findById throws when the repository does not store an entity with the given id")
     public void findById_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
@@ -104,7 +104,7 @@ public class RefereeServiceTests {
     }
 
     @Test
-    @DisplayName("updateReferee throws when there is no entity in the repository")
+    @DisplayName("updateReferee throws when the repository does not store an entity with the given id")
     public void updateReferee_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();
 
