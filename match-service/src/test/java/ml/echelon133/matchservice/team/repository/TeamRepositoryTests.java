@@ -1,6 +1,7 @@
 package ml.echelon133.matchservice.team.repository;
 
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.service.TeamMapper;
@@ -33,14 +34,16 @@ public class TeamRepositoryTests {
     private static Team getTestTeam() {
         return new Team(
                 "Test team",
-                new Country("Poland", "PL")
+                new Country("Poland", "PL"),
+                new Coach("Test Coach")
         );
     }
 
     private static Team getTestTeamWithName(String name) {
         return new Team(
                 name,
-                new Country("Poland", "PL")
+                new Country("Poland", "PL"),
+                new Coach("Test Coach")
         );
     }
 
@@ -50,7 +53,9 @@ public class TeamRepositoryTests {
                 e1.getName().equals(e2.getName()) &&
                 e1.getCountry().getId().equals(e2.getCountry().getId()) &&
                 e1.getCountry().getName().equals(e2.getCountry().getName()) &&
-                e1.getCountry().getCountryCode().equals(e2.getCountry().getCountryCode());
+                e1.getCountry().getCountryCode().equals(e2.getCountry().getCountryCode()) &&
+                e1.getCoach().getId().equals(e2.getCoach().getId()) &&
+                e1.getCoach().getName().equals(e2.getCoach().getName());
     }
 
     private static void assertEntityAndDtoEqual(Team teamEntity, TeamDto teamDto) {
@@ -98,6 +103,23 @@ public class TeamRepositoryTests {
         // then
         assertTrue(teamDto.isPresent());
         assertNull(teamDto.get().getCountry());
+    }
+
+    @Test
+    @DisplayName("findTeamById native query finds team when the team exists and does not leak deleted coach")
+    public void findTeamById_TeamExistsAndCoachDeleted_IsPresentAndDoesNotLeakDeletedCoach() {
+        var coach = new Coach("Test");
+        coach.setDeleted(true);
+        var team = getTestTeam();
+        team.setCoach(coach);
+        var savedTeam = teamRepository.save(team);
+
+        // when
+        var teamDto = teamRepository.findTeamById(savedTeam.getId());
+
+        // then
+        assertTrue(teamDto.isPresent());
+        assertNull(teamDto.get().getCoach());
     }
 
     @Test
@@ -174,6 +196,23 @@ public class TeamRepositoryTests {
         // then
         assertEquals(1, result.getTotalElements());
         assertNull(result.getContent().get(0).getCountry());
+    }
+
+    @Test
+    @DisplayName("findAllByNameContaining native query does not leak deleted coach of a team")
+    public void findAllByNameContaining_TeamWithDeletedCoach_DoesNotLeakDeletedCoach() {
+        var coach = new Coach("Test");
+        coach.setDeleted(true);
+        var team = getTestTeam();
+        team.setCoach(coach);
+        teamRepository.save(team);
+
+        // when
+        Page<TeamDto> result = teamRepository.findAllByNameContaining(team.getName(), Pageable.ofSize(10));
+
+        // then
+        assertEquals(1, result.getTotalElements());
+        assertNull(result.getContent().get(0).getCoach());
     }
 
     @Test
