@@ -2,6 +2,8 @@ package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.matchservice.coach.model.Coach;
+import ml.echelon133.matchservice.coach.repository.CoachRepository;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.country.repository.CountryRepository;
 import ml.echelon133.matchservice.team.model.Team;
@@ -24,10 +26,14 @@ public class TeamService {
     // ONLY USE IT FOR READING DATA
     private final CountryRepository countryRepository;
 
+    // ONLY USE IT FOR READING DATA
+    private final CoachRepository coachRepository;
+
     @Autowired
-    public TeamService(TeamRepository teamRepository, CountryRepository countryRepository) {
+    public TeamService(TeamRepository teamRepository, CountryRepository countryRepository, CoachRepository coachRepository) {
         this.teamRepository = teamRepository;
         this.countryRepository = countryRepository;
+        this.coachRepository = coachRepository;
     }
 
     /**
@@ -52,7 +58,7 @@ public class TeamService {
      * @param id id of the team to update
      * @param teamDto dto containing updated information about the team
      * @return a dto representing the updated team
-     * @throws ResourceNotFoundException thrown when the team or their country does not exist in the database
+     * @throws ResourceNotFoundException thrown when the team/country/coach does not exist in the database
      */
     public TeamDto updateTeam(UUID id, UpsertTeamDto teamDto) throws ResourceNotFoundException {
         var teamToUpdate = this.teamRepository
@@ -71,6 +77,15 @@ public class TeamService {
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
         teamToUpdate.setCountry(country);
 
+        // this `UUID.fromString` should never fail because the CoachId value is pre-validated
+        var coachId = UUID.fromString(teamDto.getCoachId());
+        // make sure that the coach with specified UUID already exists and is not marked as deleted
+        var coach = this.coachRepository
+                .findById(coachId)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Coach.class, coachId));
+        teamToUpdate.setCoach(coach);
+
         return TeamMapper.entityToDto(this.teamRepository.save(teamToUpdate));
     }
 
@@ -82,7 +97,7 @@ public class TeamService {
      *
      * @param teamDto dto representing the information about a team that will be saved in the database
      * @return a dto representing the newly saved team
-     * @throws ResourceNotFoundException thrown when the team's country does not exist in the database
+     * @throws ResourceNotFoundException thrown when the team's country or coach does not exist in the database
      */
     public TeamDto createTeam(UpsertTeamDto teamDto) throws ResourceNotFoundException {
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
@@ -93,7 +108,15 @@ public class TeamService {
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
 
-        var team = new Team(teamDto.getName(), country);
+        // this `UUID.fromString` should never fail because the CoachId value is pre-validated
+        var coachId = UUID.fromString(teamDto.getCoachId());
+        // make sure that the coach with specified UUID already exists and is not marked as deleted
+        var coach = this.coachRepository
+                .findById(coachId)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Coach.class, coachId));
+
+        var team = new Team(teamDto.getName(), country, coach);
         return TeamMapper.entityToDto(this.teamRepository.save(team));
     }
 
