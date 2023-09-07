@@ -16,10 +16,15 @@ public class UpsertTeamDto {
     @ValidUUID
     private String countryId;
 
+    @NotNull(message = "field has to be provided")
+    @ValidUUID
+    private String coachId;
+
     public UpsertTeamDto() {}
-    public UpsertTeamDto(String name, String countryId) {
+    public UpsertTeamDto(String name, String countryId, String coachId) {
         this.name = name;
         this.countryId = countryId;
+        this.coachId = coachId;
     }
 
     public String getName() {
@@ -38,6 +43,14 @@ public class UpsertTeamDto {
         this.countryId = countryId;
     }
 
+    public String getCoachId() {
+        return coachId;
+    }
+
+    public void setCoachId(String coachId) {
+        this.coachId = coachId;
+    }
+
     public static UpsertTeamDto.Builder builder() {
         return new UpsertTeamDto.Builder();
     }
@@ -45,6 +58,7 @@ public class UpsertTeamDto {
     public static class Builder {
         private String name = "Test team";
         private String countryId = UUID.randomUUID().toString();
+        private String coachId = UUID.randomUUID().toString();
 
         private Builder() {}
 
@@ -58,8 +72,13 @@ public class UpsertTeamDto {
             return this;
         }
 
+        public UpsertTeamDto.Builder coachId(String coachId) {
+            this.coachId = coachId;
+            return this;
+        }
+
         public UpsertTeamDto build() {
-            return new UpsertTeamDto(name, countryId);
+            return new UpsertTeamDto(name, countryId, coachId);
         }
     }
 }
