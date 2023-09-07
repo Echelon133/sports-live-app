@@ -21,8 +21,10 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(value = "SELECT CAST(t.id as varchar) as id, t.name as name, " +
-            "CAST(c.id as varchar) as countryId, c.name as countryName, c.country_code as countryCode, c.deleted as countryDeleted " +
-            "FROM team t JOIN country c ON t.country_id = c.id WHERE t.deleted = false AND t.id = ?1",
+            "CAST(c.id as varchar) as countryId, c.name as countryName, c.country_code as countryCode, c.deleted as countryDeleted, " +
+            "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
+            "FROM team t JOIN country c ON t.country_id = c.id JOIN coach coa ON t.coach_id = coa.id " +
+            "WHERE t.deleted = false AND t.id = ?1",
             nativeQuery = true)
     Optional<TeamDto> findTeamById(UUID id);
 
@@ -45,8 +47,10 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(value = "SELECT CAST(t.id as varchar) as id, t.name as name, " +
-            "CAST(c.id as varchar) as countryId, c.name as countryName, c.country_code as countryCode, c.deleted as countryDeleted " +
-            "FROM team t JOIN country c ON t.country_id = c.id WHERE LOWER(t.name) LIKE '%' || LOWER(:phrase) || '%' AND t.deleted = false",
+            "CAST(c.id as varchar) as countryId, c.name as countryName, c.country_code as countryCode, c.deleted as countryDeleted, " +
+            "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
+            "FROM team t JOIN country c ON t.country_id = c.id JOIN coach coa ON t.coach_id = coa.id " +
+            "WHERE LOWER(t.name) LIKE '%' || LOWER(:phrase) || '%' AND t.deleted = false",
             countQuery = "SELECT COUNT(*) FROM team WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             nativeQuery = true)
     Page<TeamDto> findAllByNameContaining(String phrase, Pageable pageable);

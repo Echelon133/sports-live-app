@@ -4,6 +4,7 @@ import ml.echelon133.common.exception.FormInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
 import ml.echelon133.matchservice.team.service.TeamService;
@@ -50,13 +51,16 @@ public class TeamController {
         try {
             return teamService.updateTeam(id, teamDto);
         } catch (ResourceNotFoundException exception) {
-            // updateTeam's ResourceNotFoundException can be caused by either Team or Country.
+            // updateTeam's ResourceNotFoundException can be caused by Team, Country or Coach.
             // If the team could not be found, just rethrow the exception to give the user 404 Not Found.
-            // If the country's ID is correct but does not correspond to any non-deleted entity in the database,
-            // throw FormInvalidException with the message about not being able to find the country with specified id
+            // Otherwise, capture the error message and throw it using FormInvalidException
             if (exception.getResourceClass().equals(Country.class)) {
                 throw new FormInvalidException(
                         Map.of("countryId", List.of(exception.getMessage()))
+                );
+            } else if (exception.getResourceClass().equals(Coach.class)) {
+                throw new FormInvalidException(
+                        Map.of("coachId", List.of(exception.getMessage()))
                 );
             } else {
                 // just rethrow the exception, no need for any special handling
@@ -76,12 +80,20 @@ public class TeamController {
         try {
             return teamService.createTeam(teamDto);
         } catch (ResourceNotFoundException exception) {
-            // createTeam's ResourceNotFoundException is always caused by Country.
-            // If the country's ID is correct but does not correspond to any non-deleted entity in the database,
-            // throw FormInvalidException with the message about not being able to find the country with specified id
-            throw new FormInvalidException(
-                    Map.of("countryId", List.of(exception.getMessage()))
-            );
+            // createTeam's ResourceNotFoundException can be caused by either Country or Coach.
+            // If the country's or coach's ID are correct but do not correspond to any non-deleted entity in the database,
+            // throw FormInvalidException with the message about not being able to find the entity with specified id
+            if (exception.getResourceClass().equals(Country.class)) {
+                throw new FormInvalidException(
+                        Map.of("countryId", List.of(exception.getMessage()))
+                );
+            } else {
+                // since only Country or Coach might cause createTeam to throw ResourceNotFoundException, the exception
+                // here must have been caused by Coach
+                throw new FormInvalidException(
+                        Map.of("coachId", List.of(exception.getMessage()))
+                );
+            }
         }
     }
 

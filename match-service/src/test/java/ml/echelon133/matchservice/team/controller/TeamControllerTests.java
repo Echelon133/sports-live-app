@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.team.controller;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
+import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
@@ -242,6 +243,70 @@ public class TeamControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/teams returns 422 when coachId is not provided")
+    public void createTeam_CoachIdNotProvided_StatusUnprocessableEntity() throws Exception {
+        var contentDto = UpsertTeamDto.builder().coachId(null).build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("coachId", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams returns 422 when coachId is not an uuid")
+    public void createTeam_CoachIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
+        var contentDto = UpsertTeamDto.builder().coachId("a").build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("coachId", List.of("not a valid uuid")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams returns 422 when the service throws ResourceNotFoundException caused by Coach")
+    public void createTeam_ServiceThrowsWhenCoachNotFound_StatusUnprocessableEntity() throws Exception {
+        var contentDto = UpsertTeamDto.builder().countryId(UUID.randomUUID().toString()).build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+        var coachId = UUID.fromString(contentDto.getCoachId());
+
+        // given
+        given(teamService.createTeam(argThat(a ->
+                a.getName().equals(contentDto.getName()) &&
+                        a.getCountryId().equals(contentDto.getCountryId()) &&
+                        a.getCoachId().equals(contentDto.getCoachId())
+        ))).willThrow(new ResourceNotFoundException(Coach.class, coachId));
+
+        // when
+        var expectedError = String.format("coach %s could not be found", coachId);
+        mvc.perform(
+                        post("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("coachId", List.of(expectedError)))
+                );
+    }
+
+    @Test
     @DisplayName("POST /api/teams returns 200 and calls the service when request body valid")
     public void createTeam_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
         var contentDto = UpsertTeamDto.builder().build();
@@ -254,7 +319,9 @@ public class TeamControllerTests {
 
         // given
         given(teamService.createTeam(argThat(a ->
-                a.getName().equals(contentDto.getName()) && a.getCountryId().equals(contentDto.getCountryId())
+                a.getName().equals(contentDto.getName()) &&
+                        a.getCountryId().equals(contentDto.getCountryId()) &&
+                        a.getCoachId().equals(contentDto.getCoachId())
         ))).willReturn(expectedDto);
 
         mvc.perform(
@@ -449,6 +516,76 @@ public class TeamControllerTests {
     }
 
     @Test
+    @DisplayName("PUT /api/teams/:id returns 422 when coachId is not provided")
+    public void updateTeam_CoachIdNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = UpsertTeamDto.builder().coachId(null).build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("coachId", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id returns 422 when coachId is not an uuid")
+    public void updateTeam_CoachIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = UpsertTeamDto.builder().coachId("a").build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("coachId", List.of("not a valid uuid")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id returns 422 when the service throws ResourceNotFoundException caused by Coach")
+    public void updateTeam_ServiceThrowsWhenCoachNotFound_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = UpsertTeamDto.builder().build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+        var coachId = UUID.fromString(contentDto.getCountryId());
+
+        // given
+        given(teamService.updateTeam(
+                eq(teamId),
+                argThat(a ->
+                        a.getName().equals(contentDto.getName()) &&
+                                a.getCountryId().equals(contentDto.getCountryId()) &&
+                                a.getCoachId().equals(contentDto.getCoachId())
+                )
+        )).willThrow(new ResourceNotFoundException(Coach.class, coachId));
+
+        // when
+        var expectedError = String.format("coach %s could not be found", coachId);
+        mvc.perform(
+                        put("/api/teams/" + teamId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("coachId", List.of(expectedError)))
+                );
+    }
+
+    @Test
     @DisplayName("PUT /api/teams/:id returns 200 and calls the service when request body valid")
     public void updateTeam_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
         var teamId = UUID.randomUUID();
@@ -464,7 +601,9 @@ public class TeamControllerTests {
         given(teamService.updateTeam(
                 eq(teamId),
                 argThat(a ->
-                        a.getName().equals(contentDto.getName()) && a.getCountryId().equals(contentDto.getCountryId())
+                        a.getName().equals(contentDto.getName()) &&
+                                a.getCountryId().equals(contentDto.getCountryId()) &&
+                                a.getCoachId().equals(contentDto.getCoachId())
                 ))).willReturn(expectedDto);
 
         mvc.perform(
