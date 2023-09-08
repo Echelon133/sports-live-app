@@ -70,4 +70,63 @@ public interface TeamPlayerDto {
             };
         }
     }
+
+    static Builder builder() {
+        return new Builder();
+    }
+
+    class Builder {
+        private UUID id = UUID.randomUUID();
+        private String position = "GOALKEEPER";
+        private Integer number  = 1;
+        private String countryCode = "PL";
+        private UUID playerId = UUID.randomUUID();
+        private String playerName = "Test Player";
+        private LocalDate playerDateOfBirth = LocalDate.of(1970, 1, 1);
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder position(String position) {
+            this.position = position;
+            return this;
+        }
+
+        public Builder number(Integer number) {
+            this.number = number;
+            return this;
+        }
+
+        public Builder countryCode(String countryCode) {
+            this.countryCode = countryCode;
+            return this;
+        }
+
+        public Builder playerId(UUID playerId) {
+            this.playerId = playerId;
+            return this;
+        }
+
+        public Builder playerName(String playerName) {
+            this.playerName = playerName;
+            return this;
+        }
+
+        public Builder playerDateOfBirth(LocalDate playerDateOfBirth) {
+            this.playerDateOfBirth = playerDateOfBirth;
+            return this;
+        }
+
+        public TeamPlayerDto build() {
+            return TeamPlayerDto.from(
+                    id,
+                    PlayerShortInfoDto.from(playerId, playerName, playerDateOfBirth),
+                    position,
+                    number,
+                    countryCode
+            );
+        }
+    }
 }
