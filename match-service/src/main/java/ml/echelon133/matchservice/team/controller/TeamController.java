@@ -4,9 +4,15 @@ import ml.echelon133.common.exception.FormInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
+import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
+import ml.echelon133.matchservice.team.model.Team;
+import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
+import ml.echelon133.matchservice.team.model.UpsertTeamPlayerDto;
+import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -24,15 +30,90 @@ import java.util.UUID;
 public class TeamController {
 
     private final TeamService teamService;
+    private final TeamPlayerService teamPlayerService;
 
     @Autowired
-    public TeamController(TeamService teamService) {
+    public TeamController(TeamService teamService, TeamPlayerService teamPlayerService) {
         this.teamService = teamService;
+        this.teamPlayerService = teamPlayerService;
     }
 
-    @GetMapping("/{id}")
-    public TeamDto getTeam(@PathVariable UUID id) throws ResourceNotFoundException {
-        return teamService.findById(id);
+    @GetMapping("/{teamId}")
+    public TeamDto getTeam(@PathVariable UUID teamId) throws ResourceNotFoundException {
+        return teamService.findById(teamId);
+    }
+
+    @GetMapping("/{teamId}/players")
+    public List<TeamPlayerDto> getTeamPlayers(@PathVariable UUID teamId) throws ResourceNotFoundException {
+        return teamPlayerService.findAllPlayersOfTeam(teamId);
+    }
+
+    @PostMapping("/{teamId}/players")
+    public TeamPlayerDto assignPlayerToTeam(@PathVariable UUID teamId,
+                                            @RequestBody @Valid UpsertTeamPlayerDto teamPlayerDto,
+                                            BindingResult result) throws FormInvalidException, ResourceNotFoundException {
+
+        if (result.hasErrors()) {
+            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        try {
+            return teamPlayerService.createTeamPlayer(teamId, teamPlayerDto);
+        } catch (NumberAlreadyTakenException exception) {
+            throw new FormInvalidException(
+                    Map.of("number", List.of(exception.getMessage()))
+            );
+        } catch (ResourceNotFoundException exception) {
+            // createTeamPlayer's ResourceNotFoundException can be caused by Team or Player
+            if (exception.getResourceClass().equals(Team.class)) {
+                // this is a team-related endpoint, rethrow this exception to let the client see the 404 Not Found status
+                throw exception;
+            } else {
+                // must have been caused by the Player
+                // exceptions related to contents of the request body should be caught and rethrown
+                // instead of throwing 404
+                throw new FormInvalidException(
+                        Map.of("playerId", List.of(exception.getMessage()))
+                );
+            }
+        }
+    }
+
+    @PutMapping("/{teamId}/players/{teamPlayerId}")
+    public TeamPlayerDto updatePlayerOfTeam(@PathVariable UUID teamId,
+                                            @PathVariable UUID teamPlayerId,
+                                            @RequestBody @Valid UpsertTeamPlayerDto teamPlayerDto,
+                                            BindingResult result) throws FormInvalidException, ResourceNotFoundException {
+
+        if (result.hasErrors()) {
+            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        try {
+            return teamPlayerService.updateTeamPlayer(teamPlayerId, teamId, teamPlayerDto);
+        } catch (NumberAlreadyTakenException exception) {
+            throw new FormInvalidException(
+                    Map.of("number", List.of(exception.getMessage()))
+            );
+        } catch (ResourceNotFoundException exception) {
+            // updateTeamPlayer's ResourceNotFoundException can be caused by TeamPlayer, Team, or Player
+            if (exception.getResourceClass().equals(Team.class) || exception.getResourceClass().equals(TeamPlayer.class)) {
+                // this is a team-related endpoint, rethrow this exception to let the client see the 404 Not Found status
+                throw exception;
+            } else {
+                // must have been caused by Player
+                // exceptions related to contents of the request body should be caught and rethrown
+                // instead of throwing 404
+                throw new FormInvalidException(
+                        Map.of("playerId", List.of(exception.getMessage()))
+                );
+            }
+        }
+    }
+
+    @DeleteMapping("/{teamId}/players/{teamPlayerId}")
+    public Map<String, Integer> deletePlayerAssignment(@PathVariable UUID teamId, @PathVariable UUID teamPlayerId) {
+        return Map.of("deleted", teamPlayerService.markTeamPlayerAsDeleted(teamPlayerId));
     }
 
     @GetMapping
@@ -40,8 +121,8 @@ public class TeamController {
         return teamService.findTeamsByName(name, pageable);
     }
 
-    @PutMapping("/{id}")
-    public TeamDto updateTeam(@PathVariable UUID id, @RequestBody @Valid UpsertTeamDto teamDto, BindingResult result)
+    @PutMapping("/{teamId}")
+    public TeamDto updateTeam(@PathVariable UUID teamId, @RequestBody @Valid UpsertTeamDto teamDto, BindingResult result)
             throws FormInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
@@ -49,7 +130,7 @@ public class TeamController {
         }
 
         try {
-            return teamService.updateTeam(id, teamDto);
+            return teamService.updateTeam(teamId, teamDto);
         } catch (ResourceNotFoundException exception) {
             // updateTeam's ResourceNotFoundException can be caused by Team, Country or Coach.
             // If the team could not be found, just rethrow the exception to give the user 404 Not Found.
@@ -97,8 +178,8 @@ public class TeamController {
         }
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Integer> deleteTeam(@PathVariable UUID id) {
-        return Map.of("deleted", teamService.markTeamAsDeleted(id));
+    @DeleteMapping("/{teamId}")
+    public Map<String, Integer> deleteTeam(@PathVariable UUID teamId) {
+        return Map.of("deleted", teamService.markTeamAsDeleted(teamId));
     }
 }

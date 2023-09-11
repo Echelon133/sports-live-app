@@ -2,9 +2,9 @@ package ml.echelon133.matchservice.team.model;
 
 import ml.echelon133.common.validator.ValidUUID;
 import ml.echelon133.matchservice.player.model.validator.ValidPositionValue;
+import org.hibernate.validator.constraints.Range;
 
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 
 public class UpsertTeamPlayerDto {
 
@@ -17,7 +17,7 @@ public class UpsertTeamPlayerDto {
     private String position;
 
     @NotNull(message = "field has to be provided")
-    @Size(min = 1, max = 99, message = "expected number between 1 and 99")
+    @Range(min = 1, max = 99, message = "expected number between 1 and 99")
     private Integer number;
 
     public UpsertTeamPlayerDto() {}
