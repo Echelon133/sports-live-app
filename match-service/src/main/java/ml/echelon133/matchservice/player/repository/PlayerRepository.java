@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PlayerRepository extends JpaRepository<Player, UUID> {
+    boolean existsByIdAndDeletedFalse(UUID playerId);
 
     /**
      * Finds a non-deleted player with the specified id.
