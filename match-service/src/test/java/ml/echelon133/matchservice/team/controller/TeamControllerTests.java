@@ -2,11 +2,17 @@ package ml.echelon133.matchservice.team.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
+import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
 import ml.echelon133.matchservice.team.model.Team;
+import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
+import ml.echelon133.matchservice.team.model.UpsertTeamPlayerDto;
+import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +50,9 @@ public class TeamControllerTests {
     @Mock
     private TeamService teamService;
 
+    @Mock
+    private TeamPlayerService teamPlayerService;
+
     @InjectMocks
     private TeamExceptionHandler teamExceptionHandler;
 
@@ -53,6 +62,12 @@ public class TeamControllerTests {
     private JacksonTester<TeamDto> jsonTeamDto;
 
     private JacksonTester<UpsertTeamDto> jsonUpsertTeamDto;
+
+    private JacksonTester<TeamPlayerDto> jsonTeamPlayerDto;
+
+    private JacksonTester<List<TeamPlayerDto>> jsonTeamPlayerDtos;
+
+    private JacksonTester<UpsertTeamPlayerDto> jsonUpsertTeamPlayerDto;
 
     @BeforeEach
     public void beforeEach() {
@@ -198,7 +213,7 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/teams returns 422 when countryId is not an uuid")
+    @DisplayName("POST /api/teams returns 422 when countryId is not a uuid")
     public void createTeam_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = UpsertTeamDto.builder().countryId("a").build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
@@ -261,7 +276,7 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/teams returns 422 when coachId is not an uuid")
+    @DisplayName("POST /api/teams returns 422 when coachId is not a uuid")
     public void createTeam_CoachIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = UpsertTeamDto.builder().coachId("a").build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
@@ -467,7 +482,7 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/teams/:id returns 422 when countryId is not an uuid")
+    @DisplayName("PUT /api/teams/:id returns 422 when countryId is not a uuid")
     public void updateTeam_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
         var contentDto = UpsertTeamDto.builder().countryId("a").build();
@@ -535,7 +550,7 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/teams/:id returns 422 when coachId is not an uuid")
+    @DisplayName("PUT /api/teams/:id returns 422 when coachId is not a uuid")
     public void updateTeam_CoachIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
         var contentDto = UpsertTeamDto.builder().coachId("a").build();
@@ -681,5 +696,727 @@ public class TeamControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.size()", is(1)))
                 .andExpect(jsonPath("$.content[0].name", is(pValue)));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:id/players returns 404 when team is not found")
+    public void getTeamPlayers_ServiceThrowsWhenTeamNotFound_StatusNotFound() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        // given
+        given(teamPlayerService.findAllPlayersOfTeam(teamId)).willThrow(
+                new ResourceNotFoundException(Team.class, teamId)
+        );
+
+        mvc.perform(
+                        get("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("team %s could not be found", teamId)
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:id/players returns 200 when team is found")
+    public void getTeamPlayers_TeamFound_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayers = List.of(
+                TeamPlayerDto.builder().build()
+        );
+
+        var expectedJson = jsonTeamPlayerDtos.write(teamPlayers).getJson();
+
+        // given
+        given(teamPlayerService.findAllPlayersOfTeam(teamId)).willReturn(teamPlayers);
+
+        mvc.perform(
+                        get("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 404 when the service throws ResourceNotFoundException caused by Team")
+    public void assignPlayerToTeam_ServiceThrowsWhenTeamNotFound_StatusNotFound() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        // given
+        given(teamPlayerService.createTeamPlayer(
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getNumber().equals(contentDto.getNumber()) &&
+                                a.getPosition().equals(contentDto.getPosition())
+                )
+        )).willThrow(new ResourceNotFoundException(Team.class, teamId));
+
+        // when
+        var expectedError = String.format("team %s could not be found", teamId);
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("team %s could not be found", teamId)
+                )));
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when playerId is not provided")
+    public void assignPlayerToTeam_PlayerIdNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(null, "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("playerId", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when playerId is not a uuid")
+    public void assignPlayerToTeam_PlayerIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto("a", "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("playerId", List.of("not a valid uuid")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when the service throws ResourceNotFoundException caused by Player")
+    public void assignPlayerToTeam_ServiceThrowsWhenPlayerNotFound_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        // given
+        given(teamPlayerService.createTeamPlayer(
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getNumber().equals(contentDto.getNumber()) &&
+                                a.getPosition().equals(contentDto.getPosition())
+                )
+        )).willThrow(new ResourceNotFoundException(Player.class, playerId));
+
+        // when
+        var expectedError = String.format("player %s could not be found", playerId);
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("playerId", List.of(expectedError)))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when position is not provided")
+    public void assignPlayerToTeam_PositionNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), null, 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("position", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when position value is incorrect")
+    public void assignPlayerToTeam_PositionIncorrect_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        var incorrectPositions = List.of(
+                "asdf", "", "TEST", "test", "aaaaaaaaaaaaaaaaaaaaaa"
+        );
+
+        for (String incorrectPosition : incorrectPositions) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), incorrectPosition, 1);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            post("/api/teams/" + teamId + "/players")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("position", List.of("required exactly one of [GOALKEEPER, DEFENDER, MIDFIELDER, FORWARD]"))));
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 200 when position's value is correct")
+    public void assignPlayerToTeam_PositionCorrect_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        var correctPositions = List.of(
+                "GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD"
+        );
+
+        for (String correctPosition: correctPositions) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), correctPosition, 1);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            post("/api/teams/" + teamId + "/players")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when number is not provided")
+    public void assignPlayerToTeam_NumberNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), "DEFENDER", null);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("number", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when number's value is incorrect")
+    public void assignPlayerToTeam_NumberIncorrect_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        var incorrectNumbers = List.of(
+                0, 100, 200, 1000, 100000
+        );
+
+        for (Integer incorrectNumber : incorrectNumbers) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), "DEFENDER", incorrectNumber);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            post("/api/teams/" + teamId + "/players")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("number", List.of("expected number between 1 and 99"))));
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 422 when the service throws NumberAlreadyTakenException")
+    public void assignPlayerToTeam_ServiceThrowsWhenNumberTaken_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var number = 1;
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", number);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        // given
+        given(teamPlayerService.createTeamPlayer(
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getNumber().equals(contentDto.getNumber()) &&
+                                a.getPosition().equals(contentDto.getPosition())
+                )
+        )).willThrow(new NumberAlreadyTakenException(teamId, number));
+
+        // when
+        var expectedError = String.format("team %s already has a player with number %d", teamId, number);
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("number", List.of(expectedError)))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 200 when number's value is correct")
+    public void assignPlayerToTeam_NumberCorrect_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        var correctNumbers = List.of(
+                1, 20, 50, 85, 99
+        );
+
+        for (Integer correctNumber : correctNumbers) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), "DEFENDER", correctNumber);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            post("/api/teams/" + teamId + "/players")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/teams/:id/players returns 200 with correct body")
+    public void assignPlayerToTeam_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "DEFENDER", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        var expectedDto = TeamPlayerDto
+                .builder()
+                .playerId(playerId)
+                .position(contentDto.getPosition())
+                .number(contentDto.getNumber()).build();
+        var expectedJson = jsonTeamPlayerDto.write(expectedDto).getJson();
+
+        // given
+        given(teamPlayerService.createTeamPlayer(
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getPosition().equals(contentDto.getPosition()) &&
+                                a.getNumber().equals(contentDto.getNumber())
+                )
+        )).willReturn(expectedDto);
+
+
+        // when
+        mvc.perform(
+                        post("/api/teams/" + teamId + "/players")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/teams/:id/players/:teamPlayerId returns 200 and a counter of how many players have been deleted")
+    public void deletePlayerAssignment_TeamPlayerIdProvided_StatusOkAndReturnsCounter() throws Exception {
+        var teamPlayerId = UUID.randomUUID();
+        var teamId = UUID.randomUUID();
+
+        // given
+        given(teamPlayerService.markTeamPlayerAsDeleted(teamPlayerId)).willReturn(1);
+
+        // when
+        mvc.perform(
+                        delete("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string("{\"deleted\":1}"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 404 when the service throws ResourceNotFoundException caused by Team")
+    public void updatePlayerOfTeam_ServiceThrowsWhenTeamNotFound_StatusNotFound() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        // given
+        given(teamPlayerService.updateTeamPlayer(
+                eq(teamPlayerId),
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getNumber().equals(contentDto.getNumber()) &&
+                                a.getPosition().equals(contentDto.getPosition())
+                )
+        )).willThrow(new ResourceNotFoundException(Team.class, teamId));
+
+        // when
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("team %s could not be found", teamId)
+                )));
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 404 when the service throws ResourceNotFoundException caused by TeamPlayer")
+    public void updatePlayerOfTeam_ServiceThrowsWhenTeamPlayerNotFound_StatusNotFound() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        // given
+        given(teamPlayerService.updateTeamPlayer(
+                eq(teamPlayerId),
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getNumber().equals(contentDto.getNumber()) &&
+                                a.getPosition().equals(contentDto.getPosition())
+                )
+        )).willThrow(new ResourceNotFoundException(TeamPlayer.class, teamId));
+
+        // when
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("teamplayer %s could not be found", teamId)
+                )));
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when playerId is not provided")
+    public void updatePlayerOfTeam_PlayerIdNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(null, "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("playerId", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when playerId is not a uuid")
+    public void updatePlayerOfTeam_PlayerIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto("a", "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("playerId", List.of("not a valid uuid")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when the service throws ResourceNotFoundException caused by Player")
+    public void updatePlayerOfTeam_ServiceThrowsWhenPlayerNotFound_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        // given
+        given(teamPlayerService.updateTeamPlayer(
+                eq(teamPlayerId),
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getNumber().equals(contentDto.getNumber()) &&
+                                a.getPosition().equals(contentDto.getPosition())
+                )
+        )).willThrow(new ResourceNotFoundException(Player.class, playerId));
+
+        // when
+        var expectedError = String.format("player %s could not be found", playerId);
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("playerId", List.of(expectedError)))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when position is not provided")
+    public void updatePlayerOfTeam_PositionNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(),null, 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("position", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when position value is incorrect")
+    public void updatePlayerOfTeam_PositionIncorrect_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+
+        var incorrectPositions = List.of(
+                "asdf", "", "TEST", "test", "aaaaaaaaaaaaaaaaaaaaaa"
+        );
+
+        for (String incorrectPosition : incorrectPositions) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), incorrectPosition, 1);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("position", List.of("required exactly one of [GOALKEEPER, DEFENDER, MIDFIELDER, FORWARD]")))
+                    );
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when position value is correct")
+    public void updatePlayerOfTeam_PositionCorrect_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+
+        var correctPositions = List.of(
+                "GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD"
+        );
+
+        for (String correctPosition: correctPositions) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), correctPosition, 1);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when number is not provided")
+    public void updatePlayerOfTeam_NumberNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(),"DEFENDER", null);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("number", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when number value is incorrect")
+    public void updatePlayerOfTeam_NumberIncorrect_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+
+        var incorrectNumbers = List.of(
+                0, 100, 200, 1000, 100000
+        );
+
+        for (Integer incorrectNumber: incorrectNumbers) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), "DEFENDER", incorrectNumber);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("number", List.of("expected number between 1 and 99")))
+                    );
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 200 when number value is correct")
+    public void updatePlayerOfTeam_NumberCorrect_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+
+        var correctNumbers = List.of(
+                1, 20, 50, 85, 99
+        );
+
+        for (Integer correctNumber: correctNumbers) {
+            var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), "DEFENDER", correctNumber);
+            var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+            mvc.perform(
+                            put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when the service throws NumberAlreadyTakenException")
+    public void updatePlayerOfTeam_ServiceThrowsWhenNumberTaken_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var number = 1;
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", number);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        // given
+        given(teamPlayerService.updateTeamPlayer(
+                eq(teamPlayerId),
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getNumber().equals(contentDto.getNumber()) &&
+                                a.getPosition().equals(contentDto.getPosition())
+                )
+        )).willThrow(new NumberAlreadyTakenException(teamId, number));
+
+        // when
+        var expectedError = String.format("team %s already has a player with number %d", teamId, number);
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("number", List.of(expectedError)))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 200 with correct body")
+    public void updatePlayerOfTeam_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
+        var teamId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID();
+        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "DEFENDER", 1);
+        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
+
+        var expectedDto = TeamPlayerDto
+                .builder()
+                .playerId(playerId)
+                .position(contentDto.getPosition())
+                .number(contentDto.getNumber()).build();
+        var expectedJson = jsonTeamPlayerDto.write(expectedDto).getJson();
+
+        // given
+        given(teamPlayerService.updateTeamPlayer(
+                eq(teamPlayerId),
+                eq(teamId),
+                argThat(a ->
+                        a.getPlayerId().equals(playerId.toString()) &&
+                                a.getPosition().equals(contentDto.getPosition()) &&
+                                a.getNumber().equals(contentDto.getNumber())
+                )
+        )).willReturn(expectedDto);
+
+
+        // when
+        mvc.perform(
+                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
     }
 }

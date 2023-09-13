@@ -4,9 +4,11 @@ import ml.echelon133.common.exception.FormInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.player.dto.PlayerDto;
+import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.service.PlayerService;
+import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,14 +26,22 @@ public class PlayerController {
 
     private final PlayerService playerService;
 
+    private final TeamPlayerService teamPlayerService;
+
     @Autowired
-    public PlayerController(PlayerService playerService) {
+    public PlayerController(PlayerService playerService, TeamPlayerService teamPlayerService) {
         this.playerService = playerService;
+        this.teamPlayerService = teamPlayerService;
     }
 
     @GetMapping("/{id}")
     public PlayerDto getPlayer(@PathVariable UUID id) throws ResourceNotFoundException {
         return playerService.findById(id);
+    }
+
+    @GetMapping("/{id}/teams")
+    public List<TeamDto> getTeamsOfPlayer(@PathVariable UUID id) throws ResourceNotFoundException {
+        return teamPlayerService.findAllTeamsOfPlayer(id);
     }
 
     @GetMapping
