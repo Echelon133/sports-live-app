@@ -2,11 +2,13 @@ package ml.echelon133.matchservice.player.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.player.dto.PlayerDto;
+import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.service.PlayerService;
+import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,9 @@ public class PlayerControllerTests {
     @Mock
     private PlayerService playerService;
 
+    @Mock
+    private TeamPlayerService teamPlayerService;
+
     @InjectMocks
     private PlayerExceptionHandler playerExceptionHandler;
 
@@ -52,6 +57,8 @@ public class PlayerControllerTests {
     private PlayerController playerController;
 
     private JacksonTester<PlayerDto> jsonPlayerDto;
+
+    private JacksonTester<List<TeamDto>> jsonTeamDtos;
 
     private JacksonTester<UpsertPlayerDto> jsonUpsertPlayerDto;
 
@@ -819,5 +826,50 @@ public class PlayerControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.size()", is(1)))
                 .andExpect(jsonPath("$.content[0].name", is(pValue)));
+    }
+
+    @Test
+    @DisplayName("GET /api/players/:id/teams returns 404 when player is not found")
+    public void getTeamsOfPlayer_PlayerNotFound_StatusNotFound() throws Exception {
+        var playerId = UUID.randomUUID();
+
+        // given
+        given(teamPlayerService.findAllTeamsOfPlayer(playerId)).willThrow(
+                new ResourceNotFoundException(Player.class, playerId)
+        );
+
+        // when
+        mvc.perform(
+                        get("/api/players/" + playerId + "/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("player %s could not be found", playerId)
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/players/:id/teams returns 200 when player's teams are found")
+    public void getTeamsOfPlayer_TeamsFound_StatusOk() throws Exception {
+        var playerId = UUID.randomUUID();
+        var teamDtos = List.of(
+                TeamDto.builder().build()
+        );
+
+        var expectedJson = jsonTeamDtos.write(teamDtos).getJson();
+
+        // given
+        given(teamPlayerService.findAllTeamsOfPlayer(playerId)).willReturn(teamDtos);
+
+        // when
+        mvc.perform(
+                        get("/api/players/" + playerId + "/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
     }
 }
