@@ -36,7 +36,7 @@ public class CoachService {
      * @throws ResourceNotFoundException thrown when the coach does not exist in the database
      */
     public CoachDto findById(UUID id) throws ResourceNotFoundException {
-        return this.coachRepository
+        return coachRepository
                 .findCoachById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Coach.class, id));
     }
@@ -53,14 +53,14 @@ public class CoachService {
      * @throws ResourceNotFoundException thrown when the coach does not exist in the database
      */
     public CoachDto updateCoach(UUID id, UpsertCoachDto coachDto) throws ResourceNotFoundException {
-        var coachToUpdate = this.coachRepository
+        var coachToUpdate = coachRepository
                 .findById(id)
                 .filter(v -> !v.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Coach.class, id));
 
         coachToUpdate.setName(coachDto.getName());
 
-        return entityToDto(this.coachRepository.save(coachToUpdate));
+        return entityToDto(coachRepository.save(coachToUpdate));
     }
 
     /**
@@ -74,7 +74,7 @@ public class CoachService {
      */
     public CoachDto createCoach(UpsertCoachDto coachDto) {
         return entityToDto(
-                this.coachRepository
+                coachRepository
                         .save(new Coach(coachDto.getName()))
         );
     }
@@ -87,7 +87,7 @@ public class CoachService {
      * @return a page of coaches which match the filter
      */
     public Page<CoachDto> findCoachesByName(String phrase, Pageable pageable) {
-        return this.coachRepository.findAllByNameContaining(phrase, pageable);
+        return coachRepository.findAllByNameContaining(phrase, pageable);
     }
 
     /**
@@ -97,6 +97,6 @@ public class CoachService {
      * @return how many entities have been affected
      */
     public Integer markCoachAsDeleted(UUID id)  {
-        return this.coachRepository.markCoachAsDeleted(id);
+        return coachRepository.markCoachAsDeleted(id);
     }
 }

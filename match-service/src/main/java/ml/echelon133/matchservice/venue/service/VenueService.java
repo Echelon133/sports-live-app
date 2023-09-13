@@ -36,7 +36,7 @@ public class VenueService {
      * @throws ResourceNotFoundException thrown when the venue does not exist in the database
      */
     public VenueDto findById(UUID id) throws ResourceNotFoundException {
-        return this.venueRepository
+        return venueRepository
                 .findVenueById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
     }
@@ -53,7 +53,7 @@ public class VenueService {
      * @throws ResourceNotFoundException thrown when the venue does not exist in the database
      */
     public VenueDto updateVenue(UUID id, UpsertVenueDto venueDto) throws ResourceNotFoundException {
-        var venueToUpdate = this.venueRepository
+        var venueToUpdate = venueRepository
                 .findById(id)
                 .filter(v -> !v.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
@@ -61,7 +61,7 @@ public class VenueService {
         venueToUpdate.setName(venueDto.getName());
         venueToUpdate.setCapacity(venueDto.getCapacity());
 
-        return entityToDto(this.venueRepository.save(venueToUpdate));
+        return entityToDto(venueRepository.save(venueToUpdate));
     }
 
     /**
@@ -75,7 +75,7 @@ public class VenueService {
      */
     public VenueDto createVenue(UpsertVenueDto venueDto) {
         return entityToDto(
-                this.venueRepository
+                venueRepository
                         .save(new Venue(venueDto.getName(), venueDto.getCapacity()))
         );
     }
@@ -88,7 +88,7 @@ public class VenueService {
      * @return a page of venues which match the filter
      */
     public Page<VenueDto> findVenuesByName(String phrase, Pageable pageable) {
-        return this.venueRepository.findAllByNameContaining(phrase, pageable);
+        return venueRepository.findAllByNameContaining(phrase, pageable);
     }
 
     /**
@@ -98,6 +98,6 @@ public class VenueService {
      * @return how many entities have been affected
      */
     public Integer markVenueAsDeleted(UUID id)  {
-        return this.venueRepository.markVenueAsDeleted(id);
+        return venueRepository.markVenueAsDeleted(id);
     }
 }

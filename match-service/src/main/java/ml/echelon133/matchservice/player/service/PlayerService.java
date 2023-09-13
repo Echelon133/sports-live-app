@@ -44,7 +44,7 @@ public class PlayerService {
      * @throws ResourceNotFoundException thrown when the player does not exist in the database
      */
     public PlayerDto findById(UUID id) throws ResourceNotFoundException {
-        return this.playerRepository
+        return playerRepository
                 .findPlayerById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Player.class, id));
     }
@@ -61,7 +61,7 @@ public class PlayerService {
      * @throws ResourceNotFoundException thrown when the player or their country does not exist in the database
      */
     public PlayerDto updatePlayer(UUID id, UpsertPlayerDto playerDto) throws ResourceNotFoundException {
-        var playerToUpdate = this.playerRepository
+        var playerToUpdate = playerRepository
                 .findById(id)
                 .filter(p -> !p.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Player.class, id));
@@ -77,13 +77,13 @@ public class PlayerService {
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(playerDto.getCountryId());
         // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = this.countryRepository
+        var country = countryRepository
                 .findById(countryId)
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
         playerToUpdate.setCountry(country);
 
-        return PlayerMapper.entityToDto(this.playerRepository.save(playerToUpdate));
+        return PlayerMapper.entityToDto(playerRepository.save(playerToUpdate));
     }
 
     /**
@@ -106,13 +106,13 @@ public class PlayerService {
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(playerDto.getCountryId());
         // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = this.countryRepository
+        var country = countryRepository
                 .findById(countryId)
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
 
         var player = new Player(playerDto.getName(), position, dateOfBirth, country);
-        return PlayerMapper.entityToDto(this.playerRepository.save(player));
+        return PlayerMapper.entityToDto(playerRepository.save(player));
     }
 
     /**
@@ -123,7 +123,7 @@ public class PlayerService {
      * @return a page of players which match the filter
      */
     public Page<PlayerDto> findPlayersByName(String phrase, Pageable pageable) {
-        return this.playerRepository.findAllByNameContaining(phrase, pageable);
+        return playerRepository.findAllByNameContaining(phrase, pageable);
     }
 
     /**
@@ -133,6 +133,6 @@ public class PlayerService {
      * @return how many entities have been affected
      */
     public Integer markPlayerAsDeleted(UUID id)  {
-        return this.playerRepository.markPlayerAsDeleted(id);
+        return playerRepository.markPlayerAsDeleted(id);
     }
 }
