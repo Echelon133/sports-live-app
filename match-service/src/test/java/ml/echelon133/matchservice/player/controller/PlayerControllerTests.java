@@ -5,9 +5,12 @@ import ml.echelon133.common.player.dto.PlayerDto;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.country.model.Country;
+import ml.echelon133.matchservice.player.TestPlayerDto;
+import ml.echelon133.matchservice.player.TestUpsertPlayerDto;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.service.PlayerService;
+import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -103,7 +106,7 @@ public class PlayerControllerTests {
     public void getPlayerById_PlayerFound_StatusOk() throws Exception {
         var playerId = UUID.randomUUID();
 
-        var playerDto = PlayerDto.builder().build();
+        var playerDto = TestPlayerDto.builder().build();
         var expectedJson = jsonPlayerDto.write(playerDto).getJson();
 
         // given
@@ -121,7 +124,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("POST /api/players returns 422 when name is not provided")
     public void createPlayer_NameNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertPlayerDto.builder().name(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().name(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -147,7 +150,7 @@ public class PlayerControllerTests {
         );
 
         for (String incorrectName : incorrectNameLengths) {
-            var contentDto = UpsertPlayerDto.builder().name(incorrectName).build();
+            var contentDto = TestUpsertPlayerDto.builder().name(incorrectName).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -174,7 +177,7 @@ public class PlayerControllerTests {
         );
 
         for (String correctName : correctNameLengths) {
-            var contentDto = UpsertPlayerDto.builder().name(correctName).build();
+            var contentDto = TestUpsertPlayerDto.builder().name(correctName).build();
             var bodyJson = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -190,7 +193,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("POST /api/players returns 422 when countryId is not provided")
     public void createPlayer_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertPlayerDto.builder().countryId(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().countryId(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -208,7 +211,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("POST /api/players returns 422 when countryId is not an uuid")
     public void createPlayer_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertPlayerDto.builder().countryId("a").build();
+        var contentDto = TestUpsertPlayerDto.builder().countryId("a").build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -226,7 +229,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("POST /api/players returns 422 when position is not provided")
     public void createPlayer_PositionNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertPlayerDto.builder().position(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().position(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -249,7 +252,7 @@ public class PlayerControllerTests {
         );
 
         for (String incorrectPosition : incorrectPositions) {
-            var contentDto = UpsertPlayerDto.builder().position(incorrectPosition).build();
+            var contentDto = TestUpsertPlayerDto.builder().position(incorrectPosition).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -273,7 +276,7 @@ public class PlayerControllerTests {
         );
 
         for (String correctPosition : correctPositions) {
-            var contentDto = UpsertPlayerDto.builder().position(correctPosition).build();
+            var contentDto = TestUpsertPlayerDto.builder().position(correctPosition).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -289,7 +292,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("POST /api/players returns 422 when dateOfBirth is not provided")
     public void createPlayer_DateOfBirthNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertPlayerDto.builder().dateOfBirth(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -313,7 +316,7 @@ public class PlayerControllerTests {
         );
 
         for (String incorrectDate : incorrectDates) {
-            var contentDto = UpsertPlayerDto.builder().dateOfBirth(incorrectDate).build();
+            var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(incorrectDate).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -337,7 +340,7 @@ public class PlayerControllerTests {
         );
 
         for (String correctDate : correctDates) {
-            var contentDto = UpsertPlayerDto.builder().dateOfBirth(correctDate).build();
+            var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(correctDate).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -353,7 +356,7 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("POST /api/players returns 422 when the service throws ResourceNotFoundException caused by Country")
     public void createPlayer_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertPlayerDto.builder().build();
+        var contentDto = TestUpsertPlayerDto.builder().build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
         var countryId = UUID.fromString(contentDto.getCountryId());
 
@@ -382,10 +385,10 @@ public class PlayerControllerTests {
     @Test
     @DisplayName("POST /api/players returns 200 and calls the service when request body valid")
     public void createPlayer_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
-        var contentDto = UpsertPlayerDto.builder().build();
+        var contentDto = TestUpsertPlayerDto.builder().build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
-        var expectedDto = PlayerDto.builder()
+        var expectedDto = TestPlayerDto.builder()
                 .name(contentDto.getName())
                 .position(contentDto.getPosition())
                 .dateOfBirth(LocalDate.parse(contentDto.getDateOfBirth(), DateTimeFormatter.ofPattern(PlayerService.DATE_OF_BIRTH_FORMAT)))
@@ -431,7 +434,7 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 404 when resource not found")
     public void updatePlayer_PlayerNotFound_StatusNotFound() throws Exception {
         var playerId = UUID.randomUUID();
-        var upsertDto = UpsertPlayerDto.builder().build();
+        var upsertDto = TestUpsertPlayerDto.builder().build();
         var upsertJson = jsonUpsertPlayerDto.write(upsertDto).getJson();
 
         // given
@@ -455,7 +458,7 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 422 when name is not provided")
     public void updatePlayer_NameNotProvided_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = UpsertPlayerDto.builder().name(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().name(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -482,7 +485,7 @@ public class PlayerControllerTests {
         );
 
         for (String incorrectName : incorrectNameLengths) {
-            var contentDto = UpsertPlayerDto.builder().name(incorrectName).build();
+            var contentDto = TestUpsertPlayerDto.builder().name(incorrectName).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -510,7 +513,7 @@ public class PlayerControllerTests {
         );
 
         for (String correctName : correctNameLengths) {
-            var contentDto = UpsertPlayerDto.builder().name(correctName).build();
+            var contentDto = TestUpsertPlayerDto.builder().name(correctName).build();
             var bodyJson = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -527,7 +530,7 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 422 when countryId is not provided")
     public void updatePlayer_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = UpsertPlayerDto.builder().countryId(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().countryId(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -546,7 +549,7 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 422 when countryId is not an uuid")
     public void updatePlayer_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = UpsertPlayerDto.builder().countryId("a").build();
+        var contentDto = TestUpsertPlayerDto.builder().countryId("a").build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -565,7 +568,7 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 422 when position is not provided")
     public void updatePlayer_PositionNotProvided_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = UpsertPlayerDto.builder().position(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().position(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -589,7 +592,7 @@ public class PlayerControllerTests {
         );
 
         for (String incorrectPosition : incorrectPositions) {
-            var contentDto = UpsertPlayerDto.builder().position(incorrectPosition).build();
+            var contentDto = TestUpsertPlayerDto.builder().position(incorrectPosition).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -614,7 +617,7 @@ public class PlayerControllerTests {
         );
 
         for (String correctPosition : correctPositions) {
-            var contentDto = UpsertPlayerDto.builder().position(correctPosition).build();
+            var contentDto = TestUpsertPlayerDto.builder().position(correctPosition).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -631,7 +634,7 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 422 when dateOfBirth is not provided")
     public void updatePlayer_DateOfBirthNotProvided_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = UpsertPlayerDto.builder().dateOfBirth(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -656,7 +659,7 @@ public class PlayerControllerTests {
         );
 
         for (String incorrectDate : incorrectDates) {
-            var contentDto = UpsertPlayerDto.builder().dateOfBirth(incorrectDate).build();
+            var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(incorrectDate).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -681,7 +684,7 @@ public class PlayerControllerTests {
         );
 
         for (String correctDate : correctDates) {
-            var contentDto = UpsertPlayerDto.builder().dateOfBirth(correctDate).build();
+            var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(correctDate).build();
             var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -698,7 +701,7 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 422 when the service throws ResourceNotFoundException caused by Country")
     public void updatePlayer_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = UpsertPlayerDto.builder().build();
+        var contentDto = TestUpsertPlayerDto.builder().build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
         var countryId = UUID.fromString(contentDto.getCountryId());
 
@@ -731,10 +734,10 @@ public class PlayerControllerTests {
     @DisplayName("PUT /api/players/:id returns 200 and calls the service when request body valid")
     public void updatePlayer_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = UpsertPlayerDto.builder().build();
+        var contentDto = TestUpsertPlayerDto.builder().build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
-        var expectedDto = PlayerDto.builder()
+        var expectedDto = TestPlayerDto.builder()
                 .name(contentDto.getName())
                 .position(contentDto.getPosition())
                 .dateOfBirth(LocalDate.parse(contentDto.getDateOfBirth(), DateTimeFormatter.ofPattern(PlayerService.DATE_OF_BIRTH_FORMAT)))
@@ -805,7 +808,7 @@ public class PlayerControllerTests {
         var testPageSize = 7;
         var testPageNumber = 4;
         var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
-        var expectedContent = List.of(PlayerDto.builder().name(pValue).build());
+        var expectedContent = List.of(TestPlayerDto.builder().name(pValue).build());
 
         Page<PlayerDto> expectedPage = new PageImpl<>(expectedContent, expectedPageable, 1);
 
@@ -855,7 +858,7 @@ public class PlayerControllerTests {
     public void getTeamsOfPlayer_TeamsFound_StatusOk() throws Exception {
         var playerId = UUID.randomUUID();
         var teamDtos = List.of(
-                TeamDto.builder().build()
+                TestTeamDto.builder().build()
         );
 
         var expectedJson = jsonTeamDtos.write(teamDtos).getJson();

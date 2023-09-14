@@ -6,8 +6,9 @@ import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.coach.repository.CoachRepository;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.team.TestTeamDto;
+import ml.echelon133.matchservice.team.TestUpsertTeamDto;
 import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.team.model.UpsertTeamDto;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,7 +64,7 @@ public class TeamServiceTests {
     @Test
     @DisplayName("findById returns the dto when the team is present")
     public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
-        var testDto = TeamDto.builder().build();
+        var testDto = TestTeamDto.builder().build();
         var teamId = testDto.getId();
 
         // given
@@ -86,7 +87,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, UpsertTeamDto.builder().build());
+            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().build());
         }).getMessage();
 
         // then
@@ -105,7 +106,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, UpsertTeamDto.builder().build());
+            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().build());
         }).getMessage();
 
         // then
@@ -125,7 +126,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, UpsertTeamDto.builder().countryId(countryId.toString()).build());
+            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -147,7 +148,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, UpsertTeamDto.builder().countryId(countryId.toString()).build());
+            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -168,7 +169,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, UpsertTeamDto.builder().coachId(coachId.toString()).build());
+            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
         }).getMessage();
 
         // then
@@ -191,7 +192,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, UpsertTeamDto.builder().coachId(coachId.toString()).build());
+            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
         }).getMessage();
 
         // then
@@ -206,7 +207,7 @@ public class TeamServiceTests {
         var newCountryId = newCountry.getId();
         var newCoach = new Coach("asdf123");
         var newCoachId = newCoach.getId();
-        var updateDto = UpsertTeamDto
+        var updateDto = TestUpsertTeamDto
                 .builder()
                 .countryId(newCountryId.toString())
                 .coachId(newCoachId.toString())
@@ -263,7 +264,7 @@ public class TeamServiceTests {
     public void findTeamsByName_CustomPhraseAndPageable_CorrectlyCallsRepository() {
         var phrase = "test";
         var pageable = Pageable.ofSize(7).withPage(4);
-        var expectedDto = TeamDto.builder().name(phrase).build();
+        var expectedDto = TestTeamDto.builder().name(phrase).build();
         var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
 
         // given
@@ -289,7 +290,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(UpsertTeamDto.builder().countryId(countryId.toString()).build());
+            teamService.createTeam(TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -308,7 +309,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(UpsertTeamDto.builder().countryId(countryId.toString()).build());
+            teamService.createTeam(TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -326,7 +327,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(UpsertTeamDto.builder().coachId(coachId.toString()).build());
+            teamService.createTeam(TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
         }).getMessage();
 
         // then
@@ -346,7 +347,7 @@ public class TeamServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(UpsertTeamDto.builder().coachId(coachId.toString()).build());
+            teamService.createTeam(TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
         }).getMessage();
 
         // then
@@ -358,7 +359,7 @@ public class TeamServiceTests {
     public void createTeam_TeamCreated_ReturnsDto() throws ResourceNotFoundException {
         var country = new Country("Portugal", "PT");
         var coach = new Coach("Test");
-        var createDto = UpsertTeamDto
+        var createDto = TestUpsertTeamDto
                 .builder()
                 .countryId(country.getId().toString())
                 .coachId(coach.getId().toString())

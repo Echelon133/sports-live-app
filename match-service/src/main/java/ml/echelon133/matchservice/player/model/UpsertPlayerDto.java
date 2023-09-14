@@ -6,7 +6,6 @@ import ml.echelon133.matchservice.player.model.validator.ValidPositionValue;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotNull;
-import java.util.UUID;
 
 public class UpsertPlayerDto {
 
@@ -64,42 +63,5 @@ public class UpsertPlayerDto {
 
     public void setDateOfBirth(String dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static class Builder {
-        private String name = "Test player";
-        private String countryId = UUID.randomUUID().toString();
-        private String position = Position.FORWARD.name();
-        private String dateOfBirth = "1970/01/01";
-
-        private Builder() {}
-
-        public Builder name(String name) {
-            this.name = name;
-            return this;
-        }
-
-        public Builder countryId(String countryId) {
-            this.countryId = countryId;
-            return this;
-        }
-
-        public Builder position(String position) {
-            this.position = position;
-            return this;
-        }
-
-        public Builder dateOfBirth(String dateOfBirth) {
-            this.dateOfBirth = dateOfBirth;
-            return this;
-        }
-
-        public UpsertPlayerDto build() {
-            return new UpsertPlayerDto(name, countryId, position, dateOfBirth);
-        }
     }
 }

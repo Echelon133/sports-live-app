@@ -4,7 +4,6 @@ import ml.echelon133.common.validator.ValidUUID;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotNull;
-import java.util.UUID;
 
 public class UpsertTeamDto {
 
@@ -49,36 +48,5 @@ public class UpsertTeamDto {
 
     public void setCoachId(String coachId) {
         this.coachId = coachId;
-    }
-
-    public static UpsertTeamDto.Builder builder() {
-        return new UpsertTeamDto.Builder();
-    }
-
-    public static class Builder {
-        private String name = "Test team";
-        private String countryId = UUID.randomUUID().toString();
-        private String coachId = UUID.randomUUID().toString();
-
-        private Builder() {}
-
-        public UpsertTeamDto.Builder name(String name) {
-            this.name = name;
-            return this;
-        }
-
-        public UpsertTeamDto.Builder countryId(String countryId) {
-            this.countryId = countryId;
-            return this;
-        }
-
-        public UpsertTeamDto.Builder coachId(String coachId) {
-            this.coachId = coachId;
-            return this;
-        }
-
-        public UpsertTeamDto build() {
-            return new UpsertTeamDto(name, countryId, coachId);
-        }
     }
 }

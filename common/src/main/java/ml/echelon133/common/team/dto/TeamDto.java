@@ -41,46 +41,4 @@ public interface TeamDto {
             }
         };
     }
-
-    static TeamDto.Builder builder() {
-        return new TeamDto.Builder();
-    }
-
-    class Builder {
-        private UUID id = UUID.randomUUID();
-        private String name = "Test Team";
-        private CountryDto countryDto = CountryDto.from(UUID.randomUUID(), "Test Country", "TC");
-        private CoachDto coachDto = CoachDto.from(UUID.randomUUID(), "Test Coach");
-
-        private Builder() {}
-
-        public TeamDto.Builder id(UUID id) {
-            this.id = id;
-            return this;
-        }
-
-        public TeamDto.Builder name(String name) {
-            this.name = name;
-            return this;
-        }
-
-        public TeamDto.Builder countryDto(CountryDto countryDto) {
-            this.countryDto = countryDto;
-            return this;
-        }
-
-        public TeamDto.Builder coachDto(CoachDto coachDto) {
-            this.coachDto = coachDto;
-            return this;
-        }
-
-        public TeamDto build() {
-            return TeamDto.from(
-                    id,
-                    name,
-                    countryDto,
-                    coachDto
-            );
-        }
-    }
 }
