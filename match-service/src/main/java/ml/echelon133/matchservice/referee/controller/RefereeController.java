@@ -27,9 +27,9 @@ public class RefereeController {
         this.refereeService = refereeService;
     }
 
-    @GetMapping("/{id}")
-    public RefereeDto getReferee(@PathVariable UUID id) throws ResourceNotFoundException {
-        return refereeService.findById(id);
+    @GetMapping("/{refereeId}")
+    public RefereeDto getReferee(@PathVariable UUID refereeId) throws ResourceNotFoundException {
+        return refereeService.findById(refereeId);
     }
 
     @GetMapping
@@ -37,15 +37,15 @@ public class RefereeController {
         return refereeService.findRefereesByName(name, pageable);
     }
 
-    @PutMapping("/{id}")
-    public RefereeDto updateReferee(@PathVariable UUID id, @RequestBody @Valid UpsertRefereeDto refereeDto, BindingResult result)
+    @PutMapping("/{refereeId}")
+    public RefereeDto updateReferee(@PathVariable UUID refereeId, @RequestBody @Valid UpsertRefereeDto refereeDto, BindingResult result)
             throws ResourceNotFoundException, FormInvalidException {
 
         if (result.hasErrors()) {
             throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
-        return refereeService.updateReferee(id, refereeDto);
+        return refereeService.updateReferee(refereeId, refereeDto);
     }
 
     @PostMapping
@@ -58,8 +58,8 @@ public class RefereeController {
         return refereeService.createReferee(refereeDto);
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Integer> deleteReferee(@PathVariable UUID id) {
-        return Map.of("deleted", refereeService.markRefereeAsDeleted(id));
+    @DeleteMapping("/{refereeId}")
+    public Map<String, Integer> deleteReferee(@PathVariable UUID refereeId) {
+        return Map.of("deleted", refereeService.markRefereeAsDeleted(refereeId));
     }
 }

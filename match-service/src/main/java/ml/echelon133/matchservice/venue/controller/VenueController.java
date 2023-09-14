@@ -27,9 +27,9 @@ public class VenueController {
         this.venueService = venueService;
     }
 
-    @GetMapping("/{id}")
-    public VenueDto getVenue(@PathVariable UUID id) throws ResourceNotFoundException {
-        return venueService.findById(id);
+    @GetMapping("/{venueId}")
+    public VenueDto getVenue(@PathVariable UUID venueId) throws ResourceNotFoundException {
+        return venueService.findById(venueId);
     }
 
     @GetMapping
@@ -37,15 +37,15 @@ public class VenueController {
         return venueService.findVenuesByName(name, pageable);
     }
 
-    @PutMapping("/{id}")
-    public VenueDto updateVenue(@PathVariable UUID id, @RequestBody @Valid UpsertVenueDto venueDto, BindingResult result)
+    @PutMapping("/{venueId}")
+    public VenueDto updateVenue(@PathVariable UUID venueId, @RequestBody @Valid UpsertVenueDto venueDto, BindingResult result)
             throws ResourceNotFoundException, FormInvalidException {
 
         if (result.hasErrors()) {
             throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
-        return venueService.updateVenue(id, venueDto);
+        return venueService.updateVenue(venueId, venueDto);
     }
 
     @PostMapping
@@ -58,8 +58,8 @@ public class VenueController {
         return venueService.createVenue(venueDto);
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Integer> deleteVenue(@PathVariable UUID id) {
-        return Map.of("deleted", venueService.markVenueAsDeleted(id));
+    @DeleteMapping("/{venueId}")
+    public Map<String, Integer> deleteVenue(@PathVariable UUID venueId) {
+        return Map.of("deleted", venueService.markVenueAsDeleted(venueId));
     }
 }

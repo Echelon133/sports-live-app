@@ -34,14 +34,14 @@ public class PlayerController {
         this.teamPlayerService = teamPlayerService;
     }
 
-    @GetMapping("/{id}")
-    public PlayerDto getPlayer(@PathVariable UUID id) throws ResourceNotFoundException {
-        return playerService.findById(id);
+    @GetMapping("/{playerId}")
+    public PlayerDto getPlayer(@PathVariable UUID playerId) throws ResourceNotFoundException {
+        return playerService.findById(playerId);
     }
 
-    @GetMapping("/{id}/teams")
-    public List<TeamDto> getTeamsOfPlayer(@PathVariable UUID id) throws ResourceNotFoundException {
-        return teamPlayerService.findAllTeamsOfPlayer(id);
+    @GetMapping("/{playerId}/teams")
+    public List<TeamDto> getTeamsOfPlayer(@PathVariable UUID playerId) throws ResourceNotFoundException {
+        return teamPlayerService.findAllTeamsOfPlayer(playerId);
     }
 
     @GetMapping
@@ -49,8 +49,8 @@ public class PlayerController {
         return playerService.findPlayersByName(name, pageable);
     }
 
-    @PutMapping("/{id}")
-    public PlayerDto updatePlayer(@PathVariable UUID id, @RequestBody @Valid UpsertPlayerDto playerDto, BindingResult result)
+    @PutMapping("/{playerId}")
+    public PlayerDto updatePlayer(@PathVariable UUID playerId, @RequestBody @Valid UpsertPlayerDto playerDto, BindingResult result)
             throws FormInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
@@ -58,7 +58,7 @@ public class PlayerController {
         }
 
         try {
-            return playerService.updatePlayer(id, playerDto);
+            return playerService.updatePlayer(playerId, playerDto);
         } catch (ResourceNotFoundException exception) {
             // updatePlayer's ResourceNotFoundException can be caused by either Player or Country.
             // If the player could not be found, just rethrow the exception to give the user 404 Not Found.
@@ -95,8 +95,8 @@ public class PlayerController {
         }
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Integer> deletePlayer(@PathVariable UUID id) {
-        return Map.of("deleted", playerService.markPlayerAsDeleted(id));
+    @DeleteMapping("/{playerId}")
+    public Map<String, Integer> deletePlayer(@PathVariable UUID playerId) {
+        return Map.of("deleted", playerService.markPlayerAsDeleted(playerId));
     }
 }
