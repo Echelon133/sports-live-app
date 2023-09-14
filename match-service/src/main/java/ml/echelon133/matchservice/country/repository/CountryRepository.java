@@ -20,8 +20,11 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
      * @return empty {@link Optional} if the country was not found or is marked as deleted, otherwise contains a {@link CountryDto}
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
-    @Query(value = "SELECT CAST(id as varchar) as id, name, country_code as countryCode FROM country WHERE deleted = false AND id = ?1",
-            nativeQuery = true)
+    @Query(
+            value = "SELECT CAST(id as varchar) as id, name, country_code as countryCode " +
+                    "FROM country WHERE deleted = false AND id = ?1",
+            nativeQuery = true
+    )
     Optional<CountryDto> findCountryById(UUID id);
 
     /**
@@ -42,8 +45,11 @@ public interface CountryRepository extends JpaRepository<Country, UUID> {
      * @return a page containing all countries whose names contain the phrase
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
-    @Query(value = "SELECT CAST(id as varchar) as id, name, country_code as countryCode FROM country WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
+    @Query(
+            value = "SELECT CAST(id as varchar) as id, name, country_code as countryCode " +
+                    "FROM country WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             countQuery = "SELECT COUNT(*) FROM country WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
-            nativeQuery = true)
+            nativeQuery = true
+    )
     Page<CountryDto> findAllByNameContaining(String phrase, Pageable pageable);
 }

@@ -20,8 +20,10 @@ public interface CoachRepository extends JpaRepository<Coach, UUID> {
      * @return empty {@link Optional} if the coach was not found or is marked as deleted, otherwise contains a {@link CoachDto}
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
-    @Query(value = "SELECT CAST(id as varchar) as id, name FROM coach WHERE deleted = false AND id = ?1",
-            nativeQuery = true)
+    @Query(
+            value = "SELECT CAST(id as varchar) as id, name FROM coach WHERE deleted = false AND id = ?1",
+            nativeQuery = true
+    )
     Optional<CoachDto> findCoachById(UUID id);
 
     /**
@@ -42,8 +44,11 @@ public interface CoachRepository extends JpaRepository<Coach, UUID> {
      * @return a page containing all coaches whose names contain the phrase
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
-    @Query(value = "SELECT CAST(id as varchar) as id, name FROM coach WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
+    @Query(
+            value = "SELECT CAST(id as varchar) as id, name " +
+                    "FROM coach WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             countQuery = "SELECT COUNT(*) FROM coach WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
-            nativeQuery = true)
+            nativeQuery = true
+    )
     Page<CoachDto> findAllByNameContaining(String phrase, Pageable pageable);
 }
