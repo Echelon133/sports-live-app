@@ -4,9 +4,10 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.player.dto.PlayerDto;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.player.TestPlayerDto;
+import ml.echelon133.matchservice.player.TestUpsertPlayerDto;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
-import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.repository.PlayerRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -60,7 +62,7 @@ public class PlayerServiceTests {
     @Test
     @DisplayName("findById returns the dto when the player is present")
     public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
-        var testDto = PlayerDto.builder().build();
+        var testDto = TestPlayerDto.builder().build();
         var playerId = testDto.getId();
 
         // given
@@ -83,7 +85,7 @@ public class PlayerServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.updatePlayer(playerId, UpsertPlayerDto.builder().build());
+            playerService.updatePlayer(playerId, TestUpsertPlayerDto.builder().build());
         }).getMessage();
 
         // then
@@ -102,7 +104,7 @@ public class PlayerServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.updatePlayer(playerId, UpsertPlayerDto.builder().build());
+            playerService.updatePlayer(playerId, TestUpsertPlayerDto.builder().build());
         }).getMessage();
 
         // then
@@ -122,7 +124,7 @@ public class PlayerServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.updatePlayer(playerId, UpsertPlayerDto.builder().countryId(countryId.toString()).build());
+            playerService.updatePlayer(playerId, TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -144,7 +146,7 @@ public class PlayerServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.updatePlayer(playerId, UpsertPlayerDto.builder().countryId(countryId.toString()).build());
+            playerService.updatePlayer(playerId, TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -157,7 +159,7 @@ public class PlayerServiceTests {
         var oldPlayer = new Player("Test", Position.DEFENDER, LocalDate.of(1970, 1, 1), new Country("Poland", "PL"));
         var newCountry = new Country("Portugal", "PT");
         var newCountryId = newCountry.getId();
-        var updateDto = UpsertPlayerDto.builder()
+        var updateDto = TestUpsertPlayerDto.builder()
                 .name("Some name")
                 .dateOfBirth("1980/01/01")
                 .position("FORWARD")
@@ -218,7 +220,7 @@ public class PlayerServiceTests {
     public void findPlayersByName_CustomPhraseAndPageable_CorrectlyCallsRepository() {
         var phrase = "test";
         var pageable = Pageable.ofSize(7).withPage(4);
-        var expectedDto = PlayerDto.builder().name(phrase).build();
+        var expectedDto = TestPlayerDto.builder().name(phrase).build();
         var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
 
         // given
@@ -244,7 +246,7 @@ public class PlayerServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.createPlayer(UpsertPlayerDto.builder().countryId(countryId.toString()).build());
+            playerService.createPlayer(TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -263,7 +265,7 @@ public class PlayerServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.createPlayer(UpsertPlayerDto.builder().countryId(countryId.toString()).build());
+            playerService.createPlayer(TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
         }).getMessage();
 
         // then
@@ -274,7 +276,7 @@ public class PlayerServiceTests {
     @DisplayName("createPlayer returns the expected dto after correctly creating a player")
     public void createPlayer_PlayerCreated_ReturnsDto() throws ResourceNotFoundException {
         var country = new Country("Portugal", "PT");
-        var createDto = UpsertPlayerDto.builder()
+        var createDto = TestUpsertPlayerDto.builder()
                 .name("Some name")
                 .dateOfBirth("1980/01/01")
                 .position("FORWARD")

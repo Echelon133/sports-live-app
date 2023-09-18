@@ -44,7 +44,7 @@ public class TeamService {
      * @throws ResourceNotFoundException thrown when the team does not exist in the database
      */
     public TeamDto findById(UUID id) throws ResourceNotFoundException {
-        return this.teamRepository
+        return teamRepository
                 .findTeamById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
     }
@@ -61,7 +61,7 @@ public class TeamService {
      * @throws ResourceNotFoundException thrown when the team/country/coach does not exist in the database
      */
     public TeamDto updateTeam(UUID id, UpsertTeamDto teamDto) throws ResourceNotFoundException {
-        var teamToUpdate = this.teamRepository
+        var teamToUpdate = teamRepository
                 .findById(id)
                 .filter(p -> !p.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
@@ -71,7 +71,7 @@ public class TeamService {
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(teamDto.getCountryId());
         // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = this.countryRepository
+        var country = countryRepository
                 .findById(countryId)
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
@@ -80,13 +80,13 @@ public class TeamService {
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
         var coachId = UUID.fromString(teamDto.getCoachId());
         // make sure that the coach with specified UUID already exists and is not marked as deleted
-        var coach = this.coachRepository
+        var coach = coachRepository
                 .findById(coachId)
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Coach.class, coachId));
         teamToUpdate.setCoach(coach);
 
-        return TeamMapper.entityToDto(this.teamRepository.save(teamToUpdate));
+        return TeamMapper.entityToDto(teamRepository.save(teamToUpdate));
     }
 
     /**
@@ -103,7 +103,7 @@ public class TeamService {
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(teamDto.getCountryId());
         // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = this.countryRepository
+        var country = countryRepository
                 .findById(countryId)
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
@@ -111,13 +111,13 @@ public class TeamService {
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
         var coachId = UUID.fromString(teamDto.getCoachId());
         // make sure that the coach with specified UUID already exists and is not marked as deleted
-        var coach = this.coachRepository
+        var coach = coachRepository
                 .findById(coachId)
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Coach.class, coachId));
 
         var team = new Team(teamDto.getName(), country, coach);
-        return TeamMapper.entityToDto(this.teamRepository.save(team));
+        return TeamMapper.entityToDto(teamRepository.save(team));
     }
 
     /**
@@ -128,7 +128,7 @@ public class TeamService {
      * @return a page of teams which match the filter
      */
     public Page<TeamDto> findTeamsByName(String phrase, Pageable pageable) {
-        return this.teamRepository.findAllByNameContaining(phrase, pageable);
+        return teamRepository.findAllByNameContaining(phrase, pageable);
     }
 
     /**
@@ -138,6 +138,6 @@ public class TeamService {
      * @return how many entities have been affected
      */
     public Integer markTeamAsDeleted(UUID id)  {
-        return this.teamRepository.markTeamAsDeleted(id);
+        return teamRepository.markTeamAsDeleted(id);
     }
 }

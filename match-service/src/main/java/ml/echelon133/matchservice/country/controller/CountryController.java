@@ -27,9 +27,9 @@ public class CountryController {
         this.countryService = countryService;
     }
 
-    @GetMapping("/{id}")
-    public CountryDto getCountry(@PathVariable UUID id) throws ResourceNotFoundException {
-        return countryService.findById(id);
+    @GetMapping("/{countryId}")
+    public CountryDto getCountry(@PathVariable UUID countryId) throws ResourceNotFoundException {
+        return countryService.findById(countryId);
     }
 
     @GetMapping
@@ -37,15 +37,15 @@ public class CountryController {
         return countryService.findCountriesByName(name, pageable);
     }
 
-    @PutMapping("/{id}")
-    public CountryDto updateCountry(@PathVariable UUID id, @RequestBody @Valid UpsertCountryDto countryDto, BindingResult result)
+    @PutMapping("/{countryId}")
+    public CountryDto updateCountry(@PathVariable UUID countryId, @RequestBody @Valid UpsertCountryDto countryDto, BindingResult result)
             throws ResourceNotFoundException, FormInvalidException {
 
         if (result.hasErrors()) {
             throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
-        return countryService.updateCountry(id, countryDto);
+        return countryService.updateCountry(countryId, countryDto);
     }
 
     @PostMapping
@@ -58,8 +58,8 @@ public class CountryController {
         return countryService.createCountry(countryDto);
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Integer> deleteCountry(@PathVariable UUID id) {
-        return Map.of("deleted", countryService.markCountryAsDeleted(id));
+    @DeleteMapping("/{countryId}")
+    public Map<String, Integer> deleteCountry(@PathVariable UUID countryId) {
+        return Map.of("deleted", countryService.markCountryAsDeleted(countryId));
     }
 }

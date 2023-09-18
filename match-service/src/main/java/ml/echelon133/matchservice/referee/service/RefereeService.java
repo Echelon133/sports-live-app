@@ -36,7 +36,7 @@ public class RefereeService {
      * @throws ResourceNotFoundException thrown when the referee does not exist in the database
      */
     public RefereeDto findById(UUID id) throws ResourceNotFoundException {
-        return this.refereeRepository
+        return refereeRepository
                 .findRefereeById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Referee.class, id));
     }
@@ -53,14 +53,14 @@ public class RefereeService {
      * @throws ResourceNotFoundException thrown when the referee does not exist in the database
      */
     public RefereeDto updateReferee(UUID id, UpsertRefereeDto refereeDto) throws ResourceNotFoundException {
-        var refereeToUpdate = this.refereeRepository
+        var refereeToUpdate = refereeRepository
                 .findById(id)
                 .filter(v -> !v.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Referee.class, id));
 
         refereeToUpdate.setName(refereeDto.getName());
 
-        return entityToDto(this.refereeRepository.save(refereeToUpdate));
+        return entityToDto(refereeRepository.save(refereeToUpdate));
     }
 
     /**
@@ -74,7 +74,7 @@ public class RefereeService {
      */
     public RefereeDto createReferee(UpsertRefereeDto refereeDto) {
         return entityToDto(
-                this.refereeRepository
+                refereeRepository
                         .save(new Referee(refereeDto.getName()))
         );
     }
@@ -87,7 +87,7 @@ public class RefereeService {
      * @return a page of referees which match the filter
      */
     public Page<RefereeDto> findRefereesByName(String phrase, Pageable pageable) {
-        return this.refereeRepository.findAllByNameContaining(phrase, pageable);
+        return refereeRepository.findAllByNameContaining(phrase, pageable);
     }
 
     /**
@@ -97,6 +97,6 @@ public class RefereeService {
      * @return how many entities have been affected
      */
     public Integer markRefereeAsDeleted(UUID id)  {
-        return this.refereeRepository.markRefereeAsDeleted(id);
+        return refereeRepository.markRefereeAsDeleted(id);
     }
 }

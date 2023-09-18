@@ -27,9 +27,9 @@ public class CoachController {
         this.coachService = coachService;
     }
 
-    @GetMapping("/{id}")
-    public CoachDto getCoach(@PathVariable UUID id) throws ResourceNotFoundException {
-        return coachService.findById(id);
+    @GetMapping("/{coachId}")
+    public CoachDto getCoach(@PathVariable UUID coachId) throws ResourceNotFoundException {
+        return coachService.findById(coachId);
     }
 
     @GetMapping
@@ -37,15 +37,15 @@ public class CoachController {
         return coachService.findCoachesByName(name, pageable);
     }
 
-    @PutMapping("/{id}")
-    public CoachDto updateCoach(@PathVariable UUID id, @RequestBody @Valid UpsertCoachDto coachDto, BindingResult result)
+    @PutMapping("/{coachId}")
+    public CoachDto updateCoach(@PathVariable UUID coachId, @RequestBody @Valid UpsertCoachDto coachDto, BindingResult result)
             throws ResourceNotFoundException, FormInvalidException {
 
         if (result.hasErrors()) {
             throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
-        return coachService.updateCoach(id, coachDto);
+        return coachService.updateCoach(coachId, coachDto);
     }
 
     @PostMapping
@@ -58,8 +58,8 @@ public class CoachController {
         return coachService.createCoach(coachDto);
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Integer> deleteCoach(@PathVariable UUID id) {
-        return Map.of("deleted", coachService.markCoachAsDeleted(id));
+    @DeleteMapping("/{coachId}")
+    public Map<String, Integer> deleteCoach(@PathVariable UUID coachId) {
+        return Map.of("deleted", coachService.markCoachAsDeleted(coachId));
     }
 }

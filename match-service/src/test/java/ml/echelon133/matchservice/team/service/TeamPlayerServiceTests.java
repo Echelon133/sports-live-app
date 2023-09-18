@@ -1,13 +1,13 @@
 package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.team.dto.TeamDto;
-import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.repository.PlayerRepository;
+import ml.echelon133.matchservice.team.TestTeamDto;
+import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
@@ -83,7 +83,7 @@ public class TeamPlayerServiceTests {
     @DisplayName("findAllPlayersOfTeam returns dtos when the team is present")
     public void findAllPlayersOfTeam_TeamPresent_ReturnsDtos() throws ResourceNotFoundException {
         var teamId = UUID.randomUUID();
-        var teamPlayer = TeamPlayerDto.builder().build();
+        var teamPlayer = TestTeamPlayerDto.builder().build();
 
         // given
         given(teamRepository.existsByIdAndDeletedIsFalse(teamId)).willReturn(true);
@@ -117,7 +117,7 @@ public class TeamPlayerServiceTests {
     @DisplayName("findAllTeamsOfPlayer returns dtos when the player is present")
     public void findAllTeamsOfPlayer_PlayerPresent_ReturnsDtos() throws ResourceNotFoundException {
         var playerId = UUID.randomUUID();
-        var team = TeamDto.builder().build();
+        var team = TestTeamDto.builder().build();
 
         // given
         given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
@@ -245,7 +245,7 @@ public class TeamPlayerServiceTests {
         var playerId = UUID.randomUUID();
         var createDto = new UpsertTeamPlayerDto(playerId.toString(), "GOALKEEPER", 1);
         var entity = getTestTeamPlayer();
-        var expectedDto = TeamPlayerDto
+        var expectedDto = TestTeamPlayerDto
                 .builder()
                 .id(entity.getId())
                 .position(createDto.getPosition())
@@ -468,7 +468,7 @@ public class TeamPlayerServiceTests {
         var expectedEntity = new TeamPlayer(oldTeamPlayer.getTeam(), newPlayer, Position.valueOf(newPosition), newNumber);
         expectedEntity.setId(oldTeamPlayer.getId());
 
-        var expectedDto = TeamPlayerDto
+        var expectedDto = TestTeamPlayerDto
                 .builder()
                 .id(oldTeamPlayer.getId())
                 .position(newPosition)

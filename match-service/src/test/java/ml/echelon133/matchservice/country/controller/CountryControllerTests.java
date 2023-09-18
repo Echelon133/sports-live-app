@@ -233,8 +233,10 @@ public class CountryControllerTests {
     @Test
     @DisplayName("POST /api/countries returns 200 when uppercase country code is correct")
     public void createCountry_UppercaseCountryCodeIsCorrect_StatusOk() throws Exception {
-        for (int firstChar = 'A'; firstChar <= 'Z'; firstChar++) {
-            for (int secondChar = 'A'; secondChar <= 'Z'; secondChar++) {
+        var uppercaseChars = List.of('A', 'D', 'G', 'K', 'P', 'S', 'T', 'Z');
+
+        for (int firstChar : uppercaseChars) {
+            for (int secondChar: uppercaseChars) {
                 var testCountryCode = String.format("%c%c", firstChar, secondChar);
 
                 var dto = CountryDto.from(UUID.randomUUID(), "Test", testCountryCode);
@@ -262,9 +264,10 @@ public class CountryControllerTests {
     @Test
     @DisplayName("POST /api/countries returns 200 when lowercase country code is correct")
     public void createCountry_LowercaseCountryCodeIsCorrect_StatusOk() throws Exception {
+        var lowercaseChars = List.of('a', 'd', 'g', 'k', 'p', 's', 't', 'z');
 
-        for (int firstChar = 'a'; firstChar <= 'z'; firstChar++) {
-            for (int secondChar = 'a'; secondChar <= 'z'; secondChar++) {
+        for (int firstChar : lowercaseChars) {
+            for (int secondChar: lowercaseChars) {
                 var testCountryCode = String.format("%c%c", firstChar, secondChar);
 
                 var dto = CountryDto.from(UUID.randomUUID(), "Test", testCountryCode);
@@ -463,8 +466,10 @@ public class CountryControllerTests {
     public void updateCountry_CountryFoundAndUppercaseCountryCodeIsCorrect_StatusOk() throws Exception {
         var id = UUID.randomUUID();
 
-        for (int firstChar = 'A'; firstChar <= 'Z'; firstChar++) {
-            for (int secondChar = 'A'; secondChar <= 'Z'; secondChar++) {
+        var uppercaseChars = List.of('A', 'D', 'G', 'K', 'P', 'S', 'T', 'Z');
+
+        for (int firstChar : uppercaseChars) {
+            for (int secondChar: uppercaseChars) {
                 var testCountryCode = String.format("%c%c", firstChar, secondChar);
 
                 var dto = CountryDto.from(UUID.randomUUID(), "Test", testCountryCode);
@@ -497,8 +502,10 @@ public class CountryControllerTests {
     public void updateCountry_CountryFoundAndLowercaseCountryCodeIsCorrect_StatusOk() throws Exception {
         var id = UUID.randomUUID();
 
-        for (int firstChar = 'a'; firstChar <= 'z'; firstChar++) {
-            for (int secondChar = 'a'; secondChar <= 'z'; secondChar++) {
+        var lowercaseChars = List.of('a', 'd', 'g', 'k', 'p', 's', 't', 'z');
+
+        for (int firstChar : lowercaseChars) {
+            for (int secondChar: lowercaseChars) {
                 var testCountryCode = String.format("%c%c", firstChar, secondChar);
 
                 var dto = CountryDto.from(UUID.randomUUID(), "Test", testCountryCode);

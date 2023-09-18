@@ -7,6 +7,9 @@ import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.team.TestTeamDto;
+import ml.echelon133.matchservice.team.TestTeamPlayerDto;
+import ml.echelon133.matchservice.team.TestUpsertTeamDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
@@ -110,7 +113,7 @@ public class TeamControllerTests {
     public void getTeamById_TeamFound_StatusOk() throws Exception {
         var teamId = UUID.randomUUID();
 
-        var teamDto = TeamDto.builder().build();
+        var teamDto = TestTeamDto.builder().build();
         var expectedJson = jsonTeamDto.write(teamDto).getJson();
 
         // given
@@ -128,7 +131,7 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 422 when name is not provided")
     public void createTeam_NameNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertTeamDto.builder().name(null).build();
+        var contentDto = TestUpsertTeamDto.builder().name(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -154,7 +157,7 @@ public class TeamControllerTests {
         );
 
         for (String incorrectName : incorrectNameLengths) {
-            var contentDto = UpsertTeamDto.builder().name(incorrectName).build();
+            var contentDto = TestUpsertTeamDto.builder().name(incorrectName).build();
             var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -181,7 +184,7 @@ public class TeamControllerTests {
         );
 
         for (String correctName : correctNameLengths) {
-            var contentDto = UpsertTeamDto.builder().name(correctName).build();
+            var contentDto = TestUpsertTeamDto.builder().name(correctName).build();
             var bodyJson = jsonUpsertTeamDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -197,7 +200,7 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 422 when countryId is not provided")
     public void createTeam_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertTeamDto.builder().countryId(null).build();
+        var contentDto = TestUpsertTeamDto.builder().countryId(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -215,7 +218,7 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 422 when countryId is not a uuid")
     public void createTeam_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertTeamDto.builder().countryId("a").build();
+        var contentDto = TestUpsertTeamDto.builder().countryId("a").build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -233,7 +236,7 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 422 when the service throws ResourceNotFoundException caused by Country")
     public void createTeam_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertTeamDto.builder().countryId(UUID.randomUUID().toString()).build();
+        var contentDto = TestUpsertTeamDto.builder().countryId(UUID.randomUUID().toString()).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
         var countryId = UUID.fromString(contentDto.getCountryId());
 
@@ -260,7 +263,7 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 422 when coachId is not provided")
     public void createTeam_CoachIdNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertTeamDto.builder().coachId(null).build();
+        var contentDto = TestUpsertTeamDto.builder().coachId(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -278,7 +281,7 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 422 when coachId is not a uuid")
     public void createTeam_CoachIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertTeamDto.builder().coachId("a").build();
+        var contentDto = TestUpsertTeamDto.builder().coachId("a").build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -296,7 +299,7 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 422 when the service throws ResourceNotFoundException caused by Coach")
     public void createTeam_ServiceThrowsWhenCoachNotFound_StatusUnprocessableEntity() throws Exception {
-        var contentDto = UpsertTeamDto.builder().countryId(UUID.randomUUID().toString()).build();
+        var contentDto = TestUpsertTeamDto.builder().countryId(UUID.randomUUID().toString()).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
         var coachId = UUID.fromString(contentDto.getCoachId());
 
@@ -324,10 +327,10 @@ public class TeamControllerTests {
     @Test
     @DisplayName("POST /api/teams returns 200 and calls the service when request body valid")
     public void createTeam_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
-        var contentDto = UpsertTeamDto.builder().build();
+        var contentDto = TestUpsertTeamDto.builder().build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
-        var expectedDto = TeamDto.builder()
+        var expectedDto = TestTeamDto.builder()
                 .name(contentDto.getName())
                 .build();
         var expectedJson = jsonTeamDto.write(expectedDto).getJson();
@@ -370,7 +373,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 404 when resource not found")
     public void updateTeam_TeamNotFound_StatusNotFound() throws Exception {
         var teamId = UUID.randomUUID();
-        var upsertDto = UpsertTeamDto.builder().build();
+        var upsertDto = TestUpsertTeamDto.builder().build();
         var upsertJson = jsonUpsertTeamDto.write(upsertDto).getJson();
 
         // given
@@ -394,7 +397,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 422 when name is not provided")
     public void updateTeam_NameNotProvided_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().name(null).build();
+        var contentDto = TestUpsertTeamDto.builder().name(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -421,7 +424,7 @@ public class TeamControllerTests {
         );
 
         for (String incorrectName : incorrectNameLengths) {
-            var contentDto = UpsertTeamDto.builder().name(incorrectName).build();
+            var contentDto = TestUpsertTeamDto.builder().name(incorrectName).build();
             var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -449,7 +452,7 @@ public class TeamControllerTests {
         );
 
         for (String correctName : correctNameLengths) {
-            var contentDto = UpsertTeamDto.builder().name(correctName).build();
+            var contentDto = TestUpsertTeamDto.builder().name(correctName).build();
             var bodyJson = jsonUpsertTeamDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -466,7 +469,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 422 when countryId is not provided")
     public void updateTeam_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().countryId(null).build();
+        var contentDto = TestUpsertTeamDto.builder().countryId(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -485,7 +488,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 422 when countryId is not a uuid")
     public void updateTeam_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().countryId("a").build();
+        var contentDto = TestUpsertTeamDto.builder().countryId("a").build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -504,7 +507,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 422 when the service throws ResourceNotFoundException caused by Country")
     public void updateTeam_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().build();
+        var contentDto = TestUpsertTeamDto.builder().build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
         var countryId = UUID.fromString(contentDto.getCountryId());
 
@@ -534,7 +537,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 422 when coachId is not provided")
     public void updateTeam_CoachIdNotProvided_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().coachId(null).build();
+        var contentDto = TestUpsertTeamDto.builder().coachId(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -553,7 +556,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 422 when coachId is not a uuid")
     public void updateTeam_CoachIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().coachId("a").build();
+        var contentDto = TestUpsertTeamDto.builder().coachId("a").build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -572,7 +575,7 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 422 when the service throws ResourceNotFoundException caused by Coach")
     public void updateTeam_ServiceThrowsWhenCoachNotFound_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().build();
+        var contentDto = TestUpsertTeamDto.builder().build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
         var coachId = UUID.fromString(contentDto.getCountryId());
 
@@ -604,10 +607,10 @@ public class TeamControllerTests {
     @DisplayName("PUT /api/teams/:id returns 200 and calls the service when request body valid")
     public void updateTeam_ValuesInBodyCorrect_StatusOkAndCallsService() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = UpsertTeamDto.builder().build();
+        var contentDto = TestUpsertTeamDto.builder().build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
-        var expectedDto = TeamDto.builder()
+        var expectedDto = TestTeamDto.builder()
                 .name(contentDto.getName())
                 .build();
         var expectedJson = jsonTeamDto.write(expectedDto).getJson();
@@ -675,7 +678,7 @@ public class TeamControllerTests {
         var testPageSize = 7;
         var testPageNumber = 4;
         var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
-        var expectedContent = List.of(TeamDto.builder().name(pValue).build());
+        var expectedContent = List.of(TestTeamDto.builder().name(pValue).build());
 
         Page<TeamDto> expectedPage = new PageImpl<>(expectedContent, expectedPageable, 1);
 
@@ -724,7 +727,7 @@ public class TeamControllerTests {
     public void getTeamPlayers_TeamFound_StatusOk() throws Exception {
         var teamId = UUID.randomUUID();
         var teamPlayers = List.of(
-                TeamPlayerDto.builder().build()
+                TestTeamPlayerDto.builder().build()
         );
 
         var expectedJson = jsonTeamPlayerDtos.write(teamPlayers).getJson();
@@ -1016,7 +1019,7 @@ public class TeamControllerTests {
         var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "DEFENDER", 1);
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
-        var expectedDto = TeamPlayerDto
+        var expectedDto = TestTeamPlayerDto
                 .builder()
                 .playerId(playerId)
                 .position(contentDto.getPosition())
@@ -1390,7 +1393,7 @@ public class TeamControllerTests {
         var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "DEFENDER", 1);
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
-        var expectedDto = TeamPlayerDto
+        var expectedDto = TestTeamPlayerDto
                 .builder()
                 .playerId(playerId)
                 .position(contentDto.getPosition())

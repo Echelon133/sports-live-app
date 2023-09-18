@@ -49,7 +49,8 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, UUID> {
                     "JOIN team_player tp ON tp.team_id = t.id " +
                     "JOIN player p ON tp.player_id = p.id " +
                     "WHERE tp.deleted = false AND t.deleted = false AND tp.player_id = :playerId AND p.deleted = false",
-            nativeQuery = true)
+            nativeQuery = true
+    )
     List<TeamDto> findAllTeamsOfPlayerByPlayerId(UUID playerId);
 
     /**

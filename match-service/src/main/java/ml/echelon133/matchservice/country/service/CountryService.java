@@ -36,7 +36,7 @@ public class CountryService {
      * @throws ResourceNotFoundException thrown when the country does not exist in the database
      */
     public CountryDto findById(UUID id) throws ResourceNotFoundException {
-        return this.countryRepository
+        return countryRepository
                 .findCountryById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, id));
     }
@@ -53,7 +53,7 @@ public class CountryService {
      * @throws ResourceNotFoundException thrown when the country does not exist in the database
      */
     public CountryDto updateCountry(UUID id, UpsertCountryDto countryDto) throws ResourceNotFoundException {
-        var countryToUpdate = this.countryRepository
+        var countryToUpdate = countryRepository
                 .findById(id)
                 .filter(v -> !v.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Country.class, id));
@@ -61,7 +61,7 @@ public class CountryService {
         countryToUpdate.setName(countryDto.getName());
         countryToUpdate.setCountryCode(countryDto.getCountryCode());
 
-        return entityToDto(this.countryRepository.save(countryToUpdate));
+        return entityToDto(countryRepository.save(countryToUpdate));
     }
 
     /**
@@ -75,7 +75,7 @@ public class CountryService {
      */
     public CountryDto createCountry(UpsertCountryDto countryDto) {
         return entityToDto(
-                this.countryRepository
+                countryRepository
                         .save(new Country(countryDto.getName(), countryDto.getCountryCode()))
         );
     }
@@ -88,7 +88,7 @@ public class CountryService {
      * @return a page of countries which match the filter
      */
     public Page<CountryDto> findCountriesByName(String phrase, Pageable pageable) {
-        return this.countryRepository.findAllByNameContaining(phrase, pageable);
+        return countryRepository.findAllByNameContaining(phrase, pageable);
     }
 
     /**
@@ -98,6 +98,6 @@ public class CountryService {
      * @return how many entities have been affected
      */
     public Integer markCountryAsDeleted(UUID id)  {
-        return this.countryRepository.markCountryAsDeleted(id);
+        return countryRepository.markCountryAsDeleted(id);
     }
 }
