@@ -67,6 +67,7 @@ public class TeamService {
                 .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
 
         teamToUpdate.setName(teamDto.getName());
+        teamToUpdate.setCrestUrl(teamDto.getCrestUrl());
 
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(teamDto.getCountryId());
@@ -116,7 +117,7 @@ public class TeamService {
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Coach.class, coachId));
 
-        var team = new Team(teamDto.getName(), country, coach);
+        var team = new Team(teamDto.getName(), teamDto.getCrestUrl(), country, coach);
         return TeamMapper.entityToDto(teamRepository.save(team));
     }
 

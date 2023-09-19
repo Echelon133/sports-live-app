@@ -202,18 +202,21 @@ public class TeamServiceTests {
     @Test
     @DisplayName("updateTeam returns the expected dto after correctly updating a team")
     public void updateTeam_TeamUpdated_ReturnsDto() throws ResourceNotFoundException {
-        var oldTeam = new Team("Test", new Country("Poland", "PL"), new Coach("asdf"));
+        var oldTeam = new Team("Test", "https://cdn.old.com/image.png", new Country("Poland", "PL"), new Coach("asdf"));
         var newCountry = new Country("Portugal", "PT");
         var newCountryId = newCountry.getId();
         var newCoach = new Coach("asdf123");
         var newCoachId = newCoach.getId();
+        var newCrestUrl = "https://cdn.new.com/image.png";
         var updateDto = TestUpsertTeamDto
                 .builder()
+                .crestUrl(newCrestUrl)
                 .countryId(newCountryId.toString())
                 .coachId(newCoachId.toString())
                 .build();
         var expectedTeam = new Team(
                 updateDto.getName(),
+                updateDto.getCrestUrl(),
                 newCountry,
                 newCoach
         );
@@ -223,15 +226,16 @@ public class TeamServiceTests {
         given(teamRepository.findById(oldTeam.getId())).willReturn(Optional.of(oldTeam));
         given(countryRepository.findById(newCountryId)).willReturn(Optional.of(newCountry));
         given(coachRepository.findById(newCoachId)).willReturn(Optional.of(newCoach));
-        given(teamRepository.save(argThat(p ->
+        given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team with updated
                 // values. Using eq() would make this test pass even if the method tried to save the
                 // team without making any changes to it.
-                p.getId().equals(oldTeam.getId()) &&
-                        p.getName().equals(updateDto.getName()) &&
-                        p.getCountry().getId().toString().equals(updateDto.getCountryId()) &&
-                        p.getCoach().getId().toString().equals(updateDto.getCoachId())
+                t.getId().equals(oldTeam.getId()) &&
+                        t.getName().equals(updateDto.getName()) &&
+                        t.getCrestUrl().equals(updateDto.getCrestUrl()) &&
+                        t.getCountry().getId().toString().equals(updateDto.getCountryId()) &&
+                        t.getCoach().getId().toString().equals(updateDto.getCoachId())
         ))).willReturn(expectedTeam);
 
         // when
@@ -242,6 +246,7 @@ public class TeamServiceTests {
         assertEquals(updateDto.getName(), teamDto.getName());
         assertEquals(updateDto.getCountryId(), teamDto.getCountry().getId().toString());
         assertEquals(updateDto.getCoachId(), teamDto.getCoach().getId().toString());
+        assertEquals(updateDto.getCrestUrl(), teamDto.getCrestUrl());
     }
 
     @Test
@@ -363,9 +368,11 @@ public class TeamServiceTests {
                 .builder()
                 .countryId(country.getId().toString())
                 .coachId(coach.getId().toString())
+                .crestUrl("https://cdn.test.com/image.png")
                 .build();
         var expectedTeam = new Team(
                 createDto.getName(),
+                createDto.getCrestUrl(),
                 country,
                 coach
         );
@@ -373,13 +380,14 @@ public class TeamServiceTests {
         // given
         given(countryRepository.findById(country.getId())).willReturn(Optional.of(country));
         given(coachRepository.findById(coach.getId())).willReturn(Optional.of(coach));
-        given(teamRepository.save(argThat(p ->
+        given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team whose values
                 // are taken from received upsert DTO
-                p.getName().equals(createDto.getName()) &&
-                        p.getCountry().getId().toString().equals(createDto.getCountryId()) &&
-                        p.getCoach().getId().toString().equals(createDto.getCoachId())
+                t.getName().equals(createDto.getName()) &&
+                        t.getCrestUrl().equals(createDto.getCrestUrl()) &&
+                        t.getCountry().getId().toString().equals(createDto.getCountryId()) &&
+                        t.getCoach().getId().toString().equals(createDto.getCoachId())
         ))).willReturn(expectedTeam);
 
         // when
@@ -390,5 +398,6 @@ public class TeamServiceTests {
         assertEquals(expectedTeam.getName(), teamDto.getName());
         assertEquals(expectedTeam.getCountry().getId(), teamDto.getCountry().getId());
         assertEquals(expectedTeam.getCoach().getId(), teamDto.getCoach().getId());
+        assertEquals(expectedTeam.getCrestUrl(), teamDto.getCrestUrl());
     }
 }
