@@ -34,6 +34,7 @@ public class TeamRepositoryTests {
     private static Team getTestTeam() {
         return new Team(
                 "Test team",
+                "https://cdn.test.com/image.png",
                 new Country("Poland", "PL"),
                 new Coach("Test Coach")
         );
@@ -42,6 +43,7 @@ public class TeamRepositoryTests {
     private static Team getTestTeamWithName(String name) {
         return new Team(
                 name,
+                "https://cdn.test.com/image.png",
                 new Country("Poland", "PL"),
                 new Coach("Test Coach")
         );
@@ -51,6 +53,7 @@ public class TeamRepositoryTests {
     private static boolean entitiesEqual(Team e1, Team e2) {
         return e1.getId().equals(e2.getId()) &&
                 e1.getName().equals(e2.getName()) &&
+                e1.getCrestUrl().equals(e2.getCrestUrl()) &&
                 e1.getCountry().getId().equals(e2.getCountry().getId()) &&
                 e1.getCountry().getName().equals(e2.getCountry().getName()) &&
                 e1.getCountry().getCountryCode().equals(e2.getCountry().getCountryCode()) &&

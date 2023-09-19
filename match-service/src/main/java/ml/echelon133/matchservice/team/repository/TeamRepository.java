@@ -22,7 +22,7 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(t.id as varchar) as id, t.name as name, " +
+            value = "SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, " +
                     "CAST(c.id as varchar) as countryId, c.name as countryName, c.country_code as countryCode, c.deleted as countryDeleted, " +
                     "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
                     "FROM team t JOIN country c ON t.country_id = c.id JOIN coach coa ON t.coach_id = coa.id " +
@@ -50,7 +50,7 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(t.id as varchar) as id, t.name as name, " +
+            value = "SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, " +
                     "CAST(c.id as varchar) as countryId, c.name as countryName, c.country_code as countryCode, c.deleted as countryDeleted, " +
                     "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
                     "FROM team t JOIN country c ON t.country_id = c.id JOIN coach coa ON t.coach_id = coa.id " +

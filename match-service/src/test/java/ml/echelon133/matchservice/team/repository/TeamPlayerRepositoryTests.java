@@ -33,6 +33,7 @@ public class TeamPlayerRepositoryTests {
     public Team getTestTeam(String teamName) {
         return new Team(
                 teamName,
+                "https://cdn.test.com/image.png",
                 new Country("Test", "TC"),
                 new Coach("Test Coach")
         );
@@ -353,6 +354,7 @@ public class TeamPlayerRepositoryTests {
 
         assertEquals(team.getId(), receivedTeam.getId());
         assertEquals(team.getName(), receivedTeam.getName());
+        assertEquals(team.getCrestUrl(), receivedTeam.getCrestUrl());
         var coach = team.getCoach();
         assertEquals(coach.getId(), receivedTeam.getCoach().getId());
         assertEquals(coach.getName(), receivedTeam.getCoach().getName());
