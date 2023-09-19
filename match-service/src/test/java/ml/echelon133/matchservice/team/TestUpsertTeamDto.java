@@ -11,6 +11,7 @@ public interface TestUpsertTeamDto {
 
     class UpsertTeamDtoBuilder {
         private String name = "Test team";
+        private String crestUrl = "https://cdn.statically.io/img/test.com/f=auto/image.png";
         private String countryId = UUID.randomUUID().toString();
         private String coachId = UUID.randomUUID().toString();
 
@@ -18,6 +19,11 @@ public interface TestUpsertTeamDto {
 
         public UpsertTeamDtoBuilder name(String name) {
             this.name = name;
+            return this;
+        }
+
+        public UpsertTeamDtoBuilder crestUrl(String crestUrl) {
+            this.crestUrl = crestUrl;
             return this;
         }
 
@@ -32,7 +38,7 @@ public interface TestUpsertTeamDto {
         }
 
         public UpsertTeamDto build() {
-            return new UpsertTeamDto(name, countryId, coachId);
+            return new UpsertTeamDto(name, crestUrl, countryId, coachId);
         }
     }
 }

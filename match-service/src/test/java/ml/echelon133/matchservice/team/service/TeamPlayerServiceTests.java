@@ -50,6 +50,7 @@ public class TeamPlayerServiceTests {
     private TeamPlayer getTestTeamPlayer() {
         var team = new Team(
                 "Test team",
+                "https://cdn.test.com/image.png",
                 new Country("Test country", "TC"),
                 new Coach("Test coach")
         );

@@ -13,6 +13,7 @@ public class TeamMapper {
         return TeamDto.from(
                 team.getId(),
                 team.getName(),
+                team.getCrestUrl(),
                 CountryDto.from(team.getCountry().getId(), team.getCountry().getName(), team.getCountry().getCountryCode()),
                 CoachDto.from(team.getCoach().getId(), team.getCoach().getName())
         );
@@ -29,7 +30,7 @@ public class TeamMapper {
             coach = new Coach(dto.getCoach().getName());
             coach.setId(dto.getCoach().getId());
         }
-        var team = new Team(dto.getName(), country, coach);
+        var team = new Team(dto.getName(), dto.getCrestUrl(), country, coach);
         team.setId(dto.getId());
         return team;
     }

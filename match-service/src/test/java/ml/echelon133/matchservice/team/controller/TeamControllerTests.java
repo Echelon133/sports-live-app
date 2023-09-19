@@ -198,6 +198,42 @@ public class TeamControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/teams returns 422 when crestUrl is not provided")
+    public void createTeam_CrestUrlNotProvided_StatusUnprocessableEntity() throws Exception {
+        var contentDto = TestUpsertTeamDto.builder().crestUrl(null).build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("crestUrl", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/teams returns 422 when crestUrl is not a valid url")
+    public void createTeam_CrestUrlInvalidUrl_StatusUnprocessableEntity() throws Exception {
+        var contentDto = TestUpsertTeamDto.builder().crestUrl("a").build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        post("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("crestUrl", List.of("not a valid url")))
+                );
+    }
+
+    @Test
     @DisplayName("POST /api/teams returns 422 when countryId is not provided")
     public void createTeam_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertTeamDto.builder().countryId(null).build();
@@ -338,6 +374,7 @@ public class TeamControllerTests {
         // given
         given(teamService.createTeam(argThat(a ->
                 a.getName().equals(contentDto.getName()) &&
+                        a.getCrestUrl().equals(contentDto.getCrestUrl()) &&
                         a.getCountryId().equals(contentDto.getCountryId()) &&
                         a.getCoachId().equals(contentDto.getCoachId())
         ))).willReturn(expectedDto);
@@ -463,6 +500,44 @@ public class TeamControllerTests {
                     )
                     .andExpect(status().isOk());
         }
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id returns 422 when crestUrl is not provided")
+    public void updateTeam_CrestUrlNotProvided_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = TestUpsertTeamDto.builder().crestUrl(null).build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("crestUrl", List.of("field has to be provided")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/teams/:id returns 422 when crestUrl is not a valid url")
+    public void updateTeam_CrestUrlInvalidUrl_StatusUnprocessableEntity() throws Exception {
+        var teamId = UUID.randomUUID();
+        var contentDto = TestUpsertTeamDto.builder().crestUrl("a").build();
+        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+
+        mvc.perform(
+                        put("/api/teams/" + teamId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("crestUrl", List.of("not a valid url")))
+                );
     }
 
     @Test
@@ -620,6 +695,7 @@ public class TeamControllerTests {
                 eq(teamId),
                 argThat(a ->
                         a.getName().equals(contentDto.getName()) &&
+                                a.getCrestUrl().equals(contentDto.getCrestUrl()) &&
                                 a.getCountryId().equals(contentDto.getCountryId()) &&
                                 a.getCoachId().equals(contentDto.getCoachId())
                 ))).willReturn(expectedDto);
