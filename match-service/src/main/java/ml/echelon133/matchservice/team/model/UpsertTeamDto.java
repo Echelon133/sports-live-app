@@ -2,6 +2,7 @@ package ml.echelon133.matchservice.team.model;
 
 import ml.echelon133.common.validator.ValidUUID;
 import org.hibernate.validator.constraints.Length;
+import org.hibernate.validator.constraints.URL;
 
 import javax.validation.constraints.NotNull;
 
@@ -12,6 +13,10 @@ public class UpsertTeamDto {
     private String name;
 
     @NotNull(message = "field has to be provided")
+    @URL(message = "not a valid url")
+    private String crestUrl;
+
+    @NotNull(message = "field has to be provided")
     @ValidUUID
     private String countryId;
 
@@ -20,8 +25,9 @@ public class UpsertTeamDto {
     private String coachId;
 
     public UpsertTeamDto() {}
-    public UpsertTeamDto(String name, String countryId, String coachId) {
+    public UpsertTeamDto(String name, String crestUrl, String countryId, String coachId) {
         this.name = name;
+        this.crestUrl = crestUrl;
         this.countryId = countryId;
         this.coachId = coachId;
     }
@@ -32,6 +38,14 @@ public class UpsertTeamDto {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getCrestUrl() {
+        return crestUrl;
+    }
+
+    public void setCrestUrl(String crestUrl) {
+        this.crestUrl = crestUrl;
     }
 
     public String getCountryId() {
