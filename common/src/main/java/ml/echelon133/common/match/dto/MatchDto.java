@@ -3,21 +3,22 @@ package ml.echelon133.common.match.dto;
 import ml.echelon133.common.referee.dto.RefereeDto;
 import ml.echelon133.common.venue.dto.VenueDto;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public interface MatchDto {
     UUID getId();
     String getStatus();
+    String getResult();
+    UUID getCompetitionId();
+    LocalDateTime getStartTimeUTC();
+
     ShortTeamDto getHomeTeam();
     ShortTeamDto getAwayTeam();
-    Date getStartTime();
     VenueDto getVenue();
     RefereeDto getReferee();
-    UUID getCompetitionId();
     ScoreInfoDto getScoreInfo();
     PenaltiesInfoDto getPenaltiesInfo();
-    String getResult();
 
     interface ShortTeamDto {
         UUID getId();
@@ -81,5 +82,4 @@ public interface MatchDto {
             };
         }
     }
-
 }
