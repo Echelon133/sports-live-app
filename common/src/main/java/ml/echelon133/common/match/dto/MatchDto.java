@@ -12,7 +12,7 @@ public interface MatchDto {
     String getStatus();
     TeamDto getHomeTeam();
     TeamDto getAwayTeam();
-    Date getDate();
+    Date getStartTime();
     VenueDto getVenue();
     RefereeDto getReferee();
     UUID getCompetitionId();
