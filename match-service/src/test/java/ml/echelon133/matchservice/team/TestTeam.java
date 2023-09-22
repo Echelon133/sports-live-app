@@ -17,6 +17,7 @@ public interface TestTeam {
         private String crestUrl = "https://cdn.statically.io/img/test.com/f=auto/image.png";
         private Country country = new Country("Test Country", "TC");
         private Coach coach = new Coach("Test Coach");
+        private boolean deleted = false;
 
         private TeamBuilder() {}
 
@@ -45,9 +46,15 @@ public interface TestTeam {
             return this;
         }
 
+        public TeamBuilder deleted(boolean deleted) {
+            this.deleted = deleted;
+            return this;
+        }
+
         public Team build() {
             var team = new Team(name, crestUrl, country, coach);
             team.setId(id);
+            team.setDeleted(deleted);
             return team;
         }
     }
