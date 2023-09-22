@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.team.repository;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
+import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.service.TeamMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -29,24 +30,6 @@ public class TeamRepositoryTests {
     @Autowired
     public TeamRepositoryTests(TeamRepository teamRepository) {
         this.teamRepository = teamRepository;
-    }
-
-    private static Team getTestTeam() {
-        return new Team(
-                "Test team",
-                "https://cdn.test.com/image.png",
-                new Country("Poland", "PL"),
-                new Coach("Test Coach")
-        );
-    }
-
-    private static Team getTestTeamWithName(String name) {
-        return new Team(
-                name,
-                "https://cdn.test.com/image.png",
-                new Country("Poland", "PL"),
-                new Coach("Test Coach")
-        );
     }
 
     // Compare two entities only by the values from columns that are being fetched by our custom database queries
@@ -80,7 +63,7 @@ public class TeamRepositoryTests {
     @Test
     @DisplayName("findTeamById native query finds team when the team exists")
     public void findTeamById_TeamExists_IsPresent() {
-        var team = teamRepository.save(getTestTeam());
+        var team = teamRepository.save(TestTeam.builder().build());
         var saved = teamRepository.save(team);
 
         // when
@@ -96,8 +79,7 @@ public class TeamRepositoryTests {
     public void findTeamById_TeamExistsAndCountryDeleted_IsPresentAndDoesNotLeakDeletedCountry() {
         var country = new Country("Poland", "PL");
         country.setDeleted(true);
-        var team = getTestTeam();
-        team.setCountry(country);
+        var team = TestTeam.builder().country(country).build();
         var savedTeam = teamRepository.save(team);
 
         // when
@@ -113,8 +95,7 @@ public class TeamRepositoryTests {
     public void findTeamById_TeamExistsAndCoachDeleted_IsPresentAndDoesNotLeakDeletedCoach() {
         var coach = new Coach("Test");
         coach.setDeleted(true);
-        var team = getTestTeam();
-        team.setCoach(coach);
+        var team = TestTeam.builder().coach(coach).build();
         var savedTeam = teamRepository.save(team);
 
         // when
@@ -128,7 +109,7 @@ public class TeamRepositoryTests {
     @Test
     @DisplayName("findTeamById native query does not fetch teams marked as deleted")
     public void findTeamById_TeamMarkedAsDeleted_IsEmpty() {
-        var teamToDelete = getTestTeam();
+        var teamToDelete = TestTeam.builder().build();
         teamToDelete.setDeleted(true);
         var saved = teamRepository.save(teamToDelete);
 
@@ -142,9 +123,9 @@ public class TeamRepositoryTests {
     @Test
     @DisplayName("markTeamAsDeleted native query only affects the team with specified id")
     public void markTeamAsDeleted_SpecifiedTeamId_OnlyMarksSpecifiedTeam() {
-        var saved = teamRepository.save(getTestTeamWithName("Test1"));
-        teamRepository.save(getTestTeamWithName("Test2"));
-        teamRepository.save(getTestTeamWithName("ASDF"));
+        var saved = teamRepository.save(TestTeam.builder().name("Test1").build());
+        teamRepository.save(TestTeam.builder().name("Test2").build());
+        teamRepository.save(TestTeam.builder().name("ASDF").build());
 
         // when
         var countDeleted = teamRepository.markTeamAsDeleted(saved.getId());
@@ -158,7 +139,7 @@ public class TeamRepositoryTests {
     @Test
     @DisplayName("markTeamAsDeleted native query only affects not deleted teams")
     public void markTeamAsDeleted_TeamAlreadyMarkedAsDeleted_IsNotTouchedByQuery() {
-        var teamToDelete = getTestTeamWithName("Test1");
+        var teamToDelete = TestTeam.builder().name("Test1").build();
         teamToDelete.setDeleted(true);
         var saved = teamRepository.save(teamToDelete);
 
@@ -172,9 +153,9 @@ public class TeamRepositoryTests {
     @Test
     @DisplayName("findAllByNameContaining native query only finds results which contain the specified phrase")
     public void findAllByNameContaining_MultipleTeams_OnlyFindsMatchingTeams() {
-        teamRepository.save(getTestTeamWithName("Test"));
-        teamRepository.save(getTestTeamWithName("Test2"));
-        var saved = teamRepository.save(getTestTeamWithName("Asdf"));
+        teamRepository.save(TestTeam.builder().name("Test").build());
+        teamRepository.save(TestTeam.builder().name("Test2").build());
+        var saved = teamRepository.save(TestTeam.builder().name("Asdf").build());
 
         // when
         Page<TeamDto> result = teamRepository.findAllByNameContaining("As", Pageable.ofSize(10));
@@ -189,8 +170,7 @@ public class TeamRepositoryTests {
     public void findAllByNameContaining_TeamWithDeletedCountry_DoesNotLeakDeletedCountry() {
         var country = new Country("Poland", "PL");
         country.setDeleted(true);
-        var team = getTestTeam();
-        team.setCountry(country);
+        var team = TestTeam.builder().country(country).build();
         teamRepository.save(team);
 
         // when
@@ -206,8 +186,7 @@ public class TeamRepositoryTests {
     public void findAllByNameContaining_TeamWithDeletedCoach_DoesNotLeakDeletedCoach() {
         var coach = new Coach("Test");
         coach.setDeleted(true);
-        var team = getTestTeam();
-        team.setCoach(coach);
+        var team = TestTeam.builder().coach(coach).build();
         teamRepository.save(team);
 
         // when
@@ -221,9 +200,9 @@ public class TeamRepositoryTests {
     @Test
     @DisplayName("findAllByNameContaining native query is case-insensitive")
     public void findAllByNameContaining_MultipleTeams_SearchIsCaseInsensitive() {
-        teamRepository.save(getTestTeamWithName("Test"));
-        teamRepository.save(getTestTeamWithName("TEST"));
-        teamRepository.save(getTestTeamWithName("Asdf"));
+        teamRepository.save(TestTeam.builder().name("Test").build());
+        teamRepository.save(TestTeam.builder().name("TEST").build());
+        teamRepository.save(TestTeam.builder().name("Asdf").build());
 
         // when
         Page<TeamDto> result = teamRepository.findAllByNameContaining("Tes", Pageable.ofSize(10));
@@ -237,11 +216,11 @@ public class TeamRepositoryTests {
     @Test
     @DisplayName("findAllByNameContaining native query only finds non-deleted results which contain the specified phrase")
     public void findAllByNameContaining_SomeDeletedTeams_OnlyFindsMatchingNonDeletedTeams() {
-        var teamToDelete = getTestTeamWithName("Test");
+        var teamToDelete = TestTeam.builder().name("Test").build();
         teamToDelete.setDeleted(true);
         teamRepository.save(teamToDelete);
-        teamRepository.save(getTestTeamWithName("TEST"));
-        teamRepository.save(getTestTeamWithName("Asdf"));
+        teamRepository.save(TestTeam.builder().name("TEST").build());
+        teamRepository.save(TestTeam.builder().name("Asdf").build());
 
         // when
         Page<TeamDto> result = teamRepository.findAllByNameContaining("Test", Pageable.ofSize(10));

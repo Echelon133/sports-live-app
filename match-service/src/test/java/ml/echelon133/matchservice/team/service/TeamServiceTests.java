@@ -6,9 +6,9 @@ import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.coach.repository.CoachRepository;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestUpsertTeamDto;
-import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -97,7 +97,7 @@ public class TeamServiceTests {
     @Test
     @DisplayName("updateTeam throws when the team to update is marked as deleted")
     public void updateTeam_TeamToUpdatePresentButMarkedAsDeleted_Throws() {
-        var entity = new Team();
+        var entity = TestTeam.builder().build();
         entity.setDeleted(true);
         var teamId = entity.getId();
 
@@ -116,7 +116,7 @@ public class TeamServiceTests {
     @Test
     @DisplayName("updateTeam throws when the country of the team to update does not exist")
     public void updateTeam_CountryEmpty_Throws() {
-        var teamEntity = new Team();
+        var teamEntity = TestTeam.builder().build();
         var teamId = teamEntity.getId();
         var countryId = UUID.randomUUID();
 
@@ -136,9 +136,9 @@ public class TeamServiceTests {
     @Test
     @DisplayName("updateTeam throws when the country of the team to update is marked as deleted")
     public void updateTeam_CountryPresentButMarkedAsDeleted_Throws() {
-        var teamEntity = new Team();
+        var teamEntity = TestTeam.builder().build();
         var teamId = teamEntity.getId();
-        var countryEntity = new Country();
+        var countryEntity = teamEntity.getCountry();
         var countryId = countryEntity.getId();
         countryEntity.setDeleted(true);
 
@@ -158,7 +158,7 @@ public class TeamServiceTests {
     @Test
     @DisplayName("updateTeam throws when the coach of the team to update does not exist")
     public void updateTeam_CoachEmpty_Throws() {
-        var teamEntity = new Team();
+        var teamEntity = TestTeam.builder().build();
         var teamId = teamEntity.getId();
         var coachId = UUID.randomUUID();
 
@@ -179,7 +179,7 @@ public class TeamServiceTests {
     @Test
     @DisplayName("updateTeam throws when the coach of the team to update is marked as deleted")
     public void updateTeam_CoachPresentButMarkedAsDeleted_Throws() {
-        var teamEntity = new Team();
+        var teamEntity = TestTeam.builder().build();
         var teamId = teamEntity.getId();
         var coachEntity = new Coach();
         var coachId = coachEntity.getId();
@@ -202,7 +202,7 @@ public class TeamServiceTests {
     @Test
     @DisplayName("updateTeam returns the expected dto after correctly updating a team")
     public void updateTeam_TeamUpdated_ReturnsDto() throws ResourceNotFoundException {
-        var oldTeam = new Team("Test", "https://cdn.old.com/image.png", new Country("Poland", "PL"), new Coach("asdf"));
+        var oldTeam = TestTeam.builder().build();
         var newCountry = new Country("Portugal", "PT");
         var newCountryId = newCountry.getId();
         var newCoach = new Coach("asdf123");
@@ -214,13 +214,14 @@ public class TeamServiceTests {
                 .countryId(newCountryId.toString())
                 .coachId(newCoachId.toString())
                 .build();
-        var expectedTeam = new Team(
-                updateDto.getName(),
-                updateDto.getCrestUrl(),
-                newCountry,
-                newCoach
-        );
-        expectedTeam.setId(oldTeam.getId());
+        var expectedTeam = TestTeam
+                .builder()
+                .id(oldTeam.getId())
+                .name(updateDto.getName())
+                .crestUrl(updateDto.getCrestUrl())
+                .country(newCountry)
+                .coach(newCoach)
+                .build();
 
         // given
         given(teamRepository.findById(oldTeam.getId())).willReturn(Optional.of(oldTeam));
@@ -370,12 +371,13 @@ public class TeamServiceTests {
                 .coachId(coach.getId().toString())
                 .crestUrl("https://cdn.test.com/image.png")
                 .build();
-        var expectedTeam = new Team(
-                createDto.getName(),
-                createDto.getCrestUrl(),
-                country,
-                coach
-        );
+        var expectedTeam = TestTeam
+                .builder()
+                .name(createDto.getName())
+                .crestUrl(createDto.getCrestUrl())
+                .country(country)
+                .coach(coach)
+                .build();
 
         // given
         given(countryRepository.findById(country.getId())).willReturn(Optional.of(country));
