@@ -23,6 +23,7 @@ import java.util.UUID;
 public class Match extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private MatchStatus status;
 
     @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
@@ -55,12 +56,14 @@ public class Match extends BaseEntity {
     private PenaltiesInfo penaltiesInfo;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private MatchResult result;
 
     public Match() {
         this.status = MatchStatus.NOT_STARTED;
         this.scoreInfo = new ScoreInfo();
         this.penaltiesInfo = new PenaltiesInfo();
+        this.result = MatchResult.NONE;
     }
 
     public MatchStatus getStatus() {
