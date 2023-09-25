@@ -99,4 +99,138 @@ public interface MatchDto {
             };
         }
     }
+
+    static MatchDtoBuilder builder() {
+        return new MatchDtoBuilder();
+    }
+
+    class MatchDtoBuilder {
+        private UUID id;
+        private String status;
+        private String result;
+        private UUID competitionId;
+        private LocalDateTime startTimeUTC;
+        private ShortTeamDto homeTeam;
+        private ShortTeamDto awayTeam;
+        private VenueDto venue;
+        private RefereeDto referee;
+        private ScoreInfoDto scoreInfo;
+        private PenaltiesInfoDto penaltiesInfo;
+
+        private MatchDtoBuilder() {}
+
+        public MatchDtoBuilder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public MatchDtoBuilder status(String status) {
+            this.status = status;
+            return this;
+        }
+
+        public MatchDtoBuilder result(String result) {
+            this.result = result;
+            return this;
+        }
+
+        public MatchDtoBuilder competitionId(UUID competitionId) {
+            this.competitionId = competitionId;
+            return this;
+        }
+
+        public MatchDtoBuilder startTimeUTC(LocalDateTime startTimeUTC) {
+            this.startTimeUTC = startTimeUTC;
+            return this;
+        }
+
+        public MatchDtoBuilder homeTeam(ShortTeamDto homeTeam) {
+            this.homeTeam = homeTeam;
+            return this;
+        }
+
+        public MatchDtoBuilder awayTeam(ShortTeamDto awayTeam) {
+            this.awayTeam = awayTeam;
+            return this;
+        }
+
+        public MatchDtoBuilder venue(VenueDto venue) {
+            this.venue = venue;
+            return this;
+        }
+
+        public MatchDtoBuilder referee(RefereeDto referee) {
+            this.referee = referee;
+            return this;
+        }
+
+        public MatchDtoBuilder scoreInfo(ScoreInfoDto scoreInfo) {
+            this.scoreInfo = scoreInfo;
+            return this;
+        }
+
+        public MatchDtoBuilder penaltiesInfo(PenaltiesInfoDto penaltiesInfo) {
+            this.penaltiesInfo = penaltiesInfo;
+            return this;
+        }
+
+        public MatchDto build() {
+            return new MatchDto() {
+                @Override
+                public UUID getId() {
+                    return id;
+                }
+
+                @Override
+                public String getStatus() {
+                    return status;
+                }
+
+                @Override
+                public String getResult() {
+                    return result;
+                }
+
+                @Override
+                public UUID getCompetitionId() {
+                    return competitionId;
+                }
+
+                @Override
+                public LocalDateTime getStartTimeUTC() {
+                    return startTimeUTC;
+                }
+
+                @Override
+                public ShortTeamDto getHomeTeam() {
+                    return homeTeam;
+                }
+
+                @Override
+                public ShortTeamDto getAwayTeam() {
+                    return awayTeam;
+                }
+
+                @Override
+                public VenueDto getVenue() {
+                    return venue;
+                }
+
+                @Override
+                public RefereeDto getReferee() {
+                    return referee;
+                }
+
+                @Override
+                public ScoreInfoDto getScoreInfo() {
+                    return scoreInfo;
+                }
+
+                @Override
+                public PenaltiesInfoDto getPenaltiesInfo() {
+                    return penaltiesInfo;
+                }
+            };
+        }
+    }
 }
