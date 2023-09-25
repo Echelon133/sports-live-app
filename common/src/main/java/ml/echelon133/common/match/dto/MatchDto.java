@@ -26,8 +26,8 @@ public interface MatchDto {
     @Value("#{target.venueDeleted ? null : (T(ml.echelon133.common.venue.dto.VenueDto).from(target.venueId, target.venueName, target.venueCapacity))}")
     VenueDto getVenue();
 
-    // if referee is deleted, set this value to null to prevent any leakage of data
-    @Value("#{target.refereeDeleted ? null : (T(ml.echelon133.common.referee.dto.RefereeDto).from(target.refereeId, target.refereeName))}")
+    // referee is optional - if refereeDeleted is null or true, then its content should not be displayed
+    @Value("#{(target.refereeDeleted == null || target.refereeDeleted == true) ? null : (T(ml.echelon133.common.referee.dto.RefereeDto).from(target.refereeId, target.refereeName))}")
     RefereeDto getReferee();
 
     @Value("#{T(ml.echelon133.common.match.dto.MatchDto.ScoreInfoDto).from(target.homeGoals, target.awayGoals)}")

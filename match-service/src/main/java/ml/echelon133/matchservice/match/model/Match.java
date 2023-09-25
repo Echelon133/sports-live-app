@@ -40,8 +40,9 @@ public class Match extends BaseEntity {
     @JoinColumn(name = "venue_id", nullable = false)
     private Venue venue;
 
-    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-    @JoinColumn(name = "referee_id", nullable = false)
+    // this is optional, since at the time of creation of most of the matches, the referee is unknown
+    @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @JoinColumn(name = "referee_id")
     private Referee referee;
 
     @Column(name = "competition_id")

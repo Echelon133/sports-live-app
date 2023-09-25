@@ -128,6 +128,23 @@ public class MatchRepositoryTests {
     }
 
     @Test
+    @DisplayName("findMatchById native query finds match when the match exists and referee is set to null")
+    public void findMatchById_MatchExistsAndRefereeNull_IsPresentAndContainsNullReferee() {
+        var match = TestMatch.builder().referee(null).build();
+        var saved = matchRepository.save(match);
+
+        // when
+        var matchDto = matchRepository.findMatchById(saved.getId());
+
+        // then
+        assertTrue(matchDto.isPresent());
+        var matchDtoValue = matchDto.get();
+        assertEntityAndDtoEqual(match, matchDtoValue);
+        // make sure that the referee is definitely null
+        assertNull(matchDtoValue.getReferee());
+    }
+
+    @Test
     @DisplayName("findMatchById native query finds match when the match exists and does not leak deleted referee")
     public void findMatchById_MatchExistsAndRefereeDeleted_IsPresentAndDoesNotLeakDeletedEntity() {
         var referee = new Referee("Test");
@@ -265,7 +282,9 @@ public class MatchRepositoryTests {
         // referees equal
         var refereeEntity = entity.getReferee();
         var refereeDto = dto.getReferee();
-        if (refereeEntity.isDeleted()) {
+        if (refereeEntity == null) {
+            assertNull(refereeDto);
+        } else if (refereeEntity.isDeleted()) {
             assertNull(refereeDto);
         } else {
             assertTrue(

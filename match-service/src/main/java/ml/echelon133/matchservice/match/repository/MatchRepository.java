@@ -35,7 +35,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
                     "JOIN team ht ON m.home_team_id = ht.id " +
                     "JOIN team at ON m.away_team_id = at.id " +
                     "JOIN venue v ON m.venue_id = v.id " +
-                    "JOIN referee r ON m.referee_id = r.id " +
+                    "LEFT JOIN referee r ON m.referee_id = r.id " +
                     "WHERE m.id = :matchId AND m.deleted = false",
             nativeQuery = true
     )
