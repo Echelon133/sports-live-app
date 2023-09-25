@@ -11,5 +11,6 @@ public enum MatchStatus {
     FINISHED,
     EXTRA_TIME,
     PENALTIES,
-    POSTPONED
+    POSTPONED,
+    ABANDONED
 }
