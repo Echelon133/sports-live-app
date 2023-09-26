@@ -66,18 +66,18 @@ public interface MatchDto {
     }
 
     interface ScoreInfoDto {
-        Integer getHomeGoals();
-        Integer getAwayGoals();
+        Byte getHomeGoals();
+        Byte getAwayGoals();
 
-        static ScoreInfoDto from(Integer homeGoals, Integer awayGoals) {
+        static ScoreInfoDto from(Byte homeGoals, Byte awayGoals) {
             return new ScoreInfoDto() {
                 @Override
-                public Integer getHomeGoals() {
+                public Byte getHomeGoals() {
                     return homeGoals;
                 }
 
                 @Override
-                public Integer getAwayGoals() {
+                public Byte getAwayGoals() {
                     return awayGoals;
                 }
             };
@@ -85,18 +85,18 @@ public interface MatchDto {
     }
 
     interface PenaltiesInfoDto {
-        Integer getHomePenalties();
-        Integer getAwayPenalties();
+        Byte getHomePenalties();
+        Byte getAwayPenalties();
 
-        static PenaltiesInfoDto from(Integer homePenalties, Integer awayPenalties) {
+        static PenaltiesInfoDto from(Byte homePenalties, Byte awayPenalties) {
             return new PenaltiesInfoDto() {
                 @Override
-                public Integer getHomePenalties() {
+                public Byte getHomePenalties() {
                     return homePenalties;
                 }
 
                 @Override
-                public Integer getAwayPenalties() {
+                public Byte getAwayPenalties() {
                     return awayPenalties;
                 }
             };

@@ -23,7 +23,7 @@ import java.util.UUID;
 public class Match extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 15)
     private MatchStatus status;
 
     @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
@@ -63,7 +63,7 @@ public class Match extends BaseEntity {
     private PenaltiesInfo penaltiesInfo;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 15)
     private MatchResult result;
 
     public Match() {

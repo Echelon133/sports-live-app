@@ -1,36 +1,38 @@
 package ml.echelon133.matchservice.match.model;
 
+import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 @Embeddable
 public class ScoreInfo {
 
-    private Integer homeGoals;
-    private Integer awayGoals;
+    @Column()
+    private Byte homeGoals;
+    private Byte awayGoals;
 
     public ScoreInfo() {
         this.homeGoals = 0;
         this.awayGoals = 0;
     }
 
-    public ScoreInfo(Integer homeGoals, Integer awayGoals) {
+    public ScoreInfo(Byte homeGoals, Byte awayGoals) {
         this.homeGoals = homeGoals;
         this.awayGoals = awayGoals;
     }
 
-    public Integer getHomeGoals() {
+    public Byte getHomeGoals() {
         return homeGoals;
     }
 
-    public void setHomeGoals(Integer homeGoals) {
+    public void setHomeGoals(Byte homeGoals) {
         this.homeGoals = homeGoals;
     }
 
-    public Integer getAwayGoals() {
+    public Byte getAwayGoals() {
         return awayGoals;
     }
 
-    public void setAwayGoals(Integer awayGoals) {
+    public void setAwayGoals(Byte awayGoals) {
         this.awayGoals = awayGoals;
     }
 }

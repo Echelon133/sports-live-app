@@ -5,32 +5,32 @@ import javax.persistence.Embeddable;
 @Embeddable
 public class PenaltiesInfo {
 
-    private Integer homePenalties;
-    private Integer awayPenalties;
+    private Byte homePenalties;
+    private Byte awayPenalties;
 
     public PenaltiesInfo() {
         this.homePenalties = 0;
         this.awayPenalties = 0;
     }
 
-    public PenaltiesInfo(Integer homePenalties, Integer awayPenalties) {
+    public PenaltiesInfo(Byte homePenalties, Byte awayPenalties) {
         this.homePenalties = homePenalties;
         this.awayPenalties = awayPenalties;
     }
 
-    public Integer getHomePenalties() {
+    public Byte getHomePenalties() {
         return homePenalties;
     }
 
-    public void setHomePenalties(Integer homePenalties) {
+    public void setHomePenalties(Byte homePenalties) {
         this.homePenalties = homePenalties;
     }
 
-    public Integer getAwayPenalties() {
+    public Byte getAwayPenalties() {
         return awayPenalties;
     }
 
-    public void setAwayPenalties(Integer awayPenalties) {
+    public void setAwayPenalties(Byte awayPenalties) {
         this.awayPenalties = awayPenalties;
     }
 }
