@@ -5,6 +5,7 @@ import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.MatchDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.ScoreInfo;
 import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.venue.model.Venue;
@@ -61,7 +62,13 @@ public class MatchRepositoryTests {
     @Test
     @DisplayName("findMatchById native query finds match when the match exists")
     public void findMatchById_MatchExists_IsPresent() {
-        var match = TestMatch.builder().build();
+        var match = TestMatch
+                .builder()
+                .halfTimeScoreInfo(new ScoreInfo(1, 2))
+                .scoreInfo(new ScoreInfo(3, 3))
+                .result(MatchResult.DRAW)
+                .status(MatchStatus.FINISHED)
+                .build();
         var saved = matchRepository.save(match);
 
         // when
@@ -292,6 +299,14 @@ public class MatchRepositoryTests {
                     refereeEntity.getName().equals(refereeDto.getName())
             );
         }
+
+        // half time scores equal
+        var halfTimeScoreEntity = entity.getHalfTimeScoreInfo();
+        var halfTimeScoreDto = dto.getHalfTimeScoreInfo();
+        assertTrue(
+                halfTimeScoreEntity.getHomeGoals().equals(halfTimeScoreDto.getHomeGoals()) &&
+                halfTimeScoreDto.getAwayGoals().equals(halfTimeScoreDto.getAwayGoals())
+        );
 
         // scores equal
         var scoreEntity = entity.getScoreInfo();

@@ -50,6 +50,13 @@ public class Match extends BaseEntity {
     private UUID competitionId;
 
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name="homeGoals", column = @Column(name = "half_time_home_goals")),
+            @AttributeOverride(name="awayGoals", column = @Column(name = "half_time_away_goals"))
+    })
+    private ScoreInfo halfTimeScoreInfo;
+
+    @Embedded
     private ScoreInfo scoreInfo;
 
     @Embedded
@@ -61,6 +68,7 @@ public class Match extends BaseEntity {
 
     public Match() {
         this.status = MatchStatus.NOT_STARTED;
+        this.halfTimeScoreInfo = new ScoreInfo();
         this.scoreInfo = new ScoreInfo();
         this.penaltiesInfo = new PenaltiesInfo();
         this.result = MatchResult.NONE;
@@ -120,6 +128,14 @@ public class Match extends BaseEntity {
 
     public void setCompetitionId(UUID competitionId) {
         this.competitionId = competitionId;
+    }
+
+    public ScoreInfo getHalfTimeScoreInfo() {
+        return halfTimeScoreInfo;
+    }
+
+    public void setHalfTimeScoreInfo(ScoreInfo halfTimeScoreInfo) {
+        this.halfTimeScoreInfo = halfTimeScoreInfo;
     }
 
     public ScoreInfo getScoreInfo() {

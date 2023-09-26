@@ -30,6 +30,9 @@ public interface MatchDto {
     @Value("#{(target.refereeDeleted == null || target.refereeDeleted == true) ? null : (T(ml.echelon133.common.referee.dto.RefereeDto).from(target.refereeId, target.refereeName))}")
     RefereeDto getReferee();
 
+    @Value("#{T(ml.echelon133.common.match.dto.MatchDto.ScoreInfoDto).from(target.halfTimeHomeGoals, target.halfTimeAwayGoals)}")
+    ScoreInfoDto getHalfTimeScoreInfo();
+
     @Value("#{T(ml.echelon133.common.match.dto.MatchDto.ScoreInfoDto).from(target.homeGoals, target.awayGoals)}")
     ScoreInfoDto getScoreInfo();
 
@@ -114,6 +117,7 @@ public interface MatchDto {
         private ShortTeamDto awayTeam;
         private VenueDto venue;
         private RefereeDto referee;
+        private ScoreInfoDto halfTimeScoreInfo;
         private ScoreInfoDto scoreInfo;
         private PenaltiesInfoDto penaltiesInfo;
 
@@ -161,6 +165,11 @@ public interface MatchDto {
 
         public MatchDtoBuilder referee(RefereeDto referee) {
             this.referee = referee;
+            return this;
+        }
+
+        public MatchDtoBuilder halfTimeScoreInfo(ScoreInfoDto halfTimeScoreInfo) {
+            this.halfTimeScoreInfo = halfTimeScoreInfo;
             return this;
         }
 
@@ -219,6 +228,11 @@ public interface MatchDto {
                 @Override
                 public RefereeDto getReferee() {
                     return referee;
+                }
+
+                @Override
+                public ScoreInfoDto getHalfTimeScoreInfo() {
+                    return halfTimeScoreInfo;
                 }
 
                 @Override

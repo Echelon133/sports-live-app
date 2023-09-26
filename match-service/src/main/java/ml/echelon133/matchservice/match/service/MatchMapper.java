@@ -12,6 +12,7 @@ public class MatchMapper {
         var awayTeam = match.getAwayTeam();
         var venue = match.getVenue();
         var referee = match.getReferee();
+        var halfTimeScoreInfo = match.getHalfTimeScoreInfo();
         var scoreInfo = match.getScoreInfo();
         var penaltiesInfo = match.getPenaltiesInfo();
 
@@ -54,6 +55,10 @@ public class MatchMapper {
             );
         }
 
+        MatchDto.ScoreInfoDto halfTimeScoreInfoDto = MatchDto.ScoreInfoDto.from(
+                halfTimeScoreInfo.getHomeGoals(),
+                halfTimeScoreInfo.getAwayGoals()
+        );
         MatchDto.ScoreInfoDto scoreInfoDto = MatchDto.ScoreInfoDto.from(
                 scoreInfo.getHomeGoals(),
                 scoreInfo.getAwayGoals()
@@ -73,6 +78,7 @@ public class MatchMapper {
                 .awayTeam(awayTeamDto)
                 .venue(venueDto)
                 .referee(refereeDto)
+                .halfTimeScoreInfo(halfTimeScoreInfoDto)
                 .scoreInfo(scoreInfoDto)
                 .penaltiesInfo(penaltiesInfoDto)
                 .build();

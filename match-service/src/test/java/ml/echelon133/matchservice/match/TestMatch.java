@@ -27,6 +27,7 @@ public interface TestMatch {
         private Venue venue = new Venue("Test Venue", 50000);
         private Referee referee = new Referee("Test Referee");
         private UUID competitionId = UUID.randomUUID();
+        private ScoreInfo halfTimeScoreInfo = new ScoreInfo();
         private ScoreInfo scoreInfo = new ScoreInfo();
         private PenaltiesInfo penaltiesInfo = new PenaltiesInfo();
         private MatchResult result = MatchResult.NONE;
@@ -74,6 +75,11 @@ public interface TestMatch {
             return this;
         }
 
+        public MatchBuilder halfTimeScoreInfo(ScoreInfo halfTimeScoreInfo) {
+            this.halfTimeScoreInfo = halfTimeScoreInfo;
+            return this;
+        }
+
         public MatchBuilder scoreInfo(ScoreInfo scoreInfo) {
             this.scoreInfo = scoreInfo;
             return this;
@@ -104,6 +110,7 @@ public interface TestMatch {
             match.setVenue(venue);
             match.setReferee(referee);
             match.setCompetitionId(competitionId);
+            match.setHalfTimeScoreInfo(halfTimeScoreInfo);
             match.setScoreInfo(scoreInfo);
             match.setPenaltiesInfo(penaltiesInfo);
             match.setResult(result);

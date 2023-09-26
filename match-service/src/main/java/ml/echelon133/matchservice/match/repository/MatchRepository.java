@@ -22,6 +22,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
     @Query(
             value = "SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, " +
                     "   m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, " +
+                    "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
                     "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
                     "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
                     "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
