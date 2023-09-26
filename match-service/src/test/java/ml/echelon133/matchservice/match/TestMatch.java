@@ -29,7 +29,7 @@ public interface TestMatch {
         private UUID competitionId = UUID.randomUUID();
         private ScoreInfo scoreInfo = new ScoreInfo();
         private PenaltiesInfo penaltiesInfo = new PenaltiesInfo();
-        private MatchResult result = null;
+        private MatchResult result = MatchResult.NONE;
         private boolean deleted = false;
 
         private MatchBuilder() {}
