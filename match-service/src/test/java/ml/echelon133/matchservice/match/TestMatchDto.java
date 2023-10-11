@@ -3,6 +3,9 @@ package ml.echelon133.matchservice.match;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.MatchDto;
+import ml.echelon133.common.match.dto.PenaltiesInfoDto;
+import ml.echelon133.common.match.dto.ScoreInfoDto;
+import ml.echelon133.common.match.dto.ShortTeamDto;
 import ml.echelon133.common.referee.dto.RefereeDto;
 import ml.echelon133.common.venue.dto.VenueDto;
 
@@ -19,15 +22,15 @@ public interface TestMatchDto {
                 .competitionId(UUID.randomUUID())
                 .startTimeUTC(LocalDateTime.of(2023, 1, 1, 20, 0))
                 .homeTeam(
-                        MatchDto.ShortTeamDto.from(UUID.randomUUID(), "Test Team A", "")
+                        ShortTeamDto.from(UUID.randomUUID(), "Test Team A", "")
                 )
                 .awayTeam(
-                        MatchDto.ShortTeamDto.from(UUID.randomUUID(), "Test Team B", "")
+                        ShortTeamDto.from(UUID.randomUUID(), "Test Team B", "")
                 )
                 .venue(VenueDto.from(UUID.randomUUID(), "Test Venue", 1000))
                 .referee(RefereeDto.from(UUID.randomUUID(), "Test Referee"))
-                .halfTimeScoreInfo(MatchDto.ScoreInfoDto.from((byte)0, (byte)0))
-                .scoreInfo(MatchDto.ScoreInfoDto.from((byte)0, (byte)0))
-                .penaltiesInfo(MatchDto.PenaltiesInfoDto.from((byte)0, (byte)0));
+                .halfTimeScoreInfo(ScoreInfoDto.from((byte)0, (byte)0))
+                .scoreInfo(ScoreInfoDto.from((byte)0, (byte)0))
+                .penaltiesInfo(PenaltiesInfoDto.from((byte)0, (byte)0));
     }
 }

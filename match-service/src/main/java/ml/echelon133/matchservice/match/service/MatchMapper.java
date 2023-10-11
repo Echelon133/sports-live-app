@@ -1,6 +1,9 @@
 package ml.echelon133.matchservice.match.service;
 
 import ml.echelon133.common.match.dto.MatchDto;
+import ml.echelon133.common.match.dto.PenaltiesInfoDto;
+import ml.echelon133.common.match.dto.ScoreInfoDto;
+import ml.echelon133.common.match.dto.ShortTeamDto;
 import ml.echelon133.common.referee.dto.RefereeDto;
 import ml.echelon133.common.venue.dto.VenueDto;
 import ml.echelon133.matchservice.match.model.Match;
@@ -16,20 +19,20 @@ public class MatchMapper {
         var scoreInfo = match.getScoreInfo();
         var penaltiesInfo = match.getPenaltiesInfo();
 
-        MatchDto.ShortTeamDto homeTeamDto = null;
+        ShortTeamDto homeTeamDto = null;
         // only set homeTeam if the entity is not marked as deleted
         if (!homeTeam.isDeleted()) {
-            homeTeamDto = MatchDto.ShortTeamDto.from(
+            homeTeamDto = ShortTeamDto.from(
                     homeTeam.getId(),
                     homeTeam.getName(),
                     homeTeam.getCrestUrl()
             );
         }
 
-        MatchDto.ShortTeamDto awayTeamDto = null;
+        ShortTeamDto awayTeamDto = null;
         // only set awayTeam if the entity is not marked as deleted
         if (!awayTeam.isDeleted()) {
-            awayTeamDto = MatchDto.ShortTeamDto.from(
+            awayTeamDto = ShortTeamDto.from(
                     awayTeam.getId(),
                     awayTeam.getName(),
                     awayTeam.getCrestUrl()
@@ -55,15 +58,15 @@ public class MatchMapper {
             );
         }
 
-        MatchDto.ScoreInfoDto halfTimeScoreInfoDto = MatchDto.ScoreInfoDto.from(
+        ScoreInfoDto halfTimeScoreInfoDto = ScoreInfoDto.from(
                 halfTimeScoreInfo.getHomeGoals(),
                 halfTimeScoreInfo.getAwayGoals()
         );
-        MatchDto.ScoreInfoDto scoreInfoDto = MatchDto.ScoreInfoDto.from(
+        ScoreInfoDto scoreInfoDto = ScoreInfoDto.from(
                 scoreInfo.getHomeGoals(),
                 scoreInfo.getAwayGoals()
         );
-        MatchDto.PenaltiesInfoDto penaltiesInfoDto = MatchDto.PenaltiesInfoDto.from(
+        PenaltiesInfoDto penaltiesInfoDto = PenaltiesInfoDto.from(
                 penaltiesInfo.getHomePenalties(),
                 penaltiesInfo.getAwayPenalties()
         );
