@@ -96,4 +96,35 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
             nativeQuery = true
     )
     List<CompactMatchDto> findAllBetween(LocalDateTime startUTC, LocalDateTime endUTC, Pageable pageable);
+
+    /**
+     * Finds all matches that belong to a competition with the specified id and their status is
+     * on the list of accepted statuses.
+     *
+     * @param competitionId id of the competition to which the match belongs
+     * @param acceptedStatuses a list of accepted {@link ml.echelon133.common.match.MatchStatus} values (represented
+     *                         as strings). The query will only return matches with statuses that appear on the list.
+     * @param pageable information about the wanted page
+     * @return a list of matches that are finished and belong to the specified competition
+     */
+    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
+    @Query(
+            value = "SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, " +
+                    "   m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, " +
+                    "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
+                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
+                    "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
+                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
+                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
+                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
+                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted " +
+                    "FROM match m " +
+                    "JOIN team ht ON m.home_team_id = ht.id " +
+                    "JOIN team at ON m.away_team_id = at.id " +
+                    "WHERE m.deleted = false AND m.competition_id = :competitionId " +
+                    "AND m.status IN :acceptedStatuses " +
+                    "ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC ",
+            nativeQuery = true
+    )
+    List<CompactMatchDto> findAllByCompetitionAndStatuses(UUID competitionId, List<String> acceptedStatuses, Pageable pageable);
 }
