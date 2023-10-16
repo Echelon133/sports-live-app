@@ -1,6 +1,8 @@
 package ml.echelon133.matchservice.match.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.match.MatchStatus;
+import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchStatusDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.TestMatchDto;
@@ -20,16 +22,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.exceptions.misusing.InvalidUseOfMatchersException;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class MatchServiceTests {
@@ -931,5 +937,141 @@ public class MatchServiceTests {
         // then
         assertEquals(expectedMatch.getId(), receivedDto.getId());
         assertEquals(newRefereeEntity.getId(), receivedDto.getReferee().getId());
+    }
+
+    @Test
+    @DisplayName("findMatchesByDate correctly calculates day's time span for UTC +00:00")
+    public void findMatchesByDate_UseCoordinatedUniversalTime_CalculatesCorrectTimeSpan() {
+        var date = LocalDate.of(2023, 1, 1);
+        var zoneOffset = ZoneOffset.of("+00:00");
+        var pageable = Pageable.ofSize(5).withPage(1);
+        // UTC +00:00 is just UTC, therefore conversion is straightforward
+        var expectedStartUTC = LocalDateTime.of(2023, 1, 1, 0, 0);
+        var expectedEndUTC = LocalDateTime.of(2023, 1, 1, 23, 59);
+
+        // when
+        matchService.findMatchesByDate(date, zoneOffset, pageable);
+
+        // then
+        verify(matchRepository).findAllBetween(eq(expectedStartUTC), eq(expectedEndUTC), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("findMatchesByDate correctly calculates day's time span for UTC +01:00")
+    public void findMatchesByDate_UseCentralEuropeanTime_CalculatesCorrectTimeSpan() {
+        var date = LocalDate.of(2023, 1, 1);
+        var zoneOffset = ZoneOffset.of("+01:00");
+        var pageable = Pageable.ofSize(5).withPage(1);
+        // CET is UTC +01:00, therefore when the day starts in CET, it's 11PM the previous day in UTC
+        var expectedStartUTC = LocalDateTime.of(2022, 12, 31, 23, 0);
+        var expectedEndUTC = LocalDateTime.of(2023, 1, 1, 22, 59);
+
+        // when
+        matchService.findMatchesByDate(date, zoneOffset, pageable);
+
+        // then
+        verify(matchRepository).findAllBetween(eq(expectedStartUTC), eq(expectedEndUTC), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("findMatchesByDate correctly calculates day's time span for UTC -05:00")
+    public void findMatchesByDate_UseEasternStandardTime_CalculatesCorrectTimeSpan() {
+        var date = LocalDate.of(2023, 1, 1);
+        var zoneOffset = ZoneOffset.of("-05:00");
+        var pageable = Pageable.ofSize(5).withPage(1);
+        // EST is UTC -05:00, therefore when the day starts in EST, it's 5AM the same day in UTC
+        var expectedStartUTC = LocalDateTime.of(2023, 1, 1, 5, 0);
+        var expectedEndUTC = LocalDateTime.of(2023, 1, 2, 4, 59);
+
+        // when
+        matchService.findMatchesByDate(date, zoneOffset, pageable);
+
+        // then
+        verify(matchRepository).findAllBetween(eq(expectedStartUTC), eq(expectedEndUTC), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("findMatchesByDate correctly calculates day's time span for UTC +05:30")
+    public void findMatchesByDate_UseIndiaStandardTime_CalculatesCorrectTimeSpan() {
+        var date = LocalDate.of(2023, 1, 1);
+        var zoneOffset = ZoneOffset.of("+05:30");
+        var pageable = Pageable.ofSize(5).withPage(1);
+        // IST is UTC +5:30, therefore when the day starts in IST, it's 6:30PM the previous day in UTC
+        var expectedStartUTC = LocalDateTime.of(2022, 12, 31, 18, 30);
+        var expectedEndUTC = LocalDateTime.of(2023, 1, 1, 18, 29);
+
+        // when
+        matchService.findMatchesByDate(date, zoneOffset, pageable);
+
+        // then
+        verify(matchRepository).findAllBetween(eq(expectedStartUTC), eq(expectedEndUTC), eq(pageable));
+    }
+
+    @Test
+    @DisplayName("findMatchesByDate correctly groups results by competitionId")
+    public void findMatchesByDate_MultipleResults_GroupsResultsByCompetitionId() {
+        var competition0 = UUID.randomUUID();
+        var competition1 = UUID.randomUUID();
+        List<CompactMatchDto> testResults = List.of(
+                CompactMatchDto.builder().competitionId(competition0).build(),
+                CompactMatchDto.builder().competitionId(competition1).build(),
+                CompactMatchDto.builder().competitionId(competition1).build()
+        );
+
+        // given
+        given(matchRepository.findAllBetween(any(), any(), any())).willReturn(testResults);
+
+        // when
+        Map<UUID, List<CompactMatchDto>> results = matchService.findMatchesByDate(
+                LocalDate.now(), ZoneOffset.UTC, Pageable.unpaged()
+        );
+
+        // then
+        assertEquals(2, results.size());
+        // check competition0
+        assertEquals(1, results.get(competition0).size());
+        assertEquals(competition0, results.get(competition0).get(0).getCompetitionId());
+        // check competition1
+        assertEquals(2, results.get(competition1).size());
+        var first = results.get(competition1).get(0);
+        var second = results.get(competition1).get(1);
+        assertEquals(competition1, first.getCompetitionId());
+        assertEquals(competition1, second.getCompetitionId());
+    }
+
+    @Test
+    @DisplayName("findMatchesByCompetition fetches finished matches when matchFinished is true")
+    public void findMatchesByCompetition_MatchFinishedTrue_FetchesFinishedMatches() {
+        var competitionId = UUID.randomUUID();
+        var matchFinished = true;
+        var pageable = Pageable.ofSize(3).withPage(6);
+
+        // when
+        matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
+
+        // then
+        verify(matchRepository).findAllByCompetitionAndStatuses(
+                eq(competitionId),
+                eq(MatchStatus.RESULT_TYPE_STATUSES),
+                eq(pageable)
+        );
+    }
+
+    @Test
+    @DisplayName("findMatchesByCompetition fetches unfinished matches when matchFinished is false")
+    public void findMatchesByCompetition_MatchFinishedFalse_FetchesUnfinishedMatches() {
+        var competitionId = UUID.randomUUID();
+        var matchFinished = false;
+        var pageable = Pageable.ofSize(3).withPage(6);
+
+        // when
+        matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
+
+        // then
+        verify(matchRepository).findAllByCompetitionAndStatuses(
+                eq(competitionId),
+                eq(MatchStatus.FIXTURE_TYPE_STATUSES),
+                eq(pageable)
+        );
     }
 }

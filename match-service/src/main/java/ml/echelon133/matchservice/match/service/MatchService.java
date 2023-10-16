@@ -1,6 +1,8 @@
 package ml.echelon133.matchservice.match.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.match.MatchStatus;
+import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
 import ml.echelon133.common.match.dto.MatchStatusDto;
 import ml.echelon133.matchservice.match.model.Match;
@@ -13,12 +15,19 @@ import ml.echelon133.matchservice.team.repository.TeamRepository;
 import ml.echelon133.matchservice.venue.model.Venue;
 import ml.echelon133.matchservice.venue.repository.VenueRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -206,5 +215,60 @@ public class MatchService {
         matchToUpdate.setCompetitionId(competitionId);
 
         return MatchMapper.entityToDto(matchRepository.save(matchToUpdate));
+    }
+
+    /**
+     * Finds all matches that happen on the specified date in client's time zone and groups them by the
+     * id of their competition.
+     *
+     * <p>Example - representation of 2023/01/01 in different time zones</p>
+     * <table><thead><tr><th>ZoneOffset</th><th>Start (UTC)</th><th>End (UTC)<br></th></tr></thead><tbody><tr><td>00:00</td><td>2023/01/01 00:00</td><td>2023/01/01 23:59</td></tr><tr><td>+01:00</td><td>2022/12/31 23:00</td><td>2023/01/01 22:59</td></tr><tr><td>-08:00</td><td>2023/01/01 08:00</td><td>2023/01/02 07:59<br></td></tr></tbody></table>*
+     *
+     * @param date specifies the day of the match
+     * @param zoneOffset specifies the difference between the client's time zone and the UTC
+     * @param pageable information about the wanted page
+     * @return lists of matches happening on a particular day in client's time zone,
+     *      grouped by the id of their competition
+     */
+    public Map<UUID, List<CompactMatchDto>> findMatchesByDate(LocalDate date, ZoneOffset zoneOffset, Pageable pageable) {
+        LocalDateTime clientLocalMidnight = LocalDateTime.of(date, LocalTime.MIDNIGHT);
+        // represent the midnight in client's time zone in UTC
+        LocalDateTime startUTC = LocalDateTime.ofInstant(
+                clientLocalMidnight.toInstant(zoneOffset),
+                ZoneOffset.UTC
+        );
+        // represent the end of the day in client's time zone in UTC
+        LocalDateTime endUTC = startUTC
+                .plusHours(23)
+                .plusMinutes(59);
+        return matchRepository
+                .findAllBetween(startUTC, endUTC, pageable)
+                .stream().collect(Collectors.groupingBy(CompactMatchDto::getCompetitionId));
+    }
+
+    /**
+     * Finds all matches that happen in a specified competition and filters them by their status.
+     *
+     * @param competitionId id of the competition in which the match happens
+     * @param matchFinished if `true`, only returns matches that are finished and have a final result
+     * @param pageable information about the wanted page
+     * @return a map in which keys are IDs of competitions and values are lists of matches happening in a specified competition
+     * and have a particular status
+     */
+    public Map<UUID, List<CompactMatchDto>> findMatchesByCompetition(UUID competitionId, boolean matchFinished, Pageable pageable) {
+        List<String> acceptedStatuses;
+        if (matchFinished) {
+            // only fetch matches that are finished
+            acceptedStatuses = MatchStatus.RESULT_TYPE_STATUSES;
+        } else {
+            // only fetch matches that are not finished
+            acceptedStatuses = MatchStatus.FIXTURE_TYPE_STATUSES;
+        }
+        // the invariant of the query below ensures that all the matches will belong to the same competition,
+        // which means that using `Collectors.groupingBy` is unnecessary
+        return Map.of(
+                competitionId,
+                matchRepository.findAllByCompetitionAndStatuses(competitionId, acceptedStatuses, pageable)
+        );
     }
 }
