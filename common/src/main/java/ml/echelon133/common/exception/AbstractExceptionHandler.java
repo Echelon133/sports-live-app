@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -90,6 +91,15 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
     @ExceptionHandler(value = FormInvalidException.class)
     protected ResponseEntity<MapErrorMessage> handleFormInvalidException(FormInvalidException ex, WebRequest request) {
         MapErrorMessage error = new MapErrorMessage(HttpStatus.UNPROCESSABLE_ENTITY, request, ex.getValidationErrors());
+        return error.asResponseEntity();
+    }
+
+    @ExceptionHandler(value = RequestParamsInvalidException.class)
+    protected ResponseEntity<ErrorMessage> handleRequestParamsInvalidException(RequestParamsInvalidException ex, WebRequest request) {
+        List<String> errors = ex.getValidationErrors().entrySet().stream().map(
+                entry -> String.format("query parameter '%s' %s", entry.getKey(), entry.getValue())
+        ).collect(Collectors.toList());
+        ErrorMessage error = new ErrorMessage(HttpStatus.BAD_REQUEST, request, errors);
         return error.asResponseEntity();
     }
 

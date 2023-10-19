@@ -1,15 +1,14 @@
 package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.repository.PlayerRepository;
+import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
-import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.model.UpsertTeamPlayerDto;
 import ml.echelon133.matchservice.team.repository.TeamPlayerRepository;
@@ -48,12 +47,7 @@ public class TeamPlayerServiceTests {
     private TeamPlayerService teamPlayerService;
 
     private TeamPlayer getTestTeamPlayer() {
-        var team = new Team(
-                "Test team",
-                "https://cdn.test.com/image.png",
-                new Country("Test country", "TC"),
-                new Coach("Test coach")
-        );
+        var team = TestTeam.builder().build();
         var player = new Player(
                 "Test player",
                 Position.GOALKEEPER,
@@ -177,7 +171,7 @@ public class TeamPlayerServiceTests {
     public void createTeamPlayer_TeamMarkedAsDeleted_Throws() {
         var teamId = UUID.randomUUID();
         var createDto = new UpsertTeamPlayerDto();
-        var team = new Team();
+        var team = TestTeam.builder().build();
         team.setDeleted(true);
 
         // given
@@ -198,7 +192,7 @@ public class TeamPlayerServiceTests {
     public void createTeamPlayer_PlayerNotFound_Throws() {
         var teamId = UUID.randomUUID();
         var playerId = UUID.randomUUID();
-        var team = new Team();
+        var team = TestTeam.builder().build();
         var createDto = new UpsertTeamPlayerDto(playerId.toString(), null, null);
 
         // given
@@ -220,7 +214,7 @@ public class TeamPlayerServiceTests {
     public void createTeamPlayer_PlayerMarkedAsDeleted_Throws() {
         var teamId = UUID.randomUUID();
         var playerId = UUID.randomUUID();
-        var team = new Team();
+        var team = TestTeam.builder().build();
         var player = new Player();
         player.setDeleted(true);
         var createDto = new UpsertTeamPlayerDto(playerId.toString(), null, null);
@@ -357,7 +351,7 @@ public class TeamPlayerServiceTests {
         var updateDto = new UpsertTeamPlayerDto();
         var teamPlayer = new TeamPlayer();
         // make sure that the teamId and teamPlayer's Team's teamId are different
-        teamPlayer.setTeam(new Team());
+        teamPlayer.setTeam(TestTeam.builder().build());
 
         // given
         given(teamPlayerRepository.findById(teamPlayerId)).willReturn(Optional.of(teamPlayer));
