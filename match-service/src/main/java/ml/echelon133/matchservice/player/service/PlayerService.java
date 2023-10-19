@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.player.service;
 
+import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.player.dto.PlayerDto;
 import ml.echelon133.matchservice.country.model.Country;
@@ -22,7 +23,7 @@ import java.util.UUID;
 @Transactional
 public class PlayerService {
 
-    public static final String DATE_OF_BIRTH_FORMAT = "yyyy/MM/d";
+    public static final String DATE_OF_BIRTH_FORMAT = DateFormatConstants.DATE_FORMAT;
     public static final DateTimeFormatter DATE_OF_BIRTH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_BIRTH_FORMAT);
 
     private final PlayerRepository playerRepository;

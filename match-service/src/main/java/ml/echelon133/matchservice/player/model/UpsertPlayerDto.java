@@ -1,8 +1,8 @@
 package ml.echelon133.matchservice.player.model;
 
-import ml.echelon133.common.validator.ValidUUID;
-import ml.echelon133.matchservice.player.model.validator.ValidLocalDateFormat;
-import ml.echelon133.matchservice.player.model.validator.ValidPositionValue;
+import ml.echelon133.common.constraints.UUID;
+import ml.echelon133.common.constraints.LocalDateFormat;
+import ml.echelon133.matchservice.player.model.constraints.PositionValue;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotNull;
@@ -14,15 +14,15 @@ public class UpsertPlayerDto {
     private String name;
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String countryId;
 
     @NotNull(message = "field has to be provided")
-    @ValidPositionValue
+    @PositionValue
     private String position;
 
     @NotNull(message = "field has to be provided")
-    @ValidLocalDateFormat
+    @LocalDateFormat
     private String dateOfBirth;
 
     public UpsertPlayerDto() {}
