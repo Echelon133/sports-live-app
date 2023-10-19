@@ -64,10 +64,9 @@ public class TeamRepositoryTests {
     @DisplayName("findTeamById native query finds team when the team exists")
     public void findTeamById_TeamExists_IsPresent() {
         var team = teamRepository.save(TestTeam.builder().build());
-        var saved = teamRepository.save(team);
 
         // when
-        var teamDto = teamRepository.findTeamById(saved.getId());
+        var teamDto = teamRepository.findTeamById(team.getId());
 
         // then
         assertTrue(teamDto.isPresent());
