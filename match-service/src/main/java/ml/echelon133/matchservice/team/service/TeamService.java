@@ -44,6 +44,19 @@ public class TeamService {
     }
 
     /**
+     * Returns the entity representing a team with the specified id.
+     * @param id id of the team's entity
+     * @return team's entity
+     * @throws ResourceNotFoundException thrown when the team does not exist in the database or is deleted
+     */
+    public Team findEntityById(UUID id) throws ResourceNotFoundException {
+        return teamRepository
+                .findById(id)
+                .filter(t -> !t.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
+    }
+
+    /**
      * Updates the team's information.
      *
      * The values in {@link UpsertTeamDto} have to be pre-validated before being used here,

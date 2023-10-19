@@ -9,8 +9,7 @@ import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.referee.service.RefereeService;
-import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.team.repository.TeamRepository;
+import ml.echelon133.matchservice.team.service.TeamService;
 import ml.echelon133.matchservice.venue.service.VenueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -34,36 +33,24 @@ public class MatchService {
     public static final String DATE_OF_MATCH_FORMAT = DateFormatConstants.DATE_TIME_FORMAT;
     public static final DateTimeFormatter DATE_OF_MATCH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_MATCH_FORMAT);
 
-    // ONLY USE IT FOR READING DATA
-    private final TeamRepository teamRepository;
-
+    private final TeamService teamService;
     private final VenueService venueService;
-
     private final RefereeService refereeService;
-
     private final MatchRepository matchRepository;
 
     @Autowired
-    public MatchService(TeamRepository teamRepository, VenueService venueService, RefereeService refereeService, MatchRepository matchRepository) {
-        this.teamRepository = teamRepository;
+    public MatchService(TeamService teamService, VenueService venueService, RefereeService refereeService, MatchRepository matchRepository) {
+        this.teamService = teamService;
         this.venueService = venueService;
         this.refereeService = refereeService;
         this.matchRepository = matchRepository;
     }
 
-    private Match findMatchEntityById(UUID id) throws ResourceNotFoundException {
+    private Match findEntityById(UUID id) throws ResourceNotFoundException {
         return matchRepository
                 .findById(id)
                 .filter(m -> !m.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Match.class, id));
-    }
-
-    // TODO: consider moving this to TeamService
-    private Team findTeamEntityById(UUID id) throws ResourceNotFoundException {
-        return teamRepository
-                .findById(id)
-                .filter(m -> !m.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
     }
 
     /**
@@ -104,12 +91,12 @@ public class MatchService {
 
         // this `UUID.fromString` should never fail because the homeTeamId value is pre-validated
         var homeTeamId = UUID.fromString(matchDto.getHomeTeamId());
-        var homeTeam = findTeamEntityById(homeTeamId);
+        var homeTeam = teamService.findEntityById(homeTeamId);
         match.setHomeTeam(homeTeam);
 
         // this `UUID.fromString` should never fail because the awayTeamId value is pre-validated
         var awayTeamId = UUID.fromString(matchDto.getAwayTeamId());
-        var awayTeam = findTeamEntityById(awayTeamId);
+        var awayTeam = teamService.findEntityById(awayTeamId);
         match.setAwayTeam(awayTeam);
 
         // this `LocalDateTime.parse` should never fail because the startTimeUTC value is pre-validated
@@ -148,16 +135,16 @@ public class MatchService {
      * @throws ResourceNotFoundException thrown when any entity that the match consists of does not exist in the database
      */
     public MatchDto updateMatch(UUID matchId, UpsertMatchDto matchDto) throws ResourceNotFoundException {
-        var matchToUpdate = findMatchEntityById(matchId);
+        var matchToUpdate = findEntityById(matchId);
 
         // this `UUID.fromString` should never fail because the homeTeamId value is pre-validated
         var homeTeamId = UUID.fromString(matchDto.getHomeTeamId());
-        var homeTeam = findTeamEntityById(homeTeamId);
+        var homeTeam = teamService.findEntityById(homeTeamId);
         matchToUpdate.setHomeTeam(homeTeam);
 
         // this `UUID.fromString` should never fail because the awayTeamId value is pre-validated
         var awayTeamId = UUID.fromString(matchDto.getAwayTeamId());
-        var awayTeam = findTeamEntityById(awayTeamId);
+        var awayTeam = teamService.findEntityById(awayTeamId);
         matchToUpdate.setAwayTeam(awayTeam);
 
         // this `LocalDateTime.parse` should never fail because the startTimeUTC value is pre-validated

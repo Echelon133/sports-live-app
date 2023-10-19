@@ -9,6 +9,7 @@ import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestUpsertTeamDto;
+import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -75,6 +76,58 @@ public class TeamServiceTests {
 
         // then
         assertEquals(testDto, dto);
+    }
+    
+    @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(teamRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            teamService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("team %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var teamEntity = new Team();
+        teamEntity.setDeleted(true);
+
+        // given
+        given(teamRepository.findById(testId)).willReturn(Optional.of(teamEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            teamService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("team %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var teamEntity = new Team();
+
+        // given
+        given(teamRepository.findById(testId)).willReturn(Optional.of(teamEntity));
+
+        // when
+        var entity = teamService.findEntityById(testId);
+
+        // then
+        assertEquals(teamEntity, entity);
     }
 
     @Test
