@@ -21,7 +21,8 @@ spring:
                     /api/coaches*, /api/coaches/**,
                     /api/countries*, /api/countries/**,
                     /api/players*, /api/players/**,
-                    /api/teams*, /api/teams/**
+                    /api/teams*, /api/teams/**, 
+                    /api/matches*, /api/matches/**
 
 management:
   endpoint:
