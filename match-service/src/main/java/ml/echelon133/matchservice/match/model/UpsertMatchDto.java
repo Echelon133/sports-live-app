@@ -2,7 +2,7 @@ package ml.echelon133.matchservice.match.model;
 
 import ml.echelon133.common.validator.ValidUUID;
 import ml.echelon133.matchservice.match.model.validator.TeamIdsDifferent;
-import ml.echelon133.matchservice.match.model.validator.LocalDateTimeFormat;
+import ml.echelon133.common.constraints.LocalDateTimeFormat;
 
 import javax.validation.constraints.NotNull;
 

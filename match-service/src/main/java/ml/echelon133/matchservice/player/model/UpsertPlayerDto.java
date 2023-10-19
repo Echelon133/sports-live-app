@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.player.model;
 
 import ml.echelon133.common.validator.ValidUUID;
-import ml.echelon133.matchservice.player.model.validator.LocalDateFormat;
+import ml.echelon133.common.constraints.LocalDateFormat;
 import ml.echelon133.matchservice.player.model.validator.ValidPositionValue;
 import org.hibernate.validator.constraints.Length;
 
