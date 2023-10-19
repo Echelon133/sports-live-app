@@ -35,6 +35,58 @@ public class VenueServiceTests {
     private VenueService venueService;
 
     @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(venueRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            venueService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("venue %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var venueEntity = new Venue();
+        venueEntity.setDeleted(true);
+
+        // given
+        given(venueRepository.findById(testId)).willReturn(Optional.of(venueEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            venueService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("venue %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var venueEntity = new Venue();
+
+        // given
+        given(venueRepository.findById(testId)).willReturn(Optional.of(venueEntity));
+
+        // when
+        var entity = venueService.findEntityById(testId);
+
+        // then
+        assertEquals(venueEntity, entity);
+    }
+
+    @Test
     @DisplayName("findById throws when the repository does not store an entity with given id")
     public void findById_EntityNotPresent_Throws() {
         var testId = UUID.randomUUID();

@@ -12,8 +12,7 @@ import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.referee.repository.RefereeRepository;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
-import ml.echelon133.matchservice.venue.model.Venue;
-import ml.echelon133.matchservice.venue.repository.VenueRepository;
+import ml.echelon133.matchservice.venue.service.VenueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,8 +38,7 @@ public class MatchService {
     // ONLY USE IT FOR READING DATA
     private final TeamRepository teamRepository;
 
-    // ONLY USE IT FOR READING DATA
-    private final VenueRepository venueRepository;
+    private final VenueService venueService;
 
     // ONLY USE IT FOR READING DATA
     private final RefereeRepository refereeRepository;
@@ -48,9 +46,9 @@ public class MatchService {
     private final MatchRepository matchRepository;
 
     @Autowired
-    public MatchService(TeamRepository teamRepository, VenueRepository venueRepository, RefereeRepository refereeRepository, MatchRepository matchRepository) {
+    public MatchService(TeamRepository teamRepository, VenueService venueService, RefereeRepository refereeRepository, MatchRepository matchRepository) {
         this.teamRepository = teamRepository;
-        this.venueRepository = venueRepository;
+        this.venueService = venueService;
         this.refereeRepository = refereeRepository;
         this.matchRepository = matchRepository;
     }
@@ -68,14 +66,6 @@ public class MatchService {
                 .findById(id)
                 .filter(m -> !m.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
-    }
-
-    // TODO: consider moving this to VenueService
-    private Venue findVenueEntityById(UUID id) throws ResourceNotFoundException {
-        return venueRepository
-                .findById(id)
-                .filter(m -> !m.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
     }
 
     // TODO: consider moving this to RefereeService
@@ -138,7 +128,7 @@ public class MatchService {
 
         // this `UUID.fromString` should never fail because the venueId value is pre-validated
         var venueId = UUID.fromString(matchDto.getVenueId());
-        var venue = findVenueEntityById(venueId);
+        var venue = venueService.findEntityById(venueId);
         match.setVenue(venue);
 
         // referee is optional, only fetch it if it's not null
@@ -186,7 +176,7 @@ public class MatchService {
 
         // this `UUID.fromString` should never fail because the venueId value is pre-validated
         var venueId = UUID.fromString(matchDto.getVenueId());
-        var venue = findVenueEntityById(venueId);
+        var venue = venueService.findEntityById(venueId);
         matchToUpdate.setVenue(venue);
 
         // referee is optional, only fetch it if it's not null
