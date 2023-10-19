@@ -8,8 +8,7 @@ import ml.echelon133.common.match.dto.MatchDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
-import ml.echelon133.matchservice.referee.model.Referee;
-import ml.echelon133.matchservice.referee.repository.RefereeRepository;
+import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import ml.echelon133.matchservice.venue.service.VenueService;
@@ -40,16 +39,15 @@ public class MatchService {
 
     private final VenueService venueService;
 
-    // ONLY USE IT FOR READING DATA
-    private final RefereeRepository refereeRepository;
+    private final RefereeService refereeService;
 
     private final MatchRepository matchRepository;
 
     @Autowired
-    public MatchService(TeamRepository teamRepository, VenueService venueService, RefereeRepository refereeRepository, MatchRepository matchRepository) {
+    public MatchService(TeamRepository teamRepository, VenueService venueService, RefereeService refereeService, MatchRepository matchRepository) {
         this.teamRepository = teamRepository;
         this.venueService = venueService;
-        this.refereeRepository = refereeRepository;
+        this.refereeService = refereeService;
         this.matchRepository = matchRepository;
     }
 
@@ -66,14 +64,6 @@ public class MatchService {
                 .findById(id)
                 .filter(m -> !m.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
-    }
-
-    // TODO: consider moving this to RefereeService
-    private Referee findRefereeEntityById(UUID id) throws ResourceNotFoundException {
-        return refereeRepository
-                .findById(id)
-                .filter(m -> !m.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Referee.class, id));
     }
 
     /**
@@ -135,7 +125,7 @@ public class MatchService {
         if (matchDto.getRefereeId() != null) {
             // this `UUID.fromString` should never fail because the refereeId value is pre-validated
             var refereeId = UUID.fromString(matchDto.getRefereeId());
-            var referee = findRefereeEntityById(refereeId);
+            var referee = refereeService.findEntityById(refereeId);
             match.setReferee(referee);
         }
 
@@ -183,7 +173,7 @@ public class MatchService {
         if (matchDto.getRefereeId() != null) {
             // this `UUID.fromString` should never fail because the refereeId value is pre-validated
             var refereeId = UUID.fromString(matchDto.getRefereeId());
-            var referee = findRefereeEntityById(refereeId);
+            var referee = refereeService.findEntityById(refereeId);
             matchToUpdate.setReferee(referee);
         }
 

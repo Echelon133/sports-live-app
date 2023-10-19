@@ -69,6 +69,58 @@ public class RefereeServiceTests {
     }
 
     @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(refereeRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            refereeService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("referee %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var refereeEntity = new Referee();
+        refereeEntity.setDeleted(true);
+
+        // given
+        given(refereeRepository.findById(testId)).willReturn(Optional.of(refereeEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            refereeService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("referee %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var refereeEntity = new Referee();
+
+        // given
+        given(refereeRepository.findById(testId)).willReturn(Optional.of(refereeEntity));
+
+        // when
+        var entity = refereeService.findEntityById(testId);
+
+        // then
+        assertEquals(refereeEntity, entity);
+    }
+
+    @Test
     @DisplayName("createReferee calls repository's save and returns correct dto")
     public void createReferee_ValidDto_CorrectlySavesAndReturns() {
         var idToSave = UUID.randomUUID();

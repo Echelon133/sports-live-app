@@ -9,7 +9,7 @@ import ml.echelon133.matchservice.match.TestUpsertMatchDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.referee.model.Referee;
-import ml.echelon133.matchservice.referee.repository.RefereeRepository;
+import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import ml.echelon133.matchservice.venue.model.Venue;
@@ -46,7 +46,7 @@ public class MatchServiceTests {
     private VenueService venueService;
 
     @Mock
-    private RefereeRepository refereeRepository;
+    private RefereeService refereeService;
 
     @Mock
     private MatchRepository matchRepository;
@@ -354,7 +354,9 @@ public class MatchServiceTests {
         );
         bindTeamIdsToTeams(teamIdToAnswerMapping);
         given(venueService.findEntityById(venueId)).willReturn(venueEntity);
-        given(refereeRepository.findById(refereeId)).willReturn(Optional.empty());
+        given(refereeService.findEntityById(refereeId)).willThrow(
+                new ResourceNotFoundException(Referee.class, refereeId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -394,7 +396,9 @@ public class MatchServiceTests {
         );
         bindTeamIdsToTeams(teamIdToAnswerMapping);
         given(venueService.findEntityById(venueId)).willReturn(venueEntity);
-        given(refereeRepository.findById(refereeId)).willReturn(Optional.of(refereeEntity));
+        given(refereeService.findEntityById(refereeId)).willThrow(
+                new ResourceNotFoundException(Referee.class, refereeId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -441,7 +445,7 @@ public class MatchServiceTests {
         );
         bindTeamIdsToTeams(teamIdToAnswerMapping);
         given(venueService.findEntityById(venueId)).willReturn(venueEntity);
-        given(refereeRepository.findById(refereeId)).willReturn(Optional.of(refereeEntity));
+        given(refereeService.findEntityById(refereeId)).willReturn(refereeEntity);
         // make sure that createMatch has actually set all the fields of the match
         given(matchRepository.save(argThat(m ->
                     m.getHomeTeam().equals(homeTeamEntity) &&
@@ -780,7 +784,9 @@ public class MatchServiceTests {
         bindTeamIdsToTeams(teamIdToAnswerMapping);
         given(matchRepository.findById(matchId)).willReturn(Optional.of(matchEntity));
         given(venueService.findEntityById(venueId)).willReturn(venueEntity);
-        given(refereeRepository.findById(refereeId)).willReturn(Optional.empty());
+        given(refereeService.findEntityById(refereeId)).willThrow(
+                new ResourceNotFoundException(Referee.class, refereeId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -827,7 +833,9 @@ public class MatchServiceTests {
         bindTeamIdsToTeams(teamIdToAnswerMapping);
         given(matchRepository.findById(matchId)).willReturn(Optional.of(matchEntity));
         given(venueService.findEntityById(venueId)).willReturn(venueEntity);
-        given(refereeRepository.findById(refereeId)).willReturn(Optional.of(refereeEntity));
+        given(refereeService.findEntityById(refereeId)).willThrow(
+                new ResourceNotFoundException(Referee.class, refereeId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -882,7 +890,7 @@ public class MatchServiceTests {
         bindTeamIdsToTeams(teamIdToAnswerMapping);
         given(matchRepository.findById(matchId)).willReturn(Optional.of(matchEntity));
         given(venueService.findEntityById(newVenueId)).willReturn(newVenueEntity);
-        given(refereeRepository.findById(newRefereeId)).willReturn(Optional.of(newRefereeEntity));
+        given(refereeService.findEntityById(newRefereeId)).willReturn(newRefereeEntity);
         // make sure that updateMatch has actually set all the fields of the match
         given(matchRepository.save(argThat(m ->
                         m.getId().equals(matchId) &&

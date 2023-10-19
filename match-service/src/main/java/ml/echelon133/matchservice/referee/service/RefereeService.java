@@ -42,6 +42,19 @@ public class RefereeService {
     }
 
     /**
+     * Returns the entity representing a referee with the specified id.
+     * @param id id of the referee's entity
+     * @return referee's entity
+     * @throws ResourceNotFoundException thrown when the referee does not exist in the database or is deleted
+     */
+    public Referee findEntityById(UUID id) throws ResourceNotFoundException {
+        return refereeRepository
+                .findById(id)
+                .filter(r -> !r.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Referee.class, id));
+    }
+
+    /**
      * Updates the referee's information.
      *
      * The values in {@link UpsertRefereeDto} have to be pre-validated before being used here, otherwise
