@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.match.controller;
 
+import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.FormInvalidException;
 import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
@@ -29,7 +30,7 @@ import java.util.*;
 public class MatchController {
 
     private final MatchService matchService;
-    private final DateTimeFormatter MATCH_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/d");
+    private final DateTimeFormatter MATCH_DATE_FORMATTER = DateTimeFormatter.ofPattern(DateFormatConstants.DATE_FORMAT);
     private final String DATE_PARAM_NAME = "date";
     private final String UTC_OFFSET_PARAM_NAME = "utcOffset";
     private final String COMPETITION_ID_PARAM_NAME = "competitionId";

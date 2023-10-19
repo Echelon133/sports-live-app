@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.match.service;
 
+import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.CompactMatchDto;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class MatchService {
 
-    public static final String DATE_OF_MATCH_FORMAT = "yyyy/MM/d H:m";
+    public static final String DATE_OF_MATCH_FORMAT = DateFormatConstants.DATE_TIME_FORMAT;
     public static final DateTimeFormatter DATE_OF_MATCH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_MATCH_FORMAT);
 
     // ONLY USE IT FOR READING DATA
