@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.country.model;
 
-import ml.echelon133.matchservice.country.model.validator.CountryCodeFormat;
+import ml.echelon133.matchservice.country.model.constraints.CountryCodeFormat;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotNull;

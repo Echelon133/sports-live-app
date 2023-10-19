@@ -1,4 +1,4 @@
-package ml.echelon133.matchservice.match.model.validator;
+package ml.echelon133.matchservice.match.model.constraints;
 
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 

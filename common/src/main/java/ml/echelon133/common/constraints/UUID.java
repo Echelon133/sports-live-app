@@ -1,4 +1,4 @@
-package ml.echelon133.common.validator;
+package ml.echelon133.common.constraints;
 
 import javax.validation.Constraint;
 import javax.validation.ConstraintValidator;

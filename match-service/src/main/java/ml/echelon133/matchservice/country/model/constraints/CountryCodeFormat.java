@@ -1,4 +1,4 @@
-package ml.echelon133.matchservice.country.model.validator;
+package ml.echelon133.matchservice.country.model.constraints;
 
 import javax.validation.Constraint;
 import javax.validation.ConstraintValidator;

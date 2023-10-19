@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.team.model;
 
-import ml.echelon133.common.validator.UUID;
+import ml.echelon133.common.constraints.UUID;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
 

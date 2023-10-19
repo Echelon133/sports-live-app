@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.team.model;
 
-import ml.echelon133.common.validator.UUID;
-import ml.echelon133.matchservice.player.model.validator.PositionValue;
+import ml.echelon133.common.constraints.UUID;
+import ml.echelon133.matchservice.player.model.constraints.PositionValue;
 import org.hibernate.validator.constraints.Range;
 
 import javax.validation.constraints.NotNull;

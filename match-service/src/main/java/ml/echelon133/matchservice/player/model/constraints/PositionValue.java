@@ -1,4 +1,4 @@
-package ml.echelon133.matchservice.player.model.validator;
+package ml.echelon133.matchservice.player.model.constraints;
 
 import ml.echelon133.matchservice.player.model.Position;
 
