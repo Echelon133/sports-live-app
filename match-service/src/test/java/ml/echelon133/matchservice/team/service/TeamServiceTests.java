@@ -3,7 +3,7 @@ package ml.echelon133.matchservice.team.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.coach.model.Coach;
-import ml.echelon133.matchservice.coach.repository.CoachRepository;
+import ml.echelon133.matchservice.coach.service.CoachService;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.team.TestTeam;
@@ -38,7 +38,7 @@ public class TeamServiceTests {
     private CountryService countryService;
 
     @Mock
-    private CoachRepository coachRepository;
+    private CoachService coachService;
 
     @InjectMocks
     private TeamService teamService;
@@ -169,7 +169,9 @@ public class TeamServiceTests {
         // given
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
         given(countryService.findEntityById(any())).willReturn(new Country());
-        given(coachRepository.findById(coachId)).willReturn(Optional.empty());
+        given(coachService.findEntityById(coachId)).willThrow(
+                new ResourceNotFoundException(Coach.class, coachId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -192,7 +194,10 @@ public class TeamServiceTests {
         // given
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
         given(countryService.findEntityById(any())).willReturn(new Country());
-        given(coachRepository.findById(coachId)).willReturn(Optional.of(coachEntity));
+        given(coachService.findEntityById(coachId)).willReturn(coachEntity);
+        given(coachService.findEntityById(coachId)).willThrow(
+                new ResourceNotFoundException(Coach.class, coachId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -230,7 +235,7 @@ public class TeamServiceTests {
         // given
         given(teamRepository.findById(oldTeam.getId())).willReturn(Optional.of(oldTeam));
         given(countryService.findEntityById(newCountryId)).willReturn(newCountry);
-        given(coachRepository.findById(newCoachId)).willReturn(Optional.of(newCoach));
+        given(coachService.findEntityById(newCoachId)).willReturn(newCoach);
         given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team with updated
@@ -336,7 +341,9 @@ public class TeamServiceTests {
         var coachId = UUID.randomUUID();
 
         // given
-        given(coachRepository.findById(coachId)).willReturn(Optional.empty());
+        given(coachService.findEntityById(coachId)).willThrow(
+                new ResourceNotFoundException(Coach.class, coachId)
+        );
         given(countryService.findEntityById(any())).willReturn(new Country());
 
         // when
@@ -356,7 +363,9 @@ public class TeamServiceTests {
         coachEntity.setDeleted(true);
 
         // given
-        given(coachRepository.findById(coachId)).willReturn(Optional.of(coachEntity));
+        given(coachService.findEntityById(coachId)).willThrow(
+                new ResourceNotFoundException(Coach.class, coachId)
+        );
         given(countryService.findEntityById(any())).willReturn(new Country());
 
         // when
@@ -389,7 +398,7 @@ public class TeamServiceTests {
 
         // given
         given(countryService.findEntityById(country.getId())).willReturn(country);
-        given(coachRepository.findById(coach.getId())).willReturn(Optional.of(coach));
+        given(coachService.findEntityById(coach.getId())).willReturn(coach);
         given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team whose values

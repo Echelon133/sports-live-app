@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.coach.service;
 
-import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.coach.dto.CoachDto;
+import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.coach.model.UpsertCoachDto;
 import ml.echelon133.matchservice.coach.repository.CoachRepository;
@@ -38,6 +38,19 @@ public class CoachService {
     public CoachDto findById(UUID id) throws ResourceNotFoundException {
         return coachRepository
                 .findCoachById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(Coach.class, id));
+    }
+
+    /**
+     * Returns the entity representing a coach with the specified id.
+     * @param id id of the coach's entity
+     * @return coach's entity
+     * @throws ResourceNotFoundException thrown when the coach does not exist in the database or is deleted
+     */
+    public Coach findEntityById(UUID id) throws ResourceNotFoundException {
+        return coachRepository
+                .findById(id)
+                .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Coach.class, id));
     }
 

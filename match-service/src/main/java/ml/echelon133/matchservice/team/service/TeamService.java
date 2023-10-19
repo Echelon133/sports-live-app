@@ -2,8 +2,7 @@ package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
-import ml.echelon133.matchservice.coach.model.Coach;
-import ml.echelon133.matchservice.coach.repository.CoachRepository;
+import ml.echelon133.matchservice.coach.service.CoachService;
 import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
@@ -22,15 +21,13 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final CountryService countryService;
-
-    // ONLY USE IT FOR READING DATA
-    private final CoachRepository coachRepository;
+    private final CoachService coachService;
 
     @Autowired
-    public TeamService(TeamRepository teamRepository, CountryService countryService, CoachRepository coachRepository) {
+    public TeamService(TeamRepository teamRepository, CountryService countryService, CoachService coachService) {
         this.teamRepository = teamRepository;
         this.countryService = countryService;
-        this.coachRepository = coachRepository;
+        this.coachService = coachService;
     }
 
     /**
@@ -73,11 +70,7 @@ public class TeamService {
 
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
         var coachId = UUID.fromString(teamDto.getCoachId());
-        // make sure that the coach with specified UUID already exists and is not marked as deleted
-        var coach = coachRepository
-                .findById(coachId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Coach.class, coachId));
+        var coach = coachService.findEntityById(coachId);
         teamToUpdate.setCoach(coach);
 
         return TeamMapper.entityToDto(teamRepository.save(teamToUpdate));
@@ -100,11 +93,7 @@ public class TeamService {
 
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
         var coachId = UUID.fromString(teamDto.getCoachId());
-        // make sure that the coach with specified UUID already exists and is not marked as deleted
-        var coach = coachRepository
-                .findById(coachId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Coach.class, coachId));
+        var coach = coachService.findEntityById(coachId);
 
         var team = new Team(teamDto.getName(), teamDto.getCrestUrl(), country, coach);
         return TeamMapper.entityToDto(teamRepository.save(team));
