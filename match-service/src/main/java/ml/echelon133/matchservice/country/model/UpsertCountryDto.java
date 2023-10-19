@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.country.model;
 
-import ml.echelon133.matchservice.country.model.validator.ValidCountryCode;
+import ml.echelon133.matchservice.country.model.validator.CountryCodeFormat;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotNull;
@@ -11,7 +11,7 @@ public class UpsertCountryDto {
     @Length(min = 1, max = 100, message = "expected length between 1 and 100")
     private String name;
 
-    @ValidCountryCode
+    @CountryCodeFormat
     private String countryCode;
 
     public UpsertCountryDto() {}

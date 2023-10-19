@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.match.model;
 
-import ml.echelon133.common.validator.ValidUUID;
+import ml.echelon133.common.validator.UUID;
 import ml.echelon133.matchservice.match.model.validator.TeamIdsDifferent;
 import ml.echelon133.common.constraints.LocalDateTimeFormat;
 
@@ -10,11 +10,11 @@ import javax.validation.constraints.NotNull;
 public class UpsertMatchDto {
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String homeTeamId;
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String awayTeamId;
 
     @NotNull(message = "field has to be provided")
@@ -22,15 +22,15 @@ public class UpsertMatchDto {
     private String startTimeUTC;
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String venueId;
 
     // this is optional, since at the time of creation of most of the matches, the referee is unknown
-    @ValidUUID
+    @UUID
     private String refereeId;
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String competitionId;
 
     public UpsertMatchDto() {}

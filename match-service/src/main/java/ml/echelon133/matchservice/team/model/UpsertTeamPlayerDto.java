@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.team.model;
 
-import ml.echelon133.common.validator.ValidUUID;
-import ml.echelon133.matchservice.player.model.validator.ValidPositionValue;
+import ml.echelon133.common.validator.UUID;
+import ml.echelon133.matchservice.player.model.validator.PositionValue;
 import org.hibernate.validator.constraints.Range;
 
 import javax.validation.constraints.NotNull;
@@ -9,11 +9,11 @@ import javax.validation.constraints.NotNull;
 public class UpsertTeamPlayerDto {
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String playerId;
 
     @NotNull(message = "field has to be provided")
-    @ValidPositionValue
+    @PositionValue
     private String position;
 
     @NotNull(message = "field has to be provided")

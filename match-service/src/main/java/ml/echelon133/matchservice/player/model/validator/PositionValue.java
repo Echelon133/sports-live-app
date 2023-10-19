@@ -16,19 +16,19 @@ import java.util.stream.Collectors;
 
 @Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = ValidPositionValue.Validator.class)
-public @interface ValidPositionValue {
+@Constraint(validatedBy = PositionValue.Validator.class)
+public @interface PositionValue {
     Position[] acceptedPositions() default {Position.GOALKEEPER, Position.DEFENDER, Position.MIDFIELDER, Position.FORWARD};
     String message() default "required exactly one of {acceptedPositions}";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 
-    class Validator implements ConstraintValidator<ValidPositionValue, String> {
+    class Validator implements ConstraintValidator<PositionValue, String> {
 
         private List<String> acceptedValues;
 
         @Override
-        public void initialize(ValidPositionValue constraintAnnotation) {
+        public void initialize(PositionValue constraintAnnotation) {
             this.acceptedValues =
                     Arrays.stream(constraintAnnotation.acceptedPositions()).map(Enum::name).collect(Collectors.toList());
         }

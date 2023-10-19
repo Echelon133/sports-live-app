@@ -12,13 +12,13 @@ import java.util.regex.Pattern;
 
 @Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = ValidCountryCode.Validator.class)
-public @interface ValidCountryCode {
+@Constraint(validatedBy = CountryCodeFormat.Validator.class)
+public @interface CountryCodeFormat {
     String message() default "invalid ISO 3166-1 alpha-2 country code";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 
-    class Validator implements ConstraintValidator<ValidCountryCode, String> {
+    class Validator implements ConstraintValidator<CountryCodeFormat, String> {
 
         // https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Decoding_table
         // Only check if the flag is

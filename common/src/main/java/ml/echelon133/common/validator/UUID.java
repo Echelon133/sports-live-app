@@ -8,17 +8,16 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.util.UUID;
 
 @Target(ElementType.FIELD)
-@Constraint(validatedBy = ValidUUID.Validator.class)
+@Constraint(validatedBy = UUID.Validator.class)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ValidUUID {
+public @interface UUID {
     String message() default "not a valid uuid";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 
-    class Validator implements ConstraintValidator<ValidUUID, String> {
+    class Validator implements ConstraintValidator<UUID, String> {
 
         @Override
         public boolean isValid(String s, ConstraintValidatorContext constraintValidatorContext) {
@@ -27,7 +26,7 @@ public @interface ValidUUID {
             }
 
             try {
-                var ignore = UUID.fromString(s);
+                java.util.UUID.fromString(s);
                 return true;
             } catch (IllegalArgumentException ignore) {
                 return false;

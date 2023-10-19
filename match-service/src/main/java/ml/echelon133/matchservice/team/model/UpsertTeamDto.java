@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.team.model;
 
-import ml.echelon133.common.validator.ValidUUID;
+import ml.echelon133.common.validator.UUID;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
 
@@ -17,11 +17,11 @@ public class UpsertTeamDto {
     private String crestUrl;
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String countryId;
 
     @NotNull(message = "field has to be provided")
-    @ValidUUID
+    @UUID
     private String coachId;
 
     public UpsertTeamDto() {}
