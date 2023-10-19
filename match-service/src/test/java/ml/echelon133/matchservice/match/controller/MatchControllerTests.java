@@ -1,10 +1,8 @@
 package ml.echelon133.matchservice.match.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.match.dto.MatchStatusDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
@@ -60,8 +58,6 @@ public class MatchControllerTests {
 
     private JacksonTester<MatchDto> jsonMatchDto;
 
-    private JacksonTester<MatchStatusDto> jsonMatchStatusDto;
-
     private JacksonTester<UpsertMatchDto> jsonUpsertMatchDto;
 
     @BeforeEach
@@ -116,49 +112,6 @@ public class MatchControllerTests {
         // when
         mvc.perform(
                         get("/api/matches/" + matchId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                )
-                .andExpect(status().isOk())
-                .andExpect(content().string(expectedJson));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches/:id/status returns 404 when resource not found")
-    public void getMatchStatus_MatchNotFound_StatusNotFound() throws Exception {
-        var matchId = UUID.randomUUID();
-
-        // given
-        given(matchService.findStatusById(matchId)).willThrow(
-                new ResourceNotFoundException(Match.class, matchId)
-        );
-
-        // when
-        mvc.perform(
-                        get("/api/matches/" + matchId + "/status")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                )
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.messages[0]", is(
-                        String.format("match %s could not be found", matchId)
-                )));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches/:id/status returns 200 and a valid entity if entity found")
-    public void getMatchStatus_MatchFound_StatusOk() throws Exception {
-        var matchId = UUID.randomUUID();
-
-        var matchStatusDto = MatchStatusDto.from(MatchStatus.NOT_STARTED.toString());
-        var expectedJson = jsonMatchStatusDto.write(matchStatusDto).getJson();
-
-        // given
-        given(matchService.findStatusById(matchId)).willReturn(matchStatusDto);
-
-        // when
-        mvc.perform(
-                        get("/api/matches/" + matchId + "/status")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                 )

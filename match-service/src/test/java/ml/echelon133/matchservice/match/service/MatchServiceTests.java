@@ -3,7 +3,6 @@ package ml.echelon133.matchservice.match.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.CompactMatchDto;
-import ml.echelon133.common.match.dto.MatchStatusDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
@@ -83,39 +82,6 @@ public class MatchServiceTests {
 
         // when
         var dto = matchService.findById(matchId);
-
-        // then
-        assertEquals(testDto, dto);
-    }
-
-    @Test
-    @DisplayName("findStatusById throws when the repository does not store an entity with the given id")
-    public void findStatusById_EntityNotPresent_Throws() {
-        var matchId = UUID.randomUUID();
-
-        // given
-        given(matchRepository.findMatchStatusById(matchId)).willReturn(Optional.empty());
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.findStatusById(matchId);
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("match %s could not be found", matchId), message);
-    }
-
-    @Test
-    @DisplayName("findStatusById returns the dto when the match is present")
-    public void findStatusById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
-        var testDto = MatchStatusDto.from("FINISHED");
-        var matchId = UUID.randomUUID();
-
-        // given
-        given(matchRepository.findMatchStatusById(matchId)).willReturn(Optional.of(testDto));
-
-        // when
-        var dto = matchService.findStatusById(matchId);
 
         // then
         assertEquals(testDto, dto);

@@ -2,7 +2,6 @@ package ml.echelon133.matchservice.match.repository;
 
 import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.match.dto.MatchStatusDto;
 import ml.echelon133.matchservice.match.model.Match;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -45,19 +44,6 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
             nativeQuery = true
     )
     Optional<MatchDto> findMatchById(UUID matchId);
-
-
-    /**
-     * Finds the status of a  non-deleted match with the specified id.
-     *
-     * @param matchId id of the match
-     * @return empty {@link Optional} if the match was not found or is marked as deleted, otherwise contains a {@link MatchStatusDto}
-     */
-    @Query(
-            value = "SELECT m.status as status FROM match m WHERE m.id = :matchId AND m.deleted = false",
-            nativeQuery = true
-    )
-    Optional<MatchStatusDto> findMatchStatusById(UUID matchId);
 
     /**
      * Marks the match with the specified id as deleted.

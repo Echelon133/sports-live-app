@@ -4,7 +4,6 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.match.dto.MatchStatusDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
@@ -96,19 +95,6 @@ public class MatchService {
     public MatchDto findById(UUID id) throws ResourceNotFoundException {
         return matchRepository
                 .findMatchById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(Match.class, id));
-    }
-
-    /**
-     * Returns the status of the match with specified id.
-     *
-     * @param id id of the match
-     * @return a dto representing the match's status
-     * @throws ResourceNotFoundException thrown when the match does not exist in the database
-     */
-    public MatchStatusDto findStatusById(UUID id) throws ResourceNotFoundException {
-        return matchRepository
-                .findMatchStatusById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(Match.class, id));
     }
 

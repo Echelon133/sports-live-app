@@ -179,46 +179,6 @@ public class MatchRepositoryTests {
     }
 
     @Test
-    @DisplayName("findMatchStatusById native query finds empty when the match does not exist")
-    public void findMatchStatusById_MatchDoesNotExist_IsEmpty() {
-        var id = UUID.randomUUID();
-
-        // when
-        var matchStatusDto = matchRepository.findMatchStatusById(id);
-
-        // then
-        assertTrue(matchStatusDto.isEmpty());
-    }
-
-    @Test
-    @DisplayName("findMatchStatusById native query does not fetch matches marked as deleted")
-    public void findMatchStatusById_MatchMarkedAsDeleted_IsEmpty() {
-        var matchToDelete = TestMatch.builder().build();
-        matchToDelete.setDeleted(true);
-        var saved = matchRepository.save(matchToDelete);
-
-        // when
-        var matchStatusDto = matchRepository.findMatchStatusById(saved.getId());
-
-        // then
-        assertTrue(matchStatusDto.isEmpty());
-    }
-
-    @Test
-    @DisplayName("findMatchStatusById native query finds match's status when the match exists")
-    public void findMatchStatusById_MatchExists_IsPresent() {
-        var match = TestMatch.builder().status(MatchStatus.HALF_TIME).build();
-        var saved = matchRepository.save(match);
-
-        // when
-        var matchStatusDto = matchRepository.findMatchStatusById(saved.getId());
-
-        // then
-        assertTrue(matchStatusDto.isPresent());
-        assertEquals(match.getStatus(), MatchStatus.valueOf(matchStatusDto.get().getStatus()));
-    }
-
-    @Test
     @DisplayName("markMatchAsDeleted native query only affects the match with specified id")
     public void markMatchAsDeleted_SpecifiedMatchId_OnlyMarksSpecifiedMatch() {
         var saved = matchRepository.save(TestMatch.builder().build());

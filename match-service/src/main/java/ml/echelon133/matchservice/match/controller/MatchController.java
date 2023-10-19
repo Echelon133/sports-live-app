@@ -6,7 +6,6 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.match.dto.MatchStatusDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.service.MatchService;
@@ -44,11 +43,6 @@ public class MatchController {
     @GetMapping("/{matchId}")
     public MatchDto getMatch(@PathVariable UUID matchId) throws ResourceNotFoundException {
         return matchService.findById(matchId);
-    }
-
-    @GetMapping("/{matchId}/status")
-    public MatchStatusDto getMatchStatus(@PathVariable UUID matchId) throws ResourceNotFoundException {
-        return matchService.findStatusById(matchId);
     }
 
     @PostMapping
