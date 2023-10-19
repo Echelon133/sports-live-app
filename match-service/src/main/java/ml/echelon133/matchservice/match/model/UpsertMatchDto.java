@@ -2,7 +2,7 @@ package ml.echelon133.matchservice.match.model;
 
 import ml.echelon133.common.validator.ValidUUID;
 import ml.echelon133.matchservice.match.model.validator.TeamIdsDifferent;
-import ml.echelon133.matchservice.match.model.validator.ValidLocalDateTimeFormat;
+import ml.echelon133.matchservice.match.model.validator.LocalDateTimeFormat;
 
 import javax.validation.constraints.NotNull;
 
@@ -18,7 +18,7 @@ public class UpsertMatchDto {
     private String awayTeamId;
 
     @NotNull(message = "field has to be provided")
-    @ValidLocalDateTimeFormat
+    @LocalDateTimeFormat
     private String startTimeUTC;
 
     @NotNull(message = "field has to be provided")

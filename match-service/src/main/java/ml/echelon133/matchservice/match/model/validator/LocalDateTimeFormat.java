@@ -16,19 +16,19 @@ import java.time.format.DateTimeParseException;
 
 @Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = ValidLocalDateTimeFormat.Validator.class)
-public @interface ValidLocalDateTimeFormat {
+@Constraint(validatedBy = LocalDateTimeFormat.Validator.class)
+public @interface LocalDateTimeFormat {
     String dateFormat() default DateFormatConstants.DATE_TIME_FORMAT;
     String message() default "required date format {dateFormat}";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 
-    class Validator implements ConstraintValidator<ValidLocalDateTimeFormat, String> {
+    class Validator implements ConstraintValidator<LocalDateTimeFormat, String> {
 
         private DateTimeFormatter dateTimeFormatter;
 
         @Override
-        public void initialize(ValidLocalDateTimeFormat constraintAnnotation) {
+        public void initialize(LocalDateTimeFormat constraintAnnotation) {
             this.dateTimeFormatter = DateTimeFormatter.ofPattern(constraintAnnotation.dateFormat());
         }
 
