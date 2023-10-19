@@ -3,8 +3,7 @@ package ml.echelon133.matchservice.player.service;
 import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.player.dto.PlayerDto;
-import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
@@ -27,14 +26,12 @@ public class PlayerService {
     public static final DateTimeFormatter DATE_OF_BIRTH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_BIRTH_FORMAT);
 
     private final PlayerRepository playerRepository;
-
-    // ONLY USE IT FOR READING DATA
-    private final CountryRepository countryRepository;
+    private final CountryService countryService;
 
     @Autowired
-    public PlayerService(PlayerRepository playerRepository, CountryRepository countryRepository) {
+    public PlayerService(PlayerRepository playerRepository, CountryService countryService) {
         this.playerRepository = playerRepository;
-        this.countryRepository = countryRepository;
+        this.countryService = countryService;
     }
 
     /**
@@ -77,11 +74,7 @@ public class PlayerService {
 
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(playerDto.getCountryId());
-        // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = countryRepository
-                .findById(countryId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
+        var country = countryService.findEntityById(countryId);
         playerToUpdate.setCountry(country);
 
         return PlayerMapper.entityToDto(playerRepository.save(playerToUpdate));
@@ -106,11 +99,7 @@ public class PlayerService {
 
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(playerDto.getCountryId());
-        // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = countryRepository
-                .findById(countryId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
+        var country = countryService.findEntityById(countryId);
 
         var player = new Player(playerDto.getName(), position, dateOfBirth, country);
         return PlayerMapper.entityToDto(playerRepository.save(player));

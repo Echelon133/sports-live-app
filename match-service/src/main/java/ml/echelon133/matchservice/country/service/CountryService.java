@@ -42,6 +42,19 @@ public class CountryService {
     }
 
     /**
+     * Returns the entity representing a country with the specified id.
+     * @param id id of the country's entity
+     * @return country's entity
+     * @throws ResourceNotFoundException thrown when the country does not exist in the database or is deleted
+     */
+    public Country findEntityById(UUID id) throws ResourceNotFoundException {
+        return countryRepository
+                .findById(id)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Country.class, id));
+    }
+
+    /**
      * Updates the country's information.
      *
      * The values in {@link UpsertCountryDto} have to be pre-validated before being used here, otherwise

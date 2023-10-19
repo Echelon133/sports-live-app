@@ -3,7 +3,7 @@ package ml.echelon133.matchservice.player.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.player.dto.PlayerDto;
 import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.player.TestPlayerDto;
 import ml.echelon133.matchservice.player.TestUpsertPlayerDto;
 import ml.echelon133.matchservice.player.model.Player;
@@ -36,7 +36,7 @@ public class PlayerServiceTests {
     private PlayerRepository playerRepository;
 
     @Mock
-    private CountryRepository countryRepository;
+    private CountryService countryService;
 
     @InjectMocks
     private PlayerService playerService;
@@ -113,14 +113,16 @@ public class PlayerServiceTests {
 
     @Test
     @DisplayName("updatePlayer throws when the country of the player to update does not exist")
-    public void updatePlayer_CountryEmpty_Throws() {
+    public void updatePlayer_CountryEmpty_Throws() throws ResourceNotFoundException {
         var playerEntity = new Player();
         var playerId = playerEntity.getId();
         var countryId = UUID.randomUUID();
 
         // given
         given(playerRepository.findById(playerId)).willReturn(Optional.of(playerEntity));
-        given(countryRepository.findById(countryId)).willReturn(Optional.empty());
+        given(countryService.findEntityById(countryId)).willThrow(
+                new ResourceNotFoundException(Country.class, countryId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -133,7 +135,7 @@ public class PlayerServiceTests {
 
     @Test
     @DisplayName("updatePlayer throws when the country of the player to update is marked as deleted")
-    public void updatePlayer_CountryPresentButMarkedAsDeleted_Throws() {
+    public void updatePlayer_CountryPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
         var playerEntity = new Player();
         var playerId = playerEntity.getId();
         var countryEntity = new Country();
@@ -142,7 +144,9 @@ public class PlayerServiceTests {
 
         // given
         given(playerRepository.findById(playerId)).willReturn(Optional.of(playerEntity));
-        given(countryRepository.findById(countryId)).willReturn(Optional.of(countryEntity));
+        given(countryService.findEntityById(countryId)).willThrow(
+                new ResourceNotFoundException(Country.class, countryId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -176,7 +180,7 @@ public class PlayerServiceTests {
 
         // given
         given(playerRepository.findById(oldPlayer.getId())).willReturn(Optional.of(oldPlayer));
-        given(countryRepository.findById(newCountryId)).willReturn(Optional.of(newCountry));
+        given(countryService.findEntityById(newCountryId)).willReturn(newCountry);
         given(playerRepository.save(argThat(p ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a player with updated
@@ -238,11 +242,13 @@ public class PlayerServiceTests {
 
     @Test
     @DisplayName("createPlayer throws when the country of the player does not exist")
-    public void createPlayer_CountryEmpty_Throws() {
+    public void createPlayer_CountryEmpty_Throws() throws ResourceNotFoundException {
         var countryId = UUID.randomUUID();
 
         // given
-        given(countryRepository.findById(countryId)).willReturn(Optional.empty());
+        given(countryService.findEntityById(countryId)).willThrow(
+                new ResourceNotFoundException(Country.class, countryId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -255,13 +261,15 @@ public class PlayerServiceTests {
 
     @Test
     @DisplayName("createPlayer throws when the country of the player is marked as deleted")
-    public void createPlayer_CountryPresentButMarkedAsDeleted_Throws() {
+    public void createPlayer_CountryPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
         var countryEntity = new Country();
         var countryId = countryEntity.getId();
         countryEntity.setDeleted(true);
 
         // given
-        given(countryRepository.findById(countryId)).willReturn(Optional.of(countryEntity));
+        given(countryService.findEntityById(countryId)).willThrow(
+                new ResourceNotFoundException(Country.class, countryId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -291,7 +299,7 @@ public class PlayerServiceTests {
         );
 
         // given
-        given(countryRepository.findById(country.getId())).willReturn(Optional.of(country));
+        given(countryService.findEntityById(country.getId())).willReturn(country);
         given(playerRepository.save(argThat(p ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a player whose values

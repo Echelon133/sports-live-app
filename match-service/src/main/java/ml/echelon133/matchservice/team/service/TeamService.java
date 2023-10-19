@@ -4,8 +4,7 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.coach.repository.CoachRepository;
-import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
@@ -22,17 +21,15 @@ import java.util.UUID;
 public class TeamService {
 
     private final TeamRepository teamRepository;
-
-    // ONLY USE IT FOR READING DATA
-    private final CountryRepository countryRepository;
+    private final CountryService countryService;
 
     // ONLY USE IT FOR READING DATA
     private final CoachRepository coachRepository;
 
     @Autowired
-    public TeamService(TeamRepository teamRepository, CountryRepository countryRepository, CoachRepository coachRepository) {
+    public TeamService(TeamRepository teamRepository, CountryService countryService, CoachRepository coachRepository) {
         this.teamRepository = teamRepository;
-        this.countryRepository = countryRepository;
+        this.countryService = countryService;
         this.coachRepository = coachRepository;
     }
 
@@ -71,11 +68,7 @@ public class TeamService {
 
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(teamDto.getCountryId());
-        // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = countryRepository
-                .findById(countryId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
+        var country = countryService.findEntityById(countryId);
         teamToUpdate.setCountry(country);
 
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
@@ -103,11 +96,7 @@ public class TeamService {
     public TeamDto createTeam(UpsertTeamDto teamDto) throws ResourceNotFoundException {
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(teamDto.getCountryId());
-        // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = countryRepository
-                .findById(countryId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
+        var country = countryService.findEntityById(countryId);
 
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
         var coachId = UUID.fromString(teamDto.getCoachId());
