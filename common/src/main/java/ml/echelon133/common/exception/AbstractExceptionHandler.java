@@ -88,8 +88,8 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
         return error.asResponseEntity();
     }
 
-    @ExceptionHandler(value = FormInvalidException.class)
-    protected ResponseEntity<MapErrorMessage> handleFormInvalidException(FormInvalidException ex, WebRequest request) {
+    @ExceptionHandler(value = RequestBodyContentInvalidException.class)
+    protected ResponseEntity<MapErrorMessage> handleRequestBodyContentInvalidException(RequestBodyContentInvalidException ex, WebRequest request) {
         MapErrorMessage error = new MapErrorMessage(HttpStatus.UNPROCESSABLE_ENTITY, request, ex.getValidationErrors());
         return error.asResponseEntity();
     }

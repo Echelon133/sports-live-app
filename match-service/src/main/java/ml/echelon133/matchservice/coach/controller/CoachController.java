@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.coach.controller;
 
-import ml.echelon133.common.exception.FormInvalidException;
+import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.coach.dto.CoachDto;
@@ -39,20 +39,20 @@ public class CoachController {
 
     @PutMapping("/{coachId}")
     public CoachDto updateCoach(@PathVariable UUID coachId, @RequestBody @Valid UpsertCoachDto coachDto, BindingResult result)
-            throws ResourceNotFoundException, FormInvalidException {
+            throws ResourceNotFoundException, RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         return coachService.updateCoach(coachId, coachDto);
     }
 
     @PostMapping
-    public CoachDto createCoach(@RequestBody @Valid UpsertCoachDto coachDto, BindingResult result) throws FormInvalidException {
+    public CoachDto createCoach(@RequestBody @Valid UpsertCoachDto coachDto, BindingResult result) throws RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         return coachService.createCoach(coachDto);

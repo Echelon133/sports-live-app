@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.player.controller;
 
-import ml.echelon133.common.exception.FormInvalidException;
+import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.player.dto.PlayerDto;
@@ -51,10 +51,10 @@ public class PlayerController {
 
     @PutMapping("/{playerId}")
     public PlayerDto updatePlayer(@PathVariable UUID playerId, @RequestBody @Valid UpsertPlayerDto playerDto, BindingResult result)
-            throws FormInvalidException, ResourceNotFoundException {
+            throws RequestBodyContentInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
@@ -65,7 +65,7 @@ public class PlayerController {
             // If the country's ID is correct but does not correspond to any non-deleted entity in the database,
             // throw FormInvalidException with the message about not being able to find the country with specified id
             if (exception.getResourceClass().equals(Country.class)) {
-                throw new FormInvalidException(
+                throw new RequestBodyContentInvalidException(
                         Map.of("countryId", List.of(exception.getMessage()))
                 );
             } else {
@@ -77,10 +77,10 @@ public class PlayerController {
 
     @PostMapping
     public PlayerDto createPlayer(@RequestBody @Valid UpsertPlayerDto playerDto, BindingResult result)
-            throws FormInvalidException {
+            throws RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
@@ -89,7 +89,7 @@ public class PlayerController {
             // createPlayer's ResourceNotFoundException is always caused by Country.
             // If the country's ID is correct but does not correspond to any non-deleted entity in the database,
             // throw FormInvalidException with the message about not being able to find the country with specified id
-            throw new FormInvalidException(
+            throw new RequestBodyContentInvalidException(
                     Map.of("countryId", List.of(exception.getMessage()))
             );
         }
