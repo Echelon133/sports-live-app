@@ -106,8 +106,9 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
     @NotNull
     @Override
     protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-        String errorMessage = String.format("'%s' request parameter is required", ex.getParameterName());
-        AbstractExceptionHandler.ErrorMessage error = new AbstractExceptionHandler.ErrorMessage(HttpStatus.BAD_REQUEST, request, errorMessage);
+        // handle the same way as RequestParamsInvalidException handles its exceptions
+        String errorMessage = String.format("query parameter '%s' not provided", ex.getParameterName());
+        ErrorMessage error = new ErrorMessage(HttpStatus.BAD_REQUEST, request, errorMessage);
         return new ResponseEntity<>(error, new HttpHeaders(), error.getStatus());
     }
 }
