@@ -172,7 +172,7 @@ public class PlayerServiceTests {
         var newDateOfBirth = LocalDate.parse(updateDto.getDateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
         var expectedPlayer = new Player(
                 updateDto.getName(),
-                Position.valueOf(updateDto.getPosition()),
+                Position.valueOfIgnoreCase(updateDto.getPosition()),
                 newDateOfBirth,
                 newCountry
         );
@@ -293,7 +293,7 @@ public class PlayerServiceTests {
         var dateOfBirth = LocalDate.parse(createDto.getDateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
         var expectedPlayer = new Player(
                 createDto.getName(),
-                Position.valueOf(createDto.getPosition()),
+                Position.valueOfIgnoreCase(createDto.getPosition()),
                 dateOfBirth,
                 country
         );

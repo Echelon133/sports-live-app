@@ -66,8 +66,8 @@ public class PlayerService {
 
         playerToUpdate.setName(playerDto.getName());
 
-        // this `Position.valueOf` should never fail because the Position value is pre-validated
-        playerToUpdate.setPosition(Position.valueOf(playerDto.getPosition().toUpperCase()));
+        // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
+        playerToUpdate.setPosition(Position.valueOfIgnoreCase(playerDto.getPosition()));
 
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
         playerToUpdate.setDateOfBirth(LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER));
@@ -91,8 +91,8 @@ public class PlayerService {
      * @throws ResourceNotFoundException thrown when the player's country does not exist in the database
      */
     public PlayerDto createPlayer(UpsertPlayerDto playerDto) throws ResourceNotFoundException {
-        // this `Position.valueOf` should never fail because the Position value is pre-validated
-        var position = Position.valueOf(playerDto.getPosition());
+        // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
+        var position = Position.valueOfIgnoreCase(playerDto.getPosition());
 
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
         var dateOfBirth = LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER);

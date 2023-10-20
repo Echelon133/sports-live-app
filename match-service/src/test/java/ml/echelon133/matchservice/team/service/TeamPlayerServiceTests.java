@@ -460,7 +460,9 @@ public class TeamPlayerServiceTests {
         var newNumber = 50;
 
         var createDto = new UpsertTeamPlayerDto(newPlayer.getId().toString(), newPosition, newNumber);
-        var expectedEntity = new TeamPlayer(oldTeamPlayer.getTeam(), newPlayer, Position.valueOf(newPosition), newNumber);
+        var expectedEntity = new TeamPlayer(
+                oldTeamPlayer.getTeam(), newPlayer, Position.valueOfIgnoreCase(newPosition), newNumber
+        );
         expectedEntity.setId(oldTeamPlayer.getId());
 
         var expectedDto = TestTeamPlayerDto

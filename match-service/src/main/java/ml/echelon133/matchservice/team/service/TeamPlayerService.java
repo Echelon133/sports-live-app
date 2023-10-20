@@ -98,8 +98,8 @@ public class TeamPlayerService {
                 .filter(p -> !p.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Player.class, playerId));
 
-        // this `Position.valueOf` should never fail because the Position value is pre-validated
-        var position = Position.valueOf(teamPlayerDto.getPosition());
+        // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
+        var position = Position.valueOfIgnoreCase(teamPlayerDto.getPosition());
 
         var teamPlayer = new TeamPlayer(team, player, position, teamPlayerDto.getNumber());
         return TeamPlayerMapper.entityToDto(teamPlayerRepository.save(teamPlayer));
@@ -151,8 +151,8 @@ public class TeamPlayerService {
                 .filter(p -> !p.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Player.class, playerId));
 
-        // this `Position.valueOf` should never fail because the Position value is pre-validated
-        var position = Position.valueOf(teamPlayerDto.getPosition());
+        // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
+        var position = Position.valueOfIgnoreCase(teamPlayerDto.getPosition());
 
         teamPlayer.setPlayer(player);
         teamPlayer.setPosition(position);

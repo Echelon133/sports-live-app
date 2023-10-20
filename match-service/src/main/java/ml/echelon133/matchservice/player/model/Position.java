@@ -4,5 +4,9 @@ public enum Position {
     GOALKEEPER,
     DEFENDER,
     MIDFIELDER,
-    FORWARD
+    FORWARD;
+
+    public static Position valueOfIgnoreCase(String position) {
+        return Position.valueOf(position.toUpperCase());
+    }
 }

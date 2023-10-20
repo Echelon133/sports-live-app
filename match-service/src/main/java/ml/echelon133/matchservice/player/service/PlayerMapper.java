@@ -24,7 +24,7 @@ public class PlayerMapper {
             country = new Country(dto.getCountry().getName(), dto.getCountry().getCountryCode());
             country.setId(dto.getCountry().getId());
         }
-        var player = new Player(dto.getName(), Position.valueOf(dto.getPosition()), dto.getDateOfBirth(), country);
+        var player = new Player(dto.getName(), Position.valueOfIgnoreCase(dto.getPosition()), dto.getDateOfBirth(), country);
         player.setId(dto.getId());
         return player;
     }
