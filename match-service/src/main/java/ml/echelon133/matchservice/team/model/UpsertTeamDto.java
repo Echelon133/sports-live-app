@@ -8,19 +8,19 @@ import javax.validation.constraints.NotNull;
 
 public class UpsertTeamDto {
 
-    @NotNull(message = "field has to be provided")
-    @Length(min = 1, max = 200, message = "expected length between 1 and 200")
+    @NotNull
+    @Length(min = 1, max = 200)
     private String name;
 
-    @NotNull(message = "field has to be provided")
-    @URL(message = "not a valid url")
+    @NotNull
+    @URL
     private String crestUrl;
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @UUID
     private String countryId;
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @UUID
     private String coachId;
 

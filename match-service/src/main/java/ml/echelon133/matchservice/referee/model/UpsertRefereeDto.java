@@ -6,8 +6,8 @@ import javax.validation.constraints.NotNull;
 
 public class UpsertRefereeDto {
 
-    @NotNull(message = "field has to be provided")
-    @Length(min = 1, max = 100, message = "expected length between 1 and 100")
+    @NotNull
+    @Length(min = 1, max = 100)
     private String name;
 
     public UpsertRefereeDto() {}

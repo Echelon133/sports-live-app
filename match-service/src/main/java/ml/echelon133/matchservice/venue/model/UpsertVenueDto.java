@@ -7,8 +7,8 @@ import javax.validation.constraints.NotNull;
 
 public class UpsertVenueDto {
 
-    @NotNull(message = "field has to be provided")
-    @Length(min = 1, max = 120, message = "expected length between 1 and 120")
+    @NotNull
+    @Length(min = 1, max = 120)
     private String name;
 
     @Min(value = 0, message = "expected positive integers")
