@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.match.controller;
 
 import ml.echelon133.common.constants.DateFormatConstants;
-import ml.echelon133.common.exception.FormInvalidException;
+import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
@@ -47,10 +47,10 @@ public class MatchController {
     }
 
     @PostMapping
-    public MatchDto createMatch(@RequestBody @Valid UpsertMatchDto matchDto, BindingResult result) throws FormInvalidException {
+    public MatchDto createMatch(@RequestBody @Valid UpsertMatchDto matchDto, BindingResult result) throws RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
@@ -76,16 +76,16 @@ public class MatchController {
                 // unexpected
                 throw new RuntimeException("unexpected resource class " + resourceClass);
             }
-            throw new FormInvalidException(Map.of(fieldName, List.of(ex.getMessage())));
+            throw new RequestBodyContentInvalidException(Map.of(fieldName, List.of(ex.getMessage())));
         }
     }
 
     @PutMapping("/{matchId}")
     public MatchDto updateMatch(@PathVariable UUID matchId, @RequestBody @Valid UpsertMatchDto matchDto, BindingResult result)
-            throws FormInvalidException, ResourceNotFoundException {
+            throws RequestBodyContentInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
@@ -115,7 +115,7 @@ public class MatchController {
                 // unexpected
                 throw new RuntimeException("unexpected resource class " + resourceClass);
             }
-            throw new FormInvalidException(Map.of(fieldName, List.of(ex.getMessage())));
+            throw new RequestBodyContentInvalidException(Map.of(fieldName, List.of(ex.getMessage())));
         }
     }
 

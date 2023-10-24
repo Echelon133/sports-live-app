@@ -319,7 +319,7 @@ public class RefereeControllerTests {
                                 .accept(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages[0]", is("'name' request parameter is required")));
+                .andExpect(jsonPath("$.messages[0]", is("query parameter 'name' not provided")));
     }
 
     @Test

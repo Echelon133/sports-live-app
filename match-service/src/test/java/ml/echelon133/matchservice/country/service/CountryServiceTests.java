@@ -68,6 +68,58 @@ public class CountryServiceTests {
         // then
         assertEquals(testDto, dto);
     }
+    
+    @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(countryRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            countryService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("country %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var countryEntity = new Country();
+        countryEntity.setDeleted(true);
+
+        // given
+        given(countryRepository.findById(testId)).willReturn(Optional.of(countryEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            countryService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("country %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var countryEntity = new Country();
+
+        // given
+        given(countryRepository.findById(testId)).willReturn(Optional.of(countryEntity));
+
+        // when
+        var entity = countryService.findEntityById(testId);
+
+        // then
+        assertEquals(countryEntity, entity);
+    }
 
     @Test
     @DisplayName("createCountry calls repository's save and returns correct dto")

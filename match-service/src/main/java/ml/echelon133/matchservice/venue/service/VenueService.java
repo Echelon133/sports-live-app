@@ -42,6 +42,19 @@ public class VenueService {
     }
 
     /**
+     * Returns the entity representing a venue with the specified id.
+     * @param id id of the venue's entity
+     * @return venue's entity
+     * @throws ResourceNotFoundException thrown when the venue does not exist in the database or is deleted
+     */
+    public Venue findEntityById(UUID id) throws ResourceNotFoundException {
+        return venueRepository
+                .findById(id)
+                .filter(v -> !v.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
+    }
+
+    /**
      * Updates the venue's information.
      *
      * The values in {@link UpsertVenueDto} have to be pre-validated before being used here, otherwise

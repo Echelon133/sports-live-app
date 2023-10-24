@@ -8,15 +8,15 @@ import javax.validation.constraints.NotNull;
 
 public class UpsertTeamPlayerDto {
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @UUID
     private String playerId;
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @PositionValue
     private String position;
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @Range(min = 1, max = 99, message = "expected number between 1 and 99")
     private Integer number;
 

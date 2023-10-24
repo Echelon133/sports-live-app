@@ -5,7 +5,6 @@ import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.team.service.TeamMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,20 +31,28 @@ public class TeamRepositoryTests {
         this.teamRepository = teamRepository;
     }
 
-    // Compare two entities only by the values from columns that are being fetched by our custom database queries
-    private static boolean entitiesEqual(Team e1, Team e2) {
-        return e1.getId().equals(e2.getId()) &&
-                e1.getName().equals(e2.getName()) &&
-                e1.getCrestUrl().equals(e2.getCrestUrl()) &&
-                e1.getCountry().getId().equals(e2.getCountry().getId()) &&
-                e1.getCountry().getName().equals(e2.getCountry().getName()) &&
-                e1.getCountry().getCountryCode().equals(e2.getCountry().getCountryCode()) &&
-                e1.getCoach().getId().equals(e2.getCoach().getId()) &&
-                e1.getCoach().getName().equals(e2.getCoach().getName());
-    }
-
     private static void assertEntityAndDtoEqual(Team teamEntity, TeamDto teamDto) {
-        assertTrue(entitiesEqual(TeamMapper.dtoToEntity(teamDto), teamEntity));
+        // simple fields equal
+        assertEquals(teamEntity.getId(), teamDto.getId());
+        assertEquals(teamEntity.getName(), teamDto.getName());
+        assertEquals(teamEntity.getCrestUrl(), teamDto.getCrestUrl());
+
+        // countries equal
+        var teamEntityCountry = teamEntity.getCountry();
+        var teamDtoCountry = teamDto.getCountry();
+        assertTrue(
+                teamEntityCountry.getId().equals(teamDtoCountry.getId()) &&
+                teamEntityCountry.getName().equals(teamDtoCountry.getName()) &&
+                teamEntityCountry.getCountryCode().equals(teamDtoCountry.getCountryCode())
+        );
+
+        // coaches equal
+        var teamEntityCoach = teamEntity.getCoach();
+        var teamDtoCoach = teamDto.getCoach();
+        assertTrue(
+                teamEntityCoach.getId().equals(teamDtoCoach.getId()) &&
+                teamEntityCoach.getName().equals(teamDtoCoach.getName())
+        );
     }
 
     @Test
@@ -64,10 +71,9 @@ public class TeamRepositoryTests {
     @DisplayName("findTeamById native query finds team when the team exists")
     public void findTeamById_TeamExists_IsPresent() {
         var team = teamRepository.save(TestTeam.builder().build());
-        var saved = teamRepository.save(team);
 
         // when
-        var teamDto = teamRepository.findTeamById(saved.getId());
+        var teamDto = teamRepository.findTeamById(team.getId());
 
         // then
         assertTrue(teamDto.isPresent());

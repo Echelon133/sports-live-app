@@ -3,8 +3,7 @@ package ml.echelon133.matchservice.player.service;
 import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.player.dto.PlayerDto;
-import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
@@ -27,14 +26,12 @@ public class PlayerService {
     public static final DateTimeFormatter DATE_OF_BIRTH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_BIRTH_FORMAT);
 
     private final PlayerRepository playerRepository;
-
-    // ONLY USE IT FOR READING DATA
-    private final CountryRepository countryRepository;
+    private final CountryService countryService;
 
     @Autowired
-    public PlayerService(PlayerRepository playerRepository, CountryRepository countryRepository) {
+    public PlayerService(PlayerRepository playerRepository, CountryService countryService) {
         this.playerRepository = playerRepository;
-        this.countryRepository = countryRepository;
+        this.countryService = countryService;
     }
 
     /**
@@ -51,6 +48,19 @@ public class PlayerService {
     }
 
     /**
+     * Returns the entity representing a player with the specified id.
+     * @param id id of the player's entity
+     * @return player's entity
+     * @throws ResourceNotFoundException thrown when the player does not exist in the database or is deleted
+     */
+    public Player findEntityById(UUID id) throws ResourceNotFoundException {
+        return playerRepository
+                .findById(id)
+                .filter(p -> !p.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Player.class, id));
+    }
+
+    /**
      * Updates the player's information.
      *
      * The values in {@link UpsertPlayerDto} have to be pre-validated before being used here, otherwise
@@ -62,26 +72,19 @@ public class PlayerService {
      * @throws ResourceNotFoundException thrown when the player or their country does not exist in the database
      */
     public PlayerDto updatePlayer(UUID id, UpsertPlayerDto playerDto) throws ResourceNotFoundException {
-        var playerToUpdate = playerRepository
-                .findById(id)
-                .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Player.class, id));
+        var playerToUpdate = findEntityById(id);
 
         playerToUpdate.setName(playerDto.getName());
 
-        // this `Position.valueOf` should never fail because the Position value is pre-validated
-        playerToUpdate.setPosition(Position.valueOf(playerDto.getPosition().toUpperCase()));
+        // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
+        playerToUpdate.setPosition(Position.valueOfIgnoreCase(playerDto.getPosition()));
 
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
         playerToUpdate.setDateOfBirth(LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER));
 
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(playerDto.getCountryId());
-        // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = countryRepository
-                .findById(countryId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
+        var country = countryService.findEntityById(countryId);
         playerToUpdate.setCountry(country);
 
         return PlayerMapper.entityToDto(playerRepository.save(playerToUpdate));
@@ -98,19 +101,15 @@ public class PlayerService {
      * @throws ResourceNotFoundException thrown when the player's country does not exist in the database
      */
     public PlayerDto createPlayer(UpsertPlayerDto playerDto) throws ResourceNotFoundException {
-        // this `Position.valueOf` should never fail because the Position value is pre-validated
-        var position = Position.valueOf(playerDto.getPosition());
+        // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
+        var position = Position.valueOfIgnoreCase(playerDto.getPosition());
 
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
         var dateOfBirth = LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER);
 
         // this `UUID.fromString` should never fail because the CountryId value is pre-validated
         var countryId = UUID.fromString(playerDto.getCountryId());
-        // make sure that the country with specified UUID already exists and is not marked as deleted
-        var country = countryRepository
-                .findById(countryId)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Country.class, countryId));
+        var country = countryService.findEntityById(countryId);
 
         var player = new Player(playerDto.getName(), position, dateOfBirth, country);
         return PlayerMapper.entityToDto(playerRepository.save(player));

@@ -9,19 +9,19 @@ import javax.validation.constraints.NotNull;
 
 public class UpsertPlayerDto {
 
-    @NotNull(message = "field has to be provided")
-    @Length(min = 1, max = 200, message = "expected length between 1 and 200")
+    @NotNull
+    @Length(min = 1, max = 200)
     private String name;
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @UUID
     private String countryId;
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @PositionValue
     private String position;
 
-    @NotNull(message = "field has to be provided")
+    @NotNull
     @LocalDateFormat
     private String dateOfBirth;
 

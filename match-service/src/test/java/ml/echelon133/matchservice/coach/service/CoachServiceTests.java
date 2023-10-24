@@ -69,6 +69,58 @@ public class CoachServiceTests {
     }
 
     @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(coachRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            coachService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("coach %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var coachEntity = new Coach();
+        coachEntity.setDeleted(true);
+
+        // given
+        given(coachRepository.findById(testId)).willReturn(Optional.of(coachEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            coachService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("coach %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var coachEntity = new Coach();
+
+        // given
+        given(coachRepository.findById(testId)).willReturn(Optional.of(coachEntity));
+
+        // when
+        var entity = coachService.findEntityById(testId);
+
+        // then
+        assertEquals(coachEntity, entity);
+    }
+
+    @Test
     @DisplayName("createCoach calls repository's save and returns correct dto")
     public void createCoach_ValidDto_CorrectlySavesAndReturns() {
         var idToSave = UUID.randomUUID();

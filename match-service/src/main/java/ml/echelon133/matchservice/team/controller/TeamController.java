@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.team.controller;
 
-import ml.echelon133.common.exception.FormInvalidException;
+import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.team.dto.TeamDto;
@@ -44,23 +44,23 @@ public class TeamController {
     }
 
     @GetMapping("/{teamId}/players")
-    public List<TeamPlayerDto> getTeamPlayers(@PathVariable UUID teamId) throws ResourceNotFoundException {
+    public List<TeamPlayerDto> getTeamPlayers(@PathVariable UUID teamId) {
         return teamPlayerService.findAllPlayersOfTeam(teamId);
     }
 
     @PostMapping("/{teamId}/players")
     public TeamPlayerDto assignPlayerToTeam(@PathVariable UUID teamId,
                                             @RequestBody @Valid UpsertTeamPlayerDto teamPlayerDto,
-                                            BindingResult result) throws FormInvalidException, ResourceNotFoundException {
+                                            BindingResult result) throws RequestBodyContentInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
             return teamPlayerService.createTeamPlayer(teamId, teamPlayerDto);
         } catch (NumberAlreadyTakenException exception) {
-            throw new FormInvalidException(
+            throw new RequestBodyContentInvalidException(
                     Map.of("number", List.of(exception.getMessage()))
             );
         } catch (ResourceNotFoundException exception) {
@@ -72,7 +72,7 @@ public class TeamController {
                 // must have been caused by the Player
                 // exceptions related to contents of the request body should be caught and rethrown
                 // instead of throwing 404
-                throw new FormInvalidException(
+                throw new RequestBodyContentInvalidException(
                         Map.of("playerId", List.of(exception.getMessage()))
                 );
             }
@@ -83,16 +83,16 @@ public class TeamController {
     public TeamPlayerDto updatePlayerOfTeam(@PathVariable UUID teamId,
                                             @PathVariable UUID teamPlayerId,
                                             @RequestBody @Valid UpsertTeamPlayerDto teamPlayerDto,
-                                            BindingResult result) throws FormInvalidException, ResourceNotFoundException {
+                                            BindingResult result) throws RequestBodyContentInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
             return teamPlayerService.updateTeamPlayer(teamPlayerId, teamId, teamPlayerDto);
         } catch (NumberAlreadyTakenException exception) {
-            throw new FormInvalidException(
+            throw new RequestBodyContentInvalidException(
                     Map.of("number", List.of(exception.getMessage()))
             );
         } catch (ResourceNotFoundException exception) {
@@ -104,7 +104,7 @@ public class TeamController {
                 // must have been caused by Player
                 // exceptions related to contents of the request body should be caught and rethrown
                 // instead of throwing 404
-                throw new FormInvalidException(
+                throw new RequestBodyContentInvalidException(
                         Map.of("playerId", List.of(exception.getMessage()))
                 );
             }
@@ -123,10 +123,10 @@ public class TeamController {
 
     @PutMapping("/{teamId}")
     public TeamDto updateTeam(@PathVariable UUID teamId, @RequestBody @Valid UpsertTeamDto teamDto, BindingResult result)
-            throws FormInvalidException, ResourceNotFoundException {
+            throws RequestBodyContentInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
@@ -136,11 +136,11 @@ public class TeamController {
             // If the team could not be found, just rethrow the exception to give the user 404 Not Found.
             // Otherwise, capture the error message and throw it using FormInvalidException
             if (exception.getResourceClass().equals(Country.class)) {
-                throw new FormInvalidException(
+                throw new RequestBodyContentInvalidException(
                         Map.of("countryId", List.of(exception.getMessage()))
                 );
             } else if (exception.getResourceClass().equals(Coach.class)) {
-                throw new FormInvalidException(
+                throw new RequestBodyContentInvalidException(
                         Map.of("coachId", List.of(exception.getMessage()))
                 );
             } else {
@@ -152,10 +152,10 @@ public class TeamController {
 
     @PostMapping
     public TeamDto createTeam(@RequestBody @Valid UpsertTeamDto teamDto, BindingResult result)
-            throws FormInvalidException {
+            throws RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         try {
@@ -165,13 +165,13 @@ public class TeamController {
             // If the country's or coach's ID are correct but do not correspond to any non-deleted entity in the database,
             // throw FormInvalidException with the message about not being able to find the entity with specified id
             if (exception.getResourceClass().equals(Country.class)) {
-                throw new FormInvalidException(
+                throw new RequestBodyContentInvalidException(
                         Map.of("countryId", List.of(exception.getMessage()))
                 );
             } else {
                 // since only Country or Coach might cause createTeam to throw ResourceNotFoundException, the exception
                 // here must have been caused by Coach
-                throw new FormInvalidException(
+                throw new RequestBodyContentInvalidException(
                         Map.of("coachId", List.of(exception.getMessage()))
                 );
             }

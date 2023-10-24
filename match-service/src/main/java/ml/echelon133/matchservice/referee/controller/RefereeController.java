@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.referee.controller;
 
-import ml.echelon133.common.exception.FormInvalidException;
+import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.referee.dto.RefereeDto;
@@ -39,20 +39,20 @@ public class RefereeController {
 
     @PutMapping("/{refereeId}")
     public RefereeDto updateReferee(@PathVariable UUID refereeId, @RequestBody @Valid UpsertRefereeDto refereeDto, BindingResult result)
-            throws ResourceNotFoundException, FormInvalidException {
+            throws ResourceNotFoundException, RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         return refereeService.updateReferee(refereeId, refereeDto);
     }
 
     @PostMapping
-    public RefereeDto createReferee(@RequestBody @Valid UpsertRefereeDto refereeDto, BindingResult result) throws FormInvalidException {
+    public RefereeDto createReferee(@RequestBody @Valid UpsertRefereeDto refereeDto, BindingResult result) throws RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         return refereeService.createReferee(refereeDto);

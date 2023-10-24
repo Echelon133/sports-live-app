@@ -88,8 +88,8 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
         return error.asResponseEntity();
     }
 
-    @ExceptionHandler(value = FormInvalidException.class)
-    protected ResponseEntity<MapErrorMessage> handleFormInvalidException(FormInvalidException ex, WebRequest request) {
+    @ExceptionHandler(value = RequestBodyContentInvalidException.class)
+    protected ResponseEntity<MapErrorMessage> handleRequestBodyContentInvalidException(RequestBodyContentInvalidException ex, WebRequest request) {
         MapErrorMessage error = new MapErrorMessage(HttpStatus.UNPROCESSABLE_ENTITY, request, ex.getValidationErrors());
         return error.asResponseEntity();
     }
@@ -106,8 +106,9 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
     @NotNull
     @Override
     protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-        String errorMessage = String.format("'%s' request parameter is required", ex.getParameterName());
-        AbstractExceptionHandler.ErrorMessage error = new AbstractExceptionHandler.ErrorMessage(HttpStatus.BAD_REQUEST, request, errorMessage);
+        // handle the same way as RequestParamsInvalidException handles its exceptions
+        String errorMessage = String.format("query parameter '%s' not provided", ex.getParameterName());
+        ErrorMessage error = new ErrorMessage(HttpStatus.BAD_REQUEST, request, errorMessage);
         return new ResponseEntity<>(error, new HttpHeaders(), error.getStatus());
     }
 }

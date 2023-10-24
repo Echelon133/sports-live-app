@@ -773,7 +773,7 @@ public class PlayerControllerTests {
                                 .accept(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages[0]", is("'name' request parameter is required")));
+                .andExpect(jsonPath("$.messages[0]", is("query parameter 'name' not provided")));
     }
 
     @Test
@@ -829,28 +829,6 @@ public class PlayerControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.size()", is(1)))
                 .andExpect(jsonPath("$.content[0].name", is(pValue)));
-    }
-
-    @Test
-    @DisplayName("GET /api/players/:id/teams returns 404 when player is not found")
-    public void getTeamsOfPlayer_PlayerNotFound_StatusNotFound() throws Exception {
-        var playerId = UUID.randomUUID();
-
-        // given
-        given(teamPlayerService.findAllTeamsOfPlayer(playerId)).willThrow(
-                new ResourceNotFoundException(Player.class, playerId)
-        );
-
-        // when
-        mvc.perform(
-                        get("/api/players/" + playerId + "/teams")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                )
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.messages[0]", is(
-                        String.format("player %s could not be found", playerId)
-                )));
     }
 
     @Test

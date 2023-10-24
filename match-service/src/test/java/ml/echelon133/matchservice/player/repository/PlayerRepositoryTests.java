@@ -4,7 +4,6 @@ import ml.echelon133.common.player.dto.PlayerDto;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
-import ml.echelon133.matchservice.player.service.PlayerMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,19 +49,21 @@ public class PlayerRepositoryTests {
         );
     }
 
-    // Compare two entities only by the values from columns that are being fetched by our custom database queries
-    private static boolean entitiesEqual(Player e1, Player e2) {
-        return e1.getId().equals(e2.getId()) &&
-                e1.getName().equals(e2.getName()) &&
-                e1.getPosition().equals(e2.getPosition()) &&
-                e1.getDateOfBirth().equals(e2.getDateOfBirth()) &&
-                e1.getCountry().getId().equals(e2.getCountry().getId()) &&
-                e1.getCountry().getName().equals(e2.getCountry().getName()) &&
-                e1.getCountry().getCountryCode().equals(e2.getCountry().getCountryCode());
-    }
-
     private static void assertEntityAndDtoEqual(Player playerEntity, PlayerDto playerDto) {
-        assertTrue(entitiesEqual(PlayerMapper.dtoToEntity(playerDto), playerEntity));
+        // simple fields equal
+        assertEquals(playerEntity.getId(), playerDto.getId());
+        assertEquals(playerEntity.getName(), playerDto.getName());
+        assertEquals(playerEntity.getPosition().toString(), playerDto.getPosition());
+        assertEquals(playerEntity.getDateOfBirth(), playerDto.getDateOfBirth());
+
+        // countries equal
+        var playerEntityCountry = playerEntity.getCountry();
+        var playerDtoCountry = playerDto.getCountry();
+        assertTrue(
+                playerEntityCountry.getId().equals(playerDtoCountry.getId()) &&
+                playerEntityCountry.getName().equals(playerDtoCountry.getName()) &&
+                playerEntityCountry.getCountryCode().equals(playerDtoCountry.getCountryCode())
+        );
     }
 
     @Test

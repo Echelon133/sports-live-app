@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.country.controller;
 
 import ml.echelon133.common.country.dto.CountryDto;
-import ml.echelon133.common.exception.FormInvalidException;
+import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.matchservice.country.model.UpsertCountryDto;
@@ -39,20 +39,20 @@ public class CountryController {
 
     @PutMapping("/{countryId}")
     public CountryDto updateCountry(@PathVariable UUID countryId, @RequestBody @Valid UpsertCountryDto countryDto, BindingResult result)
-            throws ResourceNotFoundException, FormInvalidException {
+            throws ResourceNotFoundException, RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         return countryService.updateCountry(countryId, countryDto);
     }
 
     @PostMapping
-    public CountryDto createCountry(@RequestBody @Valid UpsertCountryDto countryDto, BindingResult result) throws FormInvalidException {
+    public CountryDto createCountry(@RequestBody @Valid UpsertCountryDto countryDto, BindingResult result) throws RequestBodyContentInvalidException {
 
         if (result.hasErrors()) {
-            throw new FormInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
         return countryService.createCountry(countryDto);

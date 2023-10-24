@@ -3,12 +3,13 @@ package ml.echelon133.matchservice.team.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.matchservice.coach.model.Coach;
-import ml.echelon133.matchservice.coach.repository.CoachRepository;
+import ml.echelon133.matchservice.coach.service.CoachService;
 import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestUpsertTeamDto;
+import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,10 +36,10 @@ public class TeamServiceTests {
     private TeamRepository teamRepository;
 
     @Mock
-    private CountryRepository countryRepository;
+    private CountryService countryService;
 
     @Mock
-    private CoachRepository coachRepository;
+    private CoachService coachService;
 
     @InjectMocks
     private TeamService teamService;
@@ -75,6 +76,58 @@ public class TeamServiceTests {
 
         // then
         assertEquals(testDto, dto);
+    }
+    
+    @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(teamRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            teamService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("team %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var teamEntity = new Team();
+        teamEntity.setDeleted(true);
+
+        // given
+        given(teamRepository.findById(testId)).willReturn(Optional.of(teamEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            teamService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("team %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var teamEntity = new Team();
+
+        // given
+        given(teamRepository.findById(testId)).willReturn(Optional.of(teamEntity));
+
+        // when
+        var entity = teamService.findEntityById(testId);
+
+        // then
+        assertEquals(teamEntity, entity);
     }
 
     @Test
@@ -115,36 +168,16 @@ public class TeamServiceTests {
 
     @Test
     @DisplayName("updateTeam throws when the country of the team to update does not exist")
-    public void updateTeam_CountryEmpty_Throws() {
+    public void updateTeam_CountryEmpty_Throws() throws ResourceNotFoundException {
         var teamEntity = TestTeam.builder().build();
         var teamId = teamEntity.getId();
         var countryId = UUID.randomUUID();
 
         // given
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryRepository.findById(countryId)).willReturn(Optional.empty());
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
-    @DisplayName("updateTeam throws when the country of the team to update is marked as deleted")
-    public void updateTeam_CountryPresentButMarkedAsDeleted_Throws() {
-        var teamEntity = TestTeam.builder().build();
-        var teamId = teamEntity.getId();
-        var countryEntity = teamEntity.getCountry();
-        var countryId = countryEntity.getId();
-        countryEntity.setDeleted(true);
-
-        // given
-        given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryRepository.findById(countryId)).willReturn(Optional.of(countryEntity));
+        given(countryService.findEntityById(countryId)).willThrow(
+                new ResourceNotFoundException(Country.class, countryId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -157,38 +190,17 @@ public class TeamServiceTests {
 
     @Test
     @DisplayName("updateTeam throws when the coach of the team to update does not exist")
-    public void updateTeam_CoachEmpty_Throws() {
+    public void updateTeam_CoachEmpty_Throws() throws ResourceNotFoundException {
         var teamEntity = TestTeam.builder().build();
         var teamId = teamEntity.getId();
         var coachId = UUID.randomUUID();
 
         // given
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryRepository.findById(any())).willReturn(Optional.of(new Country()));
-        given(coachRepository.findById(coachId)).willReturn(Optional.empty());
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("coach %s could not be found", coachId), message);
-    }
-
-    @Test
-    @DisplayName("updateTeam throws when the coach of the team to update is marked as deleted")
-    public void updateTeam_CoachPresentButMarkedAsDeleted_Throws() {
-        var teamEntity = TestTeam.builder().build();
-        var teamId = teamEntity.getId();
-        var coachEntity = new Coach();
-        var coachId = coachEntity.getId();
-        coachEntity.setDeleted(true);
-
-        // given
-        given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryRepository.findById(any())).willReturn(Optional.of(new Country()));
-        given(coachRepository.findById(coachId)).willReturn(Optional.of(coachEntity));
+        given(countryService.findEntityById(any())).willReturn(new Country());
+        given(coachService.findEntityById(coachId)).willThrow(
+                new ResourceNotFoundException(Coach.class, coachId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -225,8 +237,8 @@ public class TeamServiceTests {
 
         // given
         given(teamRepository.findById(oldTeam.getId())).willReturn(Optional.of(oldTeam));
-        given(countryRepository.findById(newCountryId)).willReturn(Optional.of(newCountry));
-        given(coachRepository.findById(newCoachId)).willReturn(Optional.of(newCoach));
+        given(countryService.findEntityById(newCountryId)).willReturn(newCountry);
+        given(coachService.findEntityById(newCoachId)).willReturn(newCoach);
         given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team with updated
@@ -288,30 +300,13 @@ public class TeamServiceTests {
 
     @Test
     @DisplayName("createTeam throws when the country of the team does not exist")
-    public void createTeam_CountryEmpty_Throws() {
+    public void createTeam_CountryEmpty_Throws() throws ResourceNotFoundException {
         var countryId = UUID.randomUUID();
 
         // given
-        given(countryRepository.findById(countryId)).willReturn(Optional.empty());
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
-    @DisplayName("createTeam throws when the country of the team is marked as deleted")
-    public void createTeam_CountryPresentButMarkedAsDeleted_Throws() {
-        var countryEntity = new Country();
-        var countryId = countryEntity.getId();
-        countryEntity.setDeleted(true);
-
-        // given
-        given(countryRepository.findById(countryId)).willReturn(Optional.of(countryEntity));
+        given(countryService.findEntityById(countryId)).willThrow(
+                new ResourceNotFoundException(Country.class, countryId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -324,32 +319,14 @@ public class TeamServiceTests {
 
     @Test
     @DisplayName("createTeam throws when the coach of the team does not exist")
-    public void createTeam_CoachEmpty_Throws() {
+    public void createTeam_CoachEmpty_Throws() throws ResourceNotFoundException {
         var coachId = UUID.randomUUID();
 
         // given
-        given(coachRepository.findById(coachId)).willReturn(Optional.empty());
-        given(countryRepository.findById(any())).willReturn(Optional.of(new Country()));
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("coach %s could not be found", coachId), message);
-    }
-
-    @Test
-    @DisplayName("createTeam throws when the coach of the team is marked as deleted")
-    public void createTeam_CoachPresentButMarkedAsDeleted_Throws() {
-        var coachEntity = new Coach();
-        var coachId = coachEntity.getId();
-        coachEntity.setDeleted(true);
-
-        // given
-        given(coachRepository.findById(coachId)).willReturn(Optional.of(coachEntity));
-        given(countryRepository.findById(any())).willReturn(Optional.of(new Country()));
+        given(coachService.findEntityById(coachId)).willThrow(
+                new ResourceNotFoundException(Coach.class, coachId)
+        );
+        given(countryService.findEntityById(any())).willReturn(new Country());
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -380,8 +357,8 @@ public class TeamServiceTests {
                 .build();
 
         // given
-        given(countryRepository.findById(country.getId())).willReturn(Optional.of(country));
-        given(coachRepository.findById(coach.getId())).willReturn(Optional.of(coach));
+        given(countryService.findEntityById(country.getId())).willReturn(country);
+        given(coachService.findEntityById(coach.getId())).willReturn(coach);
         given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team whose values
