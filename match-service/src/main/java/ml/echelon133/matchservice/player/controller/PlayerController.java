@@ -40,7 +40,7 @@ public class PlayerController {
     }
 
     @GetMapping("/{playerId}/teams")
-    public List<TeamDto> getTeamsOfPlayer(@PathVariable UUID playerId) throws ResourceNotFoundException {
+    public List<TeamDto> getTeamsOfPlayer(@PathVariable UUID playerId) {
         return teamPlayerService.findAllTeamsOfPlayer(playerId);
     }
 

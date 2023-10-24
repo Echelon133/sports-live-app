@@ -76,6 +76,58 @@ public class PlayerServiceTests {
     }
 
     @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(playerRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            playerService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("player %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var playerEntity = new Player();
+        playerEntity.setDeleted(true);
+
+        // given
+        given(playerRepository.findById(testId)).willReturn(Optional.of(playerEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            playerService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("player %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var playerEntity = new Player();
+
+        // given
+        given(playerRepository.findById(testId)).willReturn(Optional.of(playerEntity));
+
+        // when
+        var entity = playerService.findEntityById(testId);
+
+        // then
+        assertEquals(playerEntity, entity);
+    }
+
+    @Test
     @DisplayName("updatePlayer throws when the player to update does not exist")
     public void updatePlayer_PlayerToUpdateEmpty_Throws() {
         var playerId = UUID.randomUUID();

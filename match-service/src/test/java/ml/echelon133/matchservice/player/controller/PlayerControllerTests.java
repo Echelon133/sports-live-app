@@ -832,28 +832,6 @@ public class PlayerControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/players/:id/teams returns 404 when player is not found")
-    public void getTeamsOfPlayer_PlayerNotFound_StatusNotFound() throws Exception {
-        var playerId = UUID.randomUUID();
-
-        // given
-        given(teamPlayerService.findAllTeamsOfPlayer(playerId)).willThrow(
-                new ResourceNotFoundException(Player.class, playerId)
-        );
-
-        // when
-        mvc.perform(
-                        get("/api/players/" + playerId + "/teams")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                )
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.messages[0]", is(
-                        String.format("player %s could not be found", playerId)
-                )));
-    }
-
-    @Test
     @DisplayName("GET /api/players/:id/teams returns 200 when player's teams are found")
     public void getTeamsOfPlayer_TeamsFound_StatusOk() throws Exception {
         var playerId = UUID.randomUUID();

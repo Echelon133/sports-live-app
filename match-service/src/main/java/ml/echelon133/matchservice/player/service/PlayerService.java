@@ -48,6 +48,19 @@ public class PlayerService {
     }
 
     /**
+     * Returns the entity representing a player with the specified id.
+     * @param id id of the player's entity
+     * @return player's entity
+     * @throws ResourceNotFoundException thrown when the player does not exist in the database or is deleted
+     */
+    public Player findEntityById(UUID id) throws ResourceNotFoundException {
+        return playerRepository
+                .findById(id)
+                .filter(p -> !p.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Player.class, id));
+    }
+
+    /**
      * Updates the player's information.
      *
      * The values in {@link UpsertPlayerDto} have to be pre-validated before being used here, otherwise
@@ -59,10 +72,7 @@ public class PlayerService {
      * @throws ResourceNotFoundException thrown when the player or their country does not exist in the database
      */
     public PlayerDto updatePlayer(UUID id, UpsertPlayerDto playerDto) throws ResourceNotFoundException {
-        var playerToUpdate = playerRepository
-                .findById(id)
-                .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException(Player.class, id));
+        var playerToUpdate = findEntityById(id);
 
         playerToUpdate.setName(playerDto.getName());
 

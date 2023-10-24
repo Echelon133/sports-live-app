@@ -4,7 +4,7 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
-import ml.echelon133.matchservice.player.repository.PlayerRepository;
+import ml.echelon133.matchservice.player.service.PlayerService;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestTeamPlayerDto;
@@ -41,7 +41,7 @@ public class TeamPlayerServiceTests {
     private TeamRepository teamRepository;
 
     @Mock
-    private PlayerRepository playerRepository;
+    private PlayerService playerService;
 
     @InjectMocks
     private TeamPlayerService teamPlayerService;
@@ -58,30 +58,12 @@ public class TeamPlayerServiceTests {
     }
 
     @Test
-    @DisplayName("findAllPlayersOfTeam throws when the team's entity does not exist or has been marked as deleted")
-    public void findAllPlayersOfTeam_TeamNotFoundOrMarkedAsDeleted_Throws() {
-        var teamId = UUID.randomUUID();
-
-        // given
-        given(teamRepository.existsByIdAndDeletedIsFalse(teamId)).willReturn(false);
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamPlayerService.findAllPlayersOfTeam(teamId);
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("team %s could not be found", teamId), message);
-    }
-
-    @Test
     @DisplayName("findAllPlayersOfTeam returns dtos when the team is present")
     public void findAllPlayersOfTeam_TeamPresent_ReturnsDtos() throws ResourceNotFoundException {
         var teamId = UUID.randomUUID();
         var teamPlayer = TestTeamPlayerDto.builder().build();
 
         // given
-        given(teamRepository.existsByIdAndDeletedIsFalse(teamId)).willReturn(true);
         given(teamPlayerRepository.findAllPlayersByTeamId(teamId)).willReturn(List.of(teamPlayer));
 
         // when
@@ -92,30 +74,12 @@ public class TeamPlayerServiceTests {
     }
 
     @Test
-    @DisplayName("findAllTeamsOfPlayer throws when the player's entity does not exist or has been marked as deleted")
-    public void findAllTeamsOfPlayer_PlayerNotFoundOrMarkedAsDeleted_Throws() {
-        var playerId = UUID.randomUUID();
-
-        // given
-        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(false);
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamPlayerService.findAllTeamsOfPlayer(playerId);
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("player %s could not be found", playerId), message);
-    }
-
-    @Test
     @DisplayName("findAllTeamsOfPlayer returns dtos when the player is present")
     public void findAllTeamsOfPlayer_PlayerPresent_ReturnsDtos() throws ResourceNotFoundException {
         var playerId = UUID.randomUUID();
         var team = TestTeamDto.builder().build();
 
         // given
-        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
         given(teamPlayerRepository.findAllTeamsOfPlayerByPlayerId(playerId)).willReturn(List.of(team));
 
         // when
@@ -189,7 +153,7 @@ public class TeamPlayerServiceTests {
 
     @Test
     @DisplayName("createTeamPlayer throws when the player is not found")
-    public void createTeamPlayer_PlayerNotFound_Throws() {
+    public void createTeamPlayer_PlayerNotFound_Throws() throws ResourceNotFoundException {
         var teamId = UUID.randomUUID();
         var playerId = UUID.randomUUID();
         var team = TestTeam.builder().build();
@@ -198,7 +162,9 @@ public class TeamPlayerServiceTests {
         // given
         given(teamPlayerRepository.teamHasPlayerWithNumber(any(), any())).willReturn(false);
         given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
-        given(playerRepository.findById(playerId)).willReturn(Optional.empty());
+        given(playerService.findEntityById(playerId)).willThrow(
+                new ResourceNotFoundException(Player.class, playerId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -211,7 +177,7 @@ public class TeamPlayerServiceTests {
 
     @Test
     @DisplayName("createTeamPlayer throws when the player is marked as deleted")
-    public void createTeamPlayer_PlayerMarkedAsDeleted_Throws() {
+    public void createTeamPlayer_PlayerMarkedAsDeleted_Throws() throws ResourceNotFoundException {
         var teamId = UUID.randomUUID();
         var playerId = UUID.randomUUID();
         var team = TestTeam.builder().build();
@@ -222,7 +188,9 @@ public class TeamPlayerServiceTests {
         // given
         given(teamPlayerRepository.teamHasPlayerWithNumber(any(), any())).willReturn(false);
         given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
-        given(playerRepository.findById(playerId)).willReturn(Optional.of(player));
+        given(playerService.findEntityById(playerId)).willThrow(
+                new ResourceNotFoundException(Player.class, playerId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -254,7 +222,7 @@ public class TeamPlayerServiceTests {
         // given
         given(teamPlayerRepository.teamHasPlayerWithNumber(teamId, createDto.getNumber())).willReturn(false);
         given(teamRepository.findById(teamId)).willReturn(Optional.of(entity.getTeam()));
-        given(playerRepository.findById(playerId)).willReturn(Optional.of(entity.getPlayer()));
+        given(playerService.findEntityById(playerId)).willReturn(entity.getPlayer());
         given(teamPlayerRepository.save(argThat(tp ->
                 tp.getTeam().equals(entity.getTeam()) &&
                     tp.getPlayer().equals(entity.getPlayer()) &&
@@ -396,7 +364,7 @@ public class TeamPlayerServiceTests {
 
     @Test
     @DisplayName("updateTeamPlayer throws when the player is not found")
-    public void updateTeamPlayer_PlayerNotFound_Throws() {
+    public void updateTeamPlayer_PlayerNotFound_Throws() throws ResourceNotFoundException {
         var teamId = UUID.randomUUID();
         var playerId = UUID.randomUUID();
         var teamPlayer = getTestTeamPlayer();
@@ -406,7 +374,9 @@ public class TeamPlayerServiceTests {
         // given
         given(teamPlayerRepository.teamHasPlayerWithNumber(any(), any())).willReturn(false);
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamPlayer.getTeam()));
-        given(playerRepository.findById(playerId)).willReturn(Optional.empty());
+        given(playerService.findEntityById(playerId)).willThrow(
+                new ResourceNotFoundException(Player.class, playerId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -419,7 +389,7 @@ public class TeamPlayerServiceTests {
 
     @Test
     @DisplayName("updateTeamPlayer throws when the player is marked as deleted")
-    public void updateTeamPlayer_PlayerMarkedAsDeleted_Throws() {
+    public void updateTeamPlayer_PlayerMarkedAsDeleted_Throws() throws ResourceNotFoundException {
         var teamId = UUID.randomUUID();
         var playerId = UUID.randomUUID();
         var teamPlayer = getTestTeamPlayer();
@@ -431,7 +401,9 @@ public class TeamPlayerServiceTests {
         // given
         given(teamPlayerRepository.teamHasPlayerWithNumber(any(), any())).willReturn(false);
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamPlayer.getTeam()));
-        given(playerRepository.findById(playerId)).willReturn(Optional.of(deletedPlayer));
+        given(playerService.findEntityById(playerId)).willThrow(
+                new ResourceNotFoundException(Player.class, playerId)
+        );
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -479,7 +451,7 @@ public class TeamPlayerServiceTests {
         // given
         given(teamPlayerRepository.findById(teamPlayerId)).willReturn(Optional.of(oldTeamPlayer));
         given(teamPlayerRepository.teamHasPlayerWithNumber(teamId, createDto.getNumber())).willReturn(false);
-        given(playerRepository.findById(newPlayerId)).willReturn(Optional.of(newPlayer));
+        given(playerService.findEntityById(newPlayerId)).willReturn(newPlayer);
         given(teamPlayerRepository.save(argThat(tp ->
                 tp.getTeam().equals(oldTeamPlayer.getTeam()) &&
                         tp.getPlayer().equals(newPlayer) &&
