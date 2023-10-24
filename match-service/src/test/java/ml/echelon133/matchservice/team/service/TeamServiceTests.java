@@ -189,30 +189,6 @@ public class TeamServiceTests {
     }
 
     @Test
-    @DisplayName("updateTeam throws when the country of the team to update is marked as deleted")
-    public void updateTeam_CountryPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var teamEntity = TestTeam.builder().build();
-        var teamId = teamEntity.getId();
-        var countryEntity = teamEntity.getCountry();
-        var countryId = countryEntity.getId();
-        countryEntity.setDeleted(true);
-
-        // given
-        given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
     @DisplayName("updateTeam throws when the coach of the team to update does not exist")
     public void updateTeam_CoachEmpty_Throws() throws ResourceNotFoundException {
         var teamEntity = TestTeam.builder().build();
@@ -222,32 +198,6 @@ public class TeamServiceTests {
         // given
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
         given(countryService.findEntityById(any())).willReturn(new Country());
-        given(coachService.findEntityById(coachId)).willThrow(
-                new ResourceNotFoundException(Coach.class, coachId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("coach %s could not be found", coachId), message);
-    }
-
-    @Test
-    @DisplayName("updateTeam throws when the coach of the team to update is marked as deleted")
-    public void updateTeam_CoachPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var teamEntity = TestTeam.builder().build();
-        var teamId = teamEntity.getId();
-        var coachEntity = new Coach();
-        var coachId = coachEntity.getId();
-        coachEntity.setDeleted(true);
-
-        // given
-        given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryService.findEntityById(any())).willReturn(new Country());
-        given(coachService.findEntityById(coachId)).willReturn(coachEntity);
         given(coachService.findEntityById(coachId)).willThrow(
                 new ResourceNotFoundException(Coach.class, coachId)
         );
@@ -368,52 +318,9 @@ public class TeamServiceTests {
     }
 
     @Test
-    @DisplayName("createTeam throws when the country of the team is marked as deleted")
-    public void createTeam_CountryPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var countryEntity = new Country();
-        var countryId = countryEntity.getId();
-        countryEntity.setDeleted(true);
-
-        // given
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
     @DisplayName("createTeam throws when the coach of the team does not exist")
     public void createTeam_CoachEmpty_Throws() throws ResourceNotFoundException {
         var coachId = UUID.randomUUID();
-
-        // given
-        given(coachService.findEntityById(coachId)).willThrow(
-                new ResourceNotFoundException(Coach.class, coachId)
-        );
-        given(countryService.findEntityById(any())).willReturn(new Country());
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(TestUpsertTeamDto.builder().coachId(coachId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("coach %s could not be found", coachId), message);
-    }
-
-    @Test
-    @DisplayName("createTeam throws when the coach of the team is marked as deleted")
-    public void createTeam_CoachPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var coachEntity = new Coach();
-        var coachId = coachEntity.getId();
-        coachEntity.setDeleted(true);
 
         // given
         given(coachService.findEntityById(coachId)).willThrow(

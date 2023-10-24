@@ -121,28 +121,6 @@ public class MatchServiceTests {
         assertEquals(String.format("team %s could not be found", homeTeamId), message);
     }
 
-    @Test
-    @DisplayName("createMatch throws when the home team of the match is marked as deleted")
-    public void createMatch_HomeTeamPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var matchEntity = TestMatch.builder().build();
-        var homeTeamEntity = matchEntity.getHomeTeam();
-        var homeTeamId = homeTeamEntity.getId();
-        homeTeamEntity.setDeleted(true);
-
-        // given
-        given(teamService.findEntityById(homeTeamId)).willThrow(
-                new ResourceNotFoundException(Team.class, homeTeamId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.createMatch(TestUpsertMatchDto.builder().homeTeamId(homeTeamId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("team %s could not be found", homeTeamId), message);
-    }
-
     // this method simplifies binding concrete arguments to concrete responses from mocked
     // TeamService's `findEntityById` method.
     private void bindTeamIdsToTeams(Map<UUID, Optional<Team>> idToResponseMap) throws ResourceNotFoundException {
@@ -190,35 +168,6 @@ public class MatchServiceTests {
     }
 
     @Test
-    @DisplayName("createMatch throws when the away team of the match is marked as deleted")
-    public void createMatch_AwayTeamPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var matchEntity = TestMatch.builder().build();
-        var homeTeamEntity = matchEntity.getHomeTeam();
-        var homeTeamId = homeTeamEntity.getId();
-        var awayTeamEntity = matchEntity.getAwayTeam();
-        var awayTeamId = awayTeamEntity.getId();
-        awayTeamEntity.setDeleted(true);
-
-        // given
-        Map<UUID, Optional<Team>> teamIdToAnswerMapping = Map.of(
-                homeTeamId, Optional.of(homeTeamEntity),
-                awayTeamId, Optional.of(awayTeamEntity)
-        );
-        bindTeamIdsToTeams(teamIdToAnswerMapping);
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.createMatch(TestUpsertMatchDto.builder()
-                    .homeTeamId(homeTeamId.toString())
-                    .awayTeamId(awayTeamId.toString())
-                    .build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("team %s could not be found", awayTeamId), message);
-    }
-
-    @Test
     @DisplayName("createMatch throws when the venue of the match does not exist")
     public void createMatch_VenueEmpty_Throws() throws ResourceNotFoundException {
         var matchEntity = TestMatch.builder().build();
@@ -246,41 +195,6 @@ public class MatchServiceTests {
                     .venueId(venueId.toString())
                     .build()
             );
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("venue %s could not be found", venueId), message);
-    }
-
-    @Test
-    @DisplayName("createMatch throws when the venue of the match is marked as deleted")
-    public void createMatch_VenuePresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var matchEntity = TestMatch.builder().build();
-        var homeTeamEntity = matchEntity.getHomeTeam();
-        var homeTeamId = homeTeamEntity.getId();
-        var awayTeamEntity = matchEntity.getAwayTeam();
-        var awayTeamId = awayTeamEntity.getId();
-        var venueEntity = matchEntity.getVenue();
-        var venueId = venueEntity.getId();
-        venueEntity.setDeleted(true);
-
-        // given
-        Map<UUID, Optional<Team>> teamIdToAnswerMapping = Map.of(
-                homeTeamId, Optional.of(homeTeamEntity),
-                awayTeamId, Optional.of(awayTeamEntity)
-        );
-        bindTeamIdsToTeams(teamIdToAnswerMapping);
-        given(venueService.findEntityById(venueId)).willThrow(
-            new ResourceNotFoundException(Venue.class, venueId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.createMatch(TestUpsertMatchDto.builder()
-                    .homeTeamId(homeTeamId.toString())
-                    .awayTeamId(awayTeamId.toString())
-                    .venueId(venueId.toString())
-                    .build());
         }).getMessage();
 
         // then
@@ -375,48 +289,6 @@ public class MatchServiceTests {
                             .competitionId(competitionId.toString())
                             .startTimeUTC(startTimeUTC)
                             .build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("referee %s could not be found", refereeId), message);
-    }
-
-    @Test
-    @DisplayName("createMatch throws when the referee of the match is marked as deleted")
-    public void createMatch_RefereePresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var homeTeamEntity = new Team("Test team A", "", null, null);
-        var homeTeamId = homeTeamEntity.getId();
-        var awayTeamEntity = new Team("Test team B", "", null, null);
-        var awayTeamId = awayTeamEntity.getId();
-        var venueEntity = new Venue("Test venue", null);
-        var venueId = venueEntity.getId();
-        var refereeEntity = new Referee("Test referee");
-        refereeEntity.setDeleted(true);
-        var refereeId = UUID.randomUUID();
-        var competitionId = UUID.randomUUID();
-        var startTimeUTC = "2023/01/01 19:00";
-
-        // given
-        Map<UUID, Optional<Team>> teamIdToAnswerMapping = Map.of(
-                homeTeamId, Optional.of(homeTeamEntity),
-                awayTeamId, Optional.of(awayTeamEntity)
-        );
-        bindTeamIdsToTeams(teamIdToAnswerMapping);
-        given(venueService.findEntityById(venueId)).willReturn(venueEntity);
-        given(refereeService.findEntityById(refereeId)).willThrow(
-                new ResourceNotFoundException(Referee.class, refereeId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.createMatch(TestUpsertMatchDto.builder()
-                    .homeTeamId(homeTeamId.toString())
-                    .awayTeamId(awayTeamId.toString())
-                    .venueId(venueId.toString())
-                    .refereeId(refereeId.toString())
-                    .competitionId(competitionId.toString())
-                    .startTimeUTC(startTimeUTC)
-                    .build());
         }).getMessage();
 
         // then
@@ -541,33 +413,6 @@ public class MatchServiceTests {
     }
 
     @Test
-    @DisplayName("updateMatch throws when the home team of the match is marked as deleted")
-    public void updateMatch_HomeTeamPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var matchEntity = TestMatch.builder().build();
-        var matchId = matchEntity.getId();
-        var homeTeamEntity = matchEntity.getHomeTeam();
-        var homeTeamId = homeTeamEntity.getId();
-        homeTeamEntity.setDeleted(true);
-
-        // given
-        given(teamService.findEntityById(homeTeamId)).willThrow(
-                new ResourceNotFoundException(Team.class, homeTeamId)
-        );
-        given(matchRepository.findById(matchId)).willReturn(Optional.of(matchEntity));
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateMatch(
-                    matchId,
-                    TestUpsertMatchDto.builder().homeTeamId(homeTeamId.toString()).build()
-            );
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("team %s could not be found", homeTeamId), message);
-    }
-
-    @Test
     @DisplayName("updateMatch throws when the away team of the match does not exist")
     public void updateMatch_AwayTeamEmpty_Throws() throws ResourceNotFoundException {
         var matchEntity = TestMatch.builder().build();
@@ -593,39 +438,6 @@ public class MatchServiceTests {
                         .awayTeamId(awayTeamId.toString())
                         .build()
             );
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("team %s could not be found", awayTeamId), message);
-    }
-
-    @Test
-    @DisplayName("updateMatch throws when the away team of the match is marked as deleted")
-    public void updateMatch_AwayTeamPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var matchEntity = TestMatch.builder().build();
-        var matchId = matchEntity.getId();
-        var homeTeamEntity = matchEntity.getHomeTeam();
-        var homeTeamId = homeTeamEntity.getId();
-        var awayTeamEntity = matchEntity.getAwayTeam();
-        var awayTeamId = awayTeamEntity.getId();
-        awayTeamEntity.setDeleted(true);
-
-        // given
-        Map<UUID, Optional<Team>> teamIdToAnswerMapping = Map.of(
-                homeTeamId, Optional.of(homeTeamEntity),
-                awayTeamId, Optional.of(awayTeamEntity)
-        );
-        bindTeamIdsToTeams(teamIdToAnswerMapping);
-        given(matchRepository.findById(matchId)).willReturn(Optional.of(matchEntity));
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateMatch(
-                    matchId,
-                    TestUpsertMatchDto.builder()
-                        .homeTeamId(homeTeamId.toString())
-                        .awayTeamId(awayTeamId.toString())
-                        .build());
         }).getMessage();
 
         // then
@@ -664,45 +476,6 @@ public class MatchServiceTests {
                         .venueId(venueId.toString())
                         .build()
             );
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("venue %s could not be found", venueId), message);
-    }
-
-    @Test
-    @DisplayName("updateMatch throws when the venue of the match is marked as deleted")
-    public void updateMatch_VenuePresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var matchEntity = TestMatch.builder().build();
-        var matchId = matchEntity.getId();
-        var homeTeamEntity = matchEntity.getHomeTeam();
-        var homeTeamId = homeTeamEntity.getId();
-        var awayTeamEntity = matchEntity.getAwayTeam();
-        var awayTeamId = awayTeamEntity.getId();
-        var venueEntity = matchEntity.getVenue();
-        var venueId = venueEntity.getId();
-        venueEntity.setDeleted(true);
-
-        // given
-        Map<UUID, Optional<Team>> teamIdToAnswerMapping = Map.of(
-                homeTeamId, Optional.of(homeTeamEntity),
-                awayTeamId, Optional.of(awayTeamEntity)
-        );
-        bindTeamIdsToTeams(teamIdToAnswerMapping);
-        given(matchRepository.findById(matchId)).willReturn(Optional.of(matchEntity));
-        given(venueService.findEntityById(venueId)).willThrow(
-                new ResourceNotFoundException(Venue.class, venueId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateMatch(
-                    matchId,
-                    TestUpsertMatchDto.builder()
-                        .homeTeamId(homeTeamId.toString())
-                        .awayTeamId(awayTeamId.toString())
-                        .venueId(venueId.toString())
-                        .build());
         }).getMessage();
 
         // then
@@ -783,55 +556,6 @@ public class MatchServiceTests {
         var awayTeamId = awayTeamEntity.getId();
         var venueEntity = new Venue("Test venue", null);
         var venueId = venueEntity.getId();
-        var refereeId = UUID.randomUUID();
-        var competitionId = UUID.randomUUID();
-        var startTimeUTC = "2023/01/01 19:00";
-
-        // given
-        Map<UUID, Optional<Team>> teamIdToAnswerMapping = Map.of(
-                homeTeamId, Optional.of(homeTeamEntity),
-                awayTeamId, Optional.of(awayTeamEntity)
-        );
-        bindTeamIdsToTeams(teamIdToAnswerMapping);
-        given(matchRepository.findById(matchId)).willReturn(Optional.of(matchEntity));
-        given(venueService.findEntityById(venueId)).willReturn(venueEntity);
-        given(refereeService.findEntityById(refereeId)).willThrow(
-                new ResourceNotFoundException(Referee.class, refereeId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateMatch(
-                    matchId,
-                    TestUpsertMatchDto.builder()
-                        .homeTeamId(homeTeamId.toString())
-                        .awayTeamId(awayTeamId.toString())
-                        .venueId(venueId.toString())
-                        .refereeId(refereeId.toString())
-                        .competitionId(competitionId.toString())
-                        .startTimeUTC(startTimeUTC)
-                        .build()
-            );
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("referee %s could not be found", refereeId), message);
-    }
-
-    @Test
-    @DisplayName("updateMatch throws when the referee of the match is marked as deleted")
-    public void updateMatch_RefereePresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var matchEntity = TestMatch.builder().referee(null).build();
-        var matchId = matchEntity.getId();
-
-        var homeTeamEntity = new Team("Test team A", "", null, null);
-        var homeTeamId = homeTeamEntity.getId();
-        var awayTeamEntity = new Team("Test team B", "", null, null);
-        var awayTeamId = awayTeamEntity.getId();
-        var venueEntity = new Venue("Test venue", null);
-        var venueId = venueEntity.getId();
-        var refereeEntity = new Referee("Test referee");
-        refereeEntity.setDeleted(true);
         var refereeId = UUID.randomUUID();
         var competitionId = UUID.randomUUID();
         var startTimeUTC = "2023/01/01 19:00";

@@ -186,30 +186,6 @@ public class PlayerServiceTests {
     }
 
     @Test
-    @DisplayName("updatePlayer throws when the country of the player to update is marked as deleted")
-    public void updatePlayer_CountryPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var playerEntity = new Player();
-        var playerId = playerEntity.getId();
-        var countryEntity = new Country();
-        var countryId = countryEntity.getId();
-        countryEntity.setDeleted(true);
-
-        // given
-        given(playerRepository.findById(playerId)).willReturn(Optional.of(playerEntity));
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.updatePlayer(playerId, TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
     @DisplayName("updatePlayer returns the expected dto after correctly updating a player")
     public void updatePlayer_PlayerUpdated_ReturnsDto() throws ResourceNotFoundException {
         var oldPlayer = new Player("Test", Position.DEFENDER, LocalDate.of(1970, 1, 1), new Country("Poland", "PL"));
@@ -296,27 +272,6 @@ public class PlayerServiceTests {
     @DisplayName("createPlayer throws when the country of the player does not exist")
     public void createPlayer_CountryEmpty_Throws() throws ResourceNotFoundException {
         var countryId = UUID.randomUUID();
-
-        // given
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.createPlayer(TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
-    @DisplayName("createPlayer throws when the country of the player is marked as deleted")
-    public void createPlayer_CountryPresentButMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var countryEntity = new Country();
-        var countryId = countryEntity.getId();
-        countryEntity.setDeleted(true);
 
         // given
         given(countryService.findEntityById(countryId)).willThrow(

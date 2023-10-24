@@ -176,32 +176,6 @@ public class TeamPlayerServiceTests {
     }
 
     @Test
-    @DisplayName("createTeamPlayer throws when the player is marked as deleted")
-    public void createTeamPlayer_PlayerMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var teamId = UUID.randomUUID();
-        var playerId = UUID.randomUUID();
-        var team = TestTeam.builder().build();
-        var player = new Player();
-        player.setDeleted(true);
-        var createDto = new UpsertTeamPlayerDto(playerId.toString(), null, null);
-
-        // given
-        given(teamPlayerRepository.teamHasPlayerWithNumber(any(), any())).willReturn(false);
-        given(teamRepository.findById(teamId)).willReturn(Optional.of(team));
-        given(playerService.findEntityById(playerId)).willThrow(
-                new ResourceNotFoundException(Player.class, playerId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamPlayerService.createTeamPlayer(teamId, createDto);
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("player %s could not be found", playerId), message);
-    }
-
-    @Test
     @DisplayName("createTeamPlayer returns the expected dto after correctly saving the TeamPlayer")
     public void createTeamPlayer_TeamPlayerCreated_ReturnsDto() throws NumberAlreadyTakenException, ResourceNotFoundException {
         var teamId = UUID.randomUUID();
@@ -369,33 +343,6 @@ public class TeamPlayerServiceTests {
         var playerId = UUID.randomUUID();
         var teamPlayer = getTestTeamPlayer();
         teamPlayer.getTeam().setId(teamId);
-        var updateDto = new UpsertTeamPlayerDto(playerId.toString(), null, null);
-
-        // given
-        given(teamPlayerRepository.teamHasPlayerWithNumber(any(), any())).willReturn(false);
-        given(teamRepository.findById(teamId)).willReturn(Optional.of(teamPlayer.getTeam()));
-        given(playerService.findEntityById(playerId)).willThrow(
-                new ResourceNotFoundException(Player.class, playerId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamPlayerService.createTeamPlayer(teamId, updateDto);
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("player %s could not be found", playerId), message);
-    }
-
-    @Test
-    @DisplayName("updateTeamPlayer throws when the player is marked as deleted")
-    public void updateTeamPlayer_PlayerMarkedAsDeleted_Throws() throws ResourceNotFoundException {
-        var teamId = UUID.randomUUID();
-        var playerId = UUID.randomUUID();
-        var teamPlayer = getTestTeamPlayer();
-        teamPlayer.getTeam().setId(teamId);
-        var deletedPlayer = new Player();
-        deletedPlayer.setDeleted(true);
         var updateDto = new UpsertTeamPlayerDto(playerId.toString(), null, null);
 
         // given
