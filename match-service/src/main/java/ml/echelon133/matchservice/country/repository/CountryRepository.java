@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CountryRepository extends JpaRepository<Country, UUID> {
+    boolean existsByIdAndDeletedFalse(UUID uuid);
 
     /**
      * Finds a non-deleted country with the specified id.
