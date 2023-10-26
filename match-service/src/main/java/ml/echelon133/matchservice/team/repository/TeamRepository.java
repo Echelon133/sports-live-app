@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TeamRepository extends JpaRepository<Team, UUID> {
-    boolean existsByIdAndDeletedIsFalse(UUID teamId);
+    boolean existsByIdAndDeletedFalse(UUID teamId);
 
     /**
      * Finds a non-deleted team with the specified id.
