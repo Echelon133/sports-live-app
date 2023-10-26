@@ -6,8 +6,6 @@ import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
-import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
 import ml.echelon133.matchservice.team.model.UpsertTeamPlayerDto;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
@@ -61,19 +59,6 @@ public class TeamController {
             throw new RequestBodyContentInvalidException(
                     Map.of("number", List.of(exception.getMessage()))
             );
-        } catch (ResourceNotFoundException exception) {
-            // createTeamPlayer's ResourceNotFoundException can be caused by Team or Player
-            if (exception.getResourceClass().equals(Team.class)) {
-                // this is a team-related endpoint, rethrow this exception to let the client see the 404 Not Found status
-                throw exception;
-            } else {
-                // must have been caused by the Player
-                // exceptions related to contents of the request body should be caught and rethrown
-                // instead of throwing 404
-                throw new RequestBodyContentInvalidException(
-                        Map.of("playerId", List.of(exception.getMessage()))
-                );
-            }
         }
     }
 
@@ -93,19 +78,6 @@ public class TeamController {
             throw new RequestBodyContentInvalidException(
                     Map.of("number", List.of(exception.getMessage()))
             );
-        } catch (ResourceNotFoundException exception) {
-            // updateTeamPlayer's ResourceNotFoundException can be caused by TeamPlayer, Team, or Player
-            if (exception.getResourceClass().equals(Team.class) || exception.getResourceClass().equals(TeamPlayer.class)) {
-                // this is a team-related endpoint, rethrow this exception to let the client see the 404 Not Found status
-                throw exception;
-            } else {
-                // must have been caused by Player
-                // exceptions related to contents of the request body should be caught and rethrown
-                // instead of throwing 404
-                throw new RequestBodyContentInvalidException(
-                        Map.of("playerId", List.of(exception.getMessage()))
-                );
-            }
         }
     }
 
