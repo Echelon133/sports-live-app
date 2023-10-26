@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface VenueRepository extends JpaRepository<Venue, UUID> {
+    boolean existsByIdAndDeletedFalse(UUID venueId);
 
     /**
      * Finds a non-deleted venue with the specified id.
