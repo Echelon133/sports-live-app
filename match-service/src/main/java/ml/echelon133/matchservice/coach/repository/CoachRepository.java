@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CoachRepository extends JpaRepository<Coach, UUID> {
+    boolean existsByIdAndDeletedFalse(UUID uuid);
 
     /**
      * Finds a non-deleted coach with the specified id.
