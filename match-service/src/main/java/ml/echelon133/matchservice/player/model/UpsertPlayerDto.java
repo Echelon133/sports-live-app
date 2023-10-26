@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.player.model;
 
-import ml.echelon133.common.constraints.UUID;
 import ml.echelon133.common.constraints.LocalDateFormat;
+import ml.echelon133.matchservice.country.constraints.CountryExists;
 import ml.echelon133.matchservice.player.model.constraints.PositionValue;
 import org.hibernate.validator.constraints.Length;
 
@@ -14,7 +14,7 @@ public class UpsertPlayerDto {
     private String name;
 
     @NotNull
-    @UUID
+    @CountryExists
     private String countryId;
 
     @NotNull
