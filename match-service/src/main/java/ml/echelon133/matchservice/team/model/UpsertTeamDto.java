@@ -1,6 +1,7 @@
 package ml.echelon133.matchservice.team.model;
 
-import ml.echelon133.common.constraints.UUID;
+import ml.echelon133.matchservice.coach.constraints.CoachExists;
+import ml.echelon133.matchservice.country.constraints.CountryExists;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
 
@@ -17,11 +18,11 @@ public class UpsertTeamDto {
     private String crestUrl;
 
     @NotNull
-    @UUID
+    @CountryExists
     private String countryId;
 
     @NotNull
-    @UUID
+    @CoachExists
     private String coachId;
 
     public UpsertTeamDto() {}
