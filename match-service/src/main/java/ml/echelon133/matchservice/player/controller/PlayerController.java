@@ -5,7 +5,6 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.player.dto.PlayerDto;
 import ml.echelon133.common.team.dto.TeamDto;
-import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.service.PlayerService;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
@@ -57,42 +56,18 @@ public class PlayerController {
             throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
-        try {
-            return playerService.updatePlayer(playerId, playerDto);
-        } catch (ResourceNotFoundException exception) {
-            // updatePlayer's ResourceNotFoundException can be caused by either Player or Country.
-            // If the player could not be found, just rethrow the exception to give the user 404 Not Found.
-            // If the country's ID is correct but does not correspond to any non-deleted entity in the database,
-            // throw FormInvalidException with the message about not being able to find the country with specified id
-            if (exception.getResourceClass().equals(Country.class)) {
-                throw new RequestBodyContentInvalidException(
-                        Map.of("countryId", List.of(exception.getMessage()))
-                );
-            } else {
-                // just rethrow the exception, no need for any special handling
-                throw exception;
-            }
-        }
+        return playerService.updatePlayer(playerId, playerDto);
     }
 
     @PostMapping
     public PlayerDto createPlayer(@RequestBody @Valid UpsertPlayerDto playerDto, BindingResult result)
-            throws RequestBodyContentInvalidException {
+            throws RequestBodyContentInvalidException, ResourceNotFoundException {
 
         if (result.hasErrors()) {
             throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
 
-        try {
-            return playerService.createPlayer(playerDto);
-        } catch (ResourceNotFoundException exception) {
-            // createPlayer's ResourceNotFoundException is always caused by Country.
-            // If the country's ID is correct but does not correspond to any non-deleted entity in the database,
-            // throw FormInvalidException with the message about not being able to find the country with specified id
-            throw new RequestBodyContentInvalidException(
-                    Map.of("countryId", List.of(exception.getMessage()))
-            );
-        }
+        return playerService.createPlayer(playerDto);
     }
 
     @DeleteMapping("/{playerId}")
