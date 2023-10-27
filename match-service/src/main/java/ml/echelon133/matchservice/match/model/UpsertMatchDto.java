@@ -3,6 +3,9 @@ package ml.echelon133.matchservice.match.model;
 import ml.echelon133.common.constraints.LocalDateTimeFormat;
 import ml.echelon133.common.constraints.UUID;
 import ml.echelon133.matchservice.match.model.constraints.TeamIdsDifferent;
+import ml.echelon133.matchservice.referee.constraints.RefereeExists;
+import ml.echelon133.matchservice.team.constraints.TeamExists;
+import ml.echelon133.matchservice.venue.constraints.VenueExists;
 
 import javax.validation.constraints.NotNull;
 
@@ -10,11 +13,11 @@ import javax.validation.constraints.NotNull;
 public class UpsertMatchDto {
 
     @NotNull
-    @UUID
+    @TeamExists
     private String homeTeamId;
 
     @NotNull
-    @UUID
+    @TeamExists
     private String awayTeamId;
 
     @NotNull
@@ -22,11 +25,11 @@ public class UpsertMatchDto {
     private String startTimeUTC;
 
     @NotNull
-    @UUID
+    @VenueExists
     private String venueId;
 
     // this is optional, since at the time of creation of most of the matches, the referee is unknown
-    @UUID
+    @RefereeExists
     private String refereeId;
 
     @NotNull
