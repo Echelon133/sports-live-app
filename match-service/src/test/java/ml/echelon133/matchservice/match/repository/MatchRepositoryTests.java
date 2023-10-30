@@ -39,8 +39,6 @@ public class MatchRepositoryTests {
         this.matchRepository = matchRepository;
     }
 
-
-
     @Test
     @DisplayName("findMatchById native query finds empty when the match does not exist")
     public void findMatchById_MatchDoesNotExist_IsEmpty() {
@@ -465,10 +463,6 @@ public class MatchRepositoryTests {
         assertNull(compactMatchDtoValue.getAwayTeam());
     }
 
-    private Match createTestMatchForCompetitionWithStatus(UUID competitionId, MatchStatus status) {
-        return TestMatch.builder().competitionId(competitionId).status(status).build();
-    }
-
     @Test
     @DisplayName("findAllByCompetitionAndStatuses native query filters matches by their status")
     public void findAllByCompetitionAndStatuses_MultipleMatchesWithDifferentStatuses_FiltersMatchesByStatus() {
@@ -678,8 +672,8 @@ public class MatchRepositoryTests {
         var penaltiesEntity = entity.getPenaltiesInfo();
         var penaltiesDto = dto.getPenaltiesInfo();
         assertTrue(
-                penaltiesEntity.getHomePenalties().equals(penaltiesDto.getHomePenalties()) &&
-                penaltiesEntity.getAwayPenalties().equals(penaltiesDto.getAwayPenalties())
+                penaltiesEntity.getHomeGoals().equals(penaltiesDto.getHomeGoals()) &&
+                penaltiesEntity.getAwayGoals().equals(penaltiesDto.getAwayGoals())
         );
 
         // results equal
@@ -742,8 +736,8 @@ public class MatchRepositoryTests {
         var penaltiesEntity = entity.getPenaltiesInfo();
         var penaltiesDto = dto.getPenaltiesInfo();
         assertTrue(
-                penaltiesEntity.getHomePenalties().equals(penaltiesDto.getHomePenalties()) &&
-                        penaltiesEntity.getAwayPenalties().equals(penaltiesDto.getAwayPenalties())
+                penaltiesEntity.getHomeGoals().equals(penaltiesDto.getHomeGoals()) &&
+                penaltiesEntity.getAwayGoals().equals(penaltiesDto.getAwayGoals())
         );
 
         // results equal

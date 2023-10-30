@@ -165,7 +165,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/matches returns 422 when homeTeamId is not an uuid")
+    @DisplayName("POST /api/matches returns 422 when homeTeamId is not a uuid")
     public void createMatch_HomeTeamIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertMatchDto.builder().homeTeamId("a").build();
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
@@ -224,7 +224,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/matches returns 422 when awayTeamId is not an uuid")
+    @DisplayName("POST /api/matches returns 422 when awayTeamId is not a uuid")
     public void createMatch_AwayTeamIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertMatchDto.builder().awayTeamId("a").build();
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
@@ -283,7 +283,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/matches returns 422 when venueId is not an uuid")
+    @DisplayName("POST /api/matches returns 422 when venueId is not a uuid")
     public void createMatch_VenueIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertMatchDto.builder().venueId("a").build();
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
@@ -342,7 +342,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/matches returns 422 when competitionId is not an uuid")
+    @DisplayName("POST /api/matches returns 422 when competitionId is not a uuid")
     public void createMatch_CompetitionIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertMatchDto.builder().competitionId("a").build();
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
@@ -426,7 +426,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/matches returns 422 when refereeId is not an uuid")
+    @DisplayName("POST /api/matches returns 422 when refereeId is not a uuid")
     public void createMatch_RefereeIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertMatchDto.builder().refereeId("a").build();
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
@@ -507,7 +507,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when homeTeamId is not an uuid")
+    @DisplayName("PUT /api/matches/:id returns 422 when homeTeamId is not a uuid")
     public void updateMatch_HomeTeamIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
 
@@ -572,7 +572,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when awayTeamId is not an uuid")
+    @DisplayName("PUT /api/matches/:id returns 422 when awayTeamId is not a uuid")
     public void updateMatch_AwayTeamIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
 
@@ -637,7 +637,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when venueId is not an uuid")
+    @DisplayName("PUT /api/matches/:id returns 422 when venueId is not a uuid")
     public void updateMatch_VenueIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
 
@@ -702,7 +702,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when competitionId is not an uuid")
+    @DisplayName("PUT /api/matches/:id returns 422 when competitionId is not a uuid")
     public void updateMatch_CompetitionIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
 
@@ -794,7 +794,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when refereeId is not an uuid")
+    @DisplayName("PUT /api/matches/:id returns 422 when refereeId is not a uuid")
     public void updateMatch_RefereeIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
 
@@ -1083,7 +1083,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 400 when `competitionId` is not an uuid")
+    @DisplayName("GET /api/matches returns 400 when `competitionId` is not a uuid")
     public void getMatchesByCriteria_InvalidCompetitionId_StatusBadRequest() throws Exception {
         mvc.perform(
                         get("/api/matches")

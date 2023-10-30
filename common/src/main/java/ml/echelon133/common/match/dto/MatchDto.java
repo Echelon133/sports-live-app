@@ -36,8 +36,8 @@ public interface MatchDto {
     @Value("#{T(ml.echelon133.common.match.dto.ScoreInfoDto).from(target.homeGoals, target.awayGoals)}")
     ScoreInfoDto getScoreInfo();
 
-    @Value("#{T(ml.echelon133.common.match.dto.PenaltiesInfoDto).from(target.homePenalties, target.awayPenalties)}")
-    PenaltiesInfoDto getPenaltiesInfo();
+    @Value("#{T(ml.echelon133.common.match.dto.ScoreInfoDto).from(target.homePenalties, target.awayPenalties)}")
+    ScoreInfoDto getPenaltiesInfo();
 
     static MatchDtoBuilder builder() {
         return new MatchDtoBuilder();
@@ -55,7 +55,7 @@ public interface MatchDto {
         private RefereeDto referee;
         private ScoreInfoDto halfTimeScoreInfo;
         private ScoreInfoDto scoreInfo;
-        private PenaltiesInfoDto penaltiesInfo;
+        private ScoreInfoDto penaltiesInfo;
 
         private MatchDtoBuilder() {}
 
@@ -114,7 +114,7 @@ public interface MatchDto {
             return this;
         }
 
-        public MatchDtoBuilder penaltiesInfo(PenaltiesInfoDto penaltiesInfo) {
+        public MatchDtoBuilder penaltiesInfo(ScoreInfoDto penaltiesInfo) {
             this.penaltiesInfo = penaltiesInfo;
             return this;
         }
@@ -177,7 +177,7 @@ public interface MatchDto {
                 }
 
                 @Override
-                public PenaltiesInfoDto getPenaltiesInfo() {
+                public ScoreInfoDto getPenaltiesInfo() {
                     return penaltiesInfo;
                 }
             };

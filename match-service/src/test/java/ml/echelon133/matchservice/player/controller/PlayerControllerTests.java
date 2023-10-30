@@ -228,7 +228,7 @@ public class PlayerControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/players returns 422 when countryId is not an uuid")
+    @DisplayName("POST /api/players returns 422 when countryId is not a uuid")
     public void createPlayer_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertPlayerDto.builder().countryId("a").build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
@@ -578,7 +578,7 @@ public class PlayerControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/players/:id returns 422 when countryId is not an uuid")
+    @DisplayName("PUT /api/players/:id returns 422 when countryId is not a uuid")
     public void updatePlayer_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
         var contentDto = TestUpsertPlayerDto.builder().countryId("a").build();

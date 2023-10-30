@@ -3,7 +3,6 @@ package ml.echelon133.matchservice.match;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.match.model.Match;
-import ml.echelon133.matchservice.match.model.PenaltiesInfo;
 import ml.echelon133.matchservice.match.model.ScoreInfo;
 import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.team.TestTeam;
@@ -29,7 +28,7 @@ public interface TestMatch {
         private UUID competitionId = UUID.randomUUID();
         private ScoreInfo halfTimeScoreInfo = new ScoreInfo();
         private ScoreInfo scoreInfo = new ScoreInfo();
-        private PenaltiesInfo penaltiesInfo = new PenaltiesInfo();
+        private ScoreInfo penaltiesInfo = new ScoreInfo();
         private MatchResult result = MatchResult.NONE;
         private boolean deleted = false;
 
@@ -85,7 +84,7 @@ public interface TestMatch {
             return this;
         }
 
-        public MatchBuilder penaltiesInfo(PenaltiesInfo penaltiesInfo) {
+        public MatchBuilder penaltiesInfo(ScoreInfo penaltiesInfo) {
             this.penaltiesInfo = penaltiesInfo;
             return this;
         }
