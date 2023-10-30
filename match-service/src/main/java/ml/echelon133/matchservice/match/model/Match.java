@@ -60,7 +60,11 @@ public class Match extends BaseEntity {
     private ScoreInfo scoreInfo;
 
     @Embedded
-    private PenaltiesInfo penaltiesInfo;
+    @AttributeOverrides({
+            @AttributeOverride(name="homeGoals", column = @Column(name = "home_penalties")),
+            @AttributeOverride(name="awayGoals", column = @Column(name = "away_penalties"))
+    })
+    private ScoreInfo penaltiesInfo;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
@@ -70,7 +74,7 @@ public class Match extends BaseEntity {
         this.status = MatchStatus.NOT_STARTED;
         this.halfTimeScoreInfo = new ScoreInfo();
         this.scoreInfo = new ScoreInfo();
-        this.penaltiesInfo = new PenaltiesInfo();
+        this.penaltiesInfo = new ScoreInfo();
         this.result = MatchResult.NONE;
     }
 
@@ -146,11 +150,11 @@ public class Match extends BaseEntity {
         this.scoreInfo = scoreInfo;
     }
 
-    public PenaltiesInfo getPenaltiesInfo() {
+    public ScoreInfo getPenaltiesInfo() {
         return penaltiesInfo;
     }
 
-    public void setPenaltiesInfo(PenaltiesInfo penaltiesInfo) {
+    public void setPenaltiesInfo(ScoreInfo penaltiesInfo) {
         this.penaltiesInfo = penaltiesInfo;
     }
 

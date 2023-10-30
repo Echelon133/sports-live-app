@@ -1,7 +1,6 @@
 package ml.echelon133.matchservice.match.service;
 
 import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.match.dto.PenaltiesInfoDto;
 import ml.echelon133.common.match.dto.ScoreInfoDto;
 import ml.echelon133.common.match.dto.ShortTeamDto;
 import ml.echelon133.common.referee.dto.RefereeDto;
@@ -66,9 +65,9 @@ public class MatchMapper {
                 scoreInfo.getHomeGoals(),
                 scoreInfo.getAwayGoals()
         );
-        PenaltiesInfoDto penaltiesInfoDto = PenaltiesInfoDto.from(
-                penaltiesInfo.getHomePenalties(),
-                penaltiesInfo.getAwayPenalties()
+        ScoreInfoDto penaltiesInfoDto = ScoreInfoDto.from(
+                penaltiesInfo.getHomeGoals(),
+                penaltiesInfo.getAwayGoals()
         );
 
         return MatchDto.builder()

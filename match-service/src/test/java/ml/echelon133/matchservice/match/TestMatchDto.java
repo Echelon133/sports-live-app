@@ -3,7 +3,6 @@ package ml.echelon133.matchservice.match;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.match.dto.PenaltiesInfoDto;
 import ml.echelon133.common.match.dto.ScoreInfoDto;
 import ml.echelon133.common.match.dto.ShortTeamDto;
 import ml.echelon133.common.referee.dto.RefereeDto;
@@ -31,6 +30,6 @@ public interface TestMatchDto {
                 .referee(RefereeDto.from(UUID.randomUUID(), "Test Referee"))
                 .halfTimeScoreInfo(ScoreInfoDto.from((byte)0, (byte)0))
                 .scoreInfo(ScoreInfoDto.from((byte)0, (byte)0))
-                .penaltiesInfo(PenaltiesInfoDto.from((byte)0, (byte)0));
+                .penaltiesInfo(ScoreInfoDto.from((byte)0, (byte)0));
     }
 }

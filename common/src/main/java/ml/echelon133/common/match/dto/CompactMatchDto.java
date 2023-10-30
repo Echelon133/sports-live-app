@@ -26,8 +26,8 @@ public interface CompactMatchDto {
     @Value("#{T(ml.echelon133.common.match.dto.ScoreInfoDto).from(target.homeGoals, target.awayGoals)}")
     ScoreInfoDto getScoreInfo();
 
-    @Value("#{T(ml.echelon133.common.match.dto.PenaltiesInfoDto).from(target.homePenalties, target.awayPenalties)}")
-    PenaltiesInfoDto getPenaltiesInfo();
+    @Value("#{T(ml.echelon133.common.match.dto.ScoreInfoDto).from(target.homePenalties, target.awayPenalties)}")
+    ScoreInfoDto getPenaltiesInfo();
 
 
     static CompactMatchDtoBuilder builder() {
@@ -44,7 +44,7 @@ public interface CompactMatchDto {
         private ShortTeamDto awayTeam;
         private ScoreInfoDto halfTimeScoreInfo;
         private ScoreInfoDto scoreInfo;
-        private PenaltiesInfoDto penaltiesInfo;
+        private ScoreInfoDto penaltiesInfo;
 
         private CompactMatchDtoBuilder() {}
 
@@ -93,7 +93,7 @@ public interface CompactMatchDto {
             return this;
         }
 
-        public CompactMatchDtoBuilder penaltiesInfo(PenaltiesInfoDto penaltiesInfo) {
+        public CompactMatchDtoBuilder penaltiesInfo(ScoreInfoDto penaltiesInfo) {
             this.penaltiesInfo = penaltiesInfo;
             return this;
         }
@@ -146,7 +146,7 @@ public interface CompactMatchDto {
                 }
 
                 @Override
-                public PenaltiesInfoDto getPenaltiesInfo() {
+                public ScoreInfoDto getPenaltiesInfo() {
                     return penaltiesInfo;
                 }
             };
