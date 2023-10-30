@@ -4,14 +4,18 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
+import ml.echelon133.matchservice.TestValidatorFactory;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.service.MatchService;
-import ml.echelon133.matchservice.referee.model.Referee;
-import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.venue.model.Venue;
+import ml.echelon133.matchservice.referee.constraints.RefereeExists;
+import ml.echelon133.matchservice.referee.repository.RefereeRepository;
+import ml.echelon133.matchservice.team.constraints.TeamExists;
+import ml.echelon133.matchservice.team.repository.TeamRepository;
+import ml.echelon133.matchservice.venue.constraints.VenueExists;
+import ml.echelon133.matchservice.venue.repository.VenueRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import javax.validation.ConstraintValidator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -47,6 +52,18 @@ public class MatchControllerTests {
 
     private MockMvc mvc;
 
+    // used by @TeamExists.Validator
+    @Mock
+    private TeamRepository teamRepository;
+
+    // used by @VenueExists.Validator
+    @Mock
+    private VenueRepository venueRepository;
+
+    // used by @RefereeExists.Validator
+    @Mock
+    private RefereeRepository refereeRepository;
+
     @Mock
     private MatchService matchService;
 
@@ -62,6 +79,15 @@ public class MatchControllerTests {
 
     @BeforeEach
     public void beforeEach() {
+        // validators with mocked dependencies which should be used by the standalone MockMvc configuration
+        // every time a custom constraint validator is requested
+        Map<Class<? extends ConstraintValidator>, ? extends ConstraintValidator> customValidators = Map.of(
+                TeamExists.Validator.class, new TeamExists.Validator(teamRepository),
+                VenueExists.Validator.class, new VenueExists.Validator(venueRepository),
+                RefereeExists.Validator.class, new RefereeExists.Validator(refereeRepository)
+        );
+        var validatorFactoryBean = TestValidatorFactory.getInstance(customValidators);
+
         // use a mapper with date/time modules, otherwise LocalDate won't work
         var om = MatchServiceApplication.objectMapper();
 
@@ -73,6 +99,7 @@ public class MatchControllerTests {
                         // required while testing controller methods which use Pageable
                         new PageableHandlerMethodArgumentResolver()
                 )
+                .setValidator(validatorFactoryBean)
                 .build();
     }
 
@@ -151,7 +178,30 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("homeTeamId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("homeTeamId", List.of("id does not belong to a valid team")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/matches returns 422 when the homeTeamId does not reference an existing entity")
+    public void createMatch_HomeTeamDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var homeTeamId = UUID.randomUUID();
+        var contentDto = TestUpsertMatchDto.builder().homeTeamId(homeTeamId.toString()).build();
+        var json = jsonUpsertMatchDto.write(contentDto).getJson();
+
+        // given
+        given(teamRepository.existsByIdAndDeletedFalse(homeTeamId)).willReturn(false);
+
+        // when
+        mvc.perform(
+                        post("/api/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("homeTeamId", List.of("id does not belong to a valid team")))
                 );
     }
 
@@ -187,7 +237,30 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("awayTeamId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("awayTeamId", List.of("id does not belong to a valid team")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/matches returns 422 when the awayTeamId does not reference an existing entity")
+    public void createMatch_AwayTeamDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var awayTeamId = UUID.randomUUID();
+        var contentDto = TestUpsertMatchDto.builder().awayTeamId(awayTeamId.toString()).build();
+        var json = jsonUpsertMatchDto.write(contentDto).getJson();
+
+        // given
+        given(teamRepository.existsByIdAndDeletedFalse(any())).willReturn(false);
+
+        // when
+        mvc.perform(
+                        post("/api/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("awayTeamId", List.of("id does not belong to a valid team")))
                 );
     }
 
@@ -223,7 +296,30 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("venueId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("venueId", List.of("id does not belong to a valid venue")))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/matches returns 422 when the venueId does not reference an existing entity")
+    public void createMatch_VenueDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var venueId = UUID.randomUUID();
+        var contentDto = TestUpsertMatchDto.builder().venueId(venueId.toString()).build();
+        var json = jsonUpsertMatchDto.write(contentDto).getJson();
+
+        // given
+        given(venueRepository.existsByIdAndDeletedFalse(venueId)).willReturn(false);
+
+        // when
+        mvc.perform(
+                        post("/api/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("venueId", List.of("id does not belong to a valid venue")))
                 );
     }
 
@@ -314,6 +410,12 @@ public class MatchControllerTests {
         var contentDto = TestUpsertMatchDto.builder().refereeId(null).build();
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
 
+        // given
+        given(teamRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(venueRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+
+        // when
         mvc.perform(
                         post("/api/matches")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -337,128 +439,7 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("refereeId", List.of("not a valid uuid")))
-                );
-    }
-
-    @Test
-    @DisplayName("POST /api/matches returns 422 when home team not found")
-    public void createMatch_HomeTeamNotFound_StatusUnprocessableEntity() throws Exception {
-        var homeTeamId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .homeTeamId(homeTeamId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.createMatch(argThat(
-                m -> m.getHomeTeamId().equals(homeTeamId.toString())
-        ))).willThrow(new ResourceNotFoundException(Team.class, homeTeamId));
-
-        // when
-        mvc.perform(
-                        post("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("homeTeamId", List.of(String.format("team %s could not be found", homeTeamId)))
-                        )
-                );
-
-    }
-
-    @Test
-    @DisplayName("POST /api/matches returns 422 when away team not found")
-    public void createMatch_AwayTeamNotFound_StatusUnprocessableEntity() throws Exception {
-        var awayTeamId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .awayTeamId(awayTeamId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.createMatch(argThat(
-                m -> m.getAwayTeamId().equals(awayTeamId.toString())
-        ))).willThrow(new ResourceNotFoundException(Team.class, awayTeamId));
-
-        // when
-        mvc.perform(
-                        post("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("awayTeamId", List.of(String.format("team %s could not be found", awayTeamId)))
-                        )
-                );
-    }
-
-    @Test
-    @DisplayName("POST /api/matches returns 422 when venue not found")
-    public void createMatch_VenueNotFound_StatusUnprocessableEntity() throws Exception {
-        var venueId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .venueId(venueId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.createMatch(argThat(
-                m -> m.getVenueId().equals(venueId.toString())
-        ))).willThrow(new ResourceNotFoundException(Venue.class, venueId));
-
-        // when
-        mvc.perform(
-                        post("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("venueId", List.of(String.format("venue %s could not be found", venueId)))
-                        )
-                );
-    }
-
-    @Test
-    @DisplayName("POST /api/matches returns 422 when referee not found")
-    public void createMatch_RefereeNotFound_StatusUnprocessableEntity() throws Exception {
-        var refereeId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .refereeId(refereeId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.createMatch(argThat(
-                m -> m.getRefereeId().equals(refereeId.toString())
-        ))).willThrow(new ResourceNotFoundException(Referee.class, refereeId));
-
-        // when
-        mvc.perform(
-                        post("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("refereeId", List.of(String.format("referee %s could not be found", refereeId)))
-                        )
+                        jsonPath("$.messages", hasEntry("refereeId", List.of("id does not belong to a valid referee")))
                 );
     }
 
@@ -482,6 +463,9 @@ public class MatchControllerTests {
 
 
         // given
+        given(teamRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(venueRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(refereeRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(matchService.createMatch(argThat(m ->
                 m.getHomeTeamId().equals(contentDto.getHomeTeamId()) &&
                 m.getAwayTeamId().equals(contentDto.getAwayTeamId()) &&
@@ -538,7 +522,32 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("homeTeamId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("homeTeamId", List.of("id does not belong to a valid team")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id returns 422 when the homeTeamId does not reference an existing entity")
+    public void updateMatch_HomeTeamDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        var homeTeamId = UUID.randomUUID();
+        var contentDto = TestUpsertMatchDto.builder().homeTeamId(homeTeamId.toString()).build();
+        var json = jsonUpsertMatchDto.write(contentDto).getJson();
+
+        // given
+        given(teamRepository.existsByIdAndDeletedFalse(homeTeamId)).willReturn(false);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("homeTeamId", List.of("id does not belong to a valid team")))
                 );
     }
 
@@ -578,7 +587,32 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("awayTeamId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("awayTeamId", List.of("id does not belong to a valid team")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id returns 422 when the awayTeamId does not reference an existing entity")
+    public void updateMatch_AwayTeamDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        var awayTeamId = UUID.randomUUID();
+        var contentDto = TestUpsertMatchDto.builder().awayTeamId(awayTeamId.toString()).build();
+        var json = jsonUpsertMatchDto.write(contentDto).getJson();
+
+        // given
+        given(teamRepository.existsByIdAndDeletedFalse(any())).willReturn(false);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("awayTeamId", List.of("id does not belong to a valid team")))
                 );
     }
 
@@ -618,7 +652,32 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("venueId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("venueId", List.of("id does not belong to a valid venue")))
+                );
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id returns 422 when the venueId does not reference an existing entity")
+    public void updateMatch_VenueDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        var venueId = UUID.randomUUID();
+        var contentDto = TestUpsertMatchDto.builder().venueId(venueId.toString()).build();
+        var json = jsonUpsertMatchDto.write(contentDto).getJson();
+
+        // given
+        given(venueRepository.existsByIdAndDeletedFalse(venueId)).willReturn(false);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("venueId", List.of("id does not belong to a valid venue")))
                 );
     }
 
@@ -719,6 +778,12 @@ public class MatchControllerTests {
         var contentDto = TestUpsertMatchDto.builder().refereeId(null).build();
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
 
+        // given
+        given(teamRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(venueRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+
+        // when
         mvc.perform(
                         put("/api/matches/" + matchId)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -744,7 +809,7 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("refereeId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("refereeId", List.of("id does not belong to a valid referee")))
                 );
     }
 
@@ -757,6 +822,9 @@ public class MatchControllerTests {
         var json = jsonUpsertMatchDto.write(contentDto).getJson();
 
         // given
+        given(teamRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(venueRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(refereeRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(matchService.updateMatch(eq(matchId), any())).willThrow(
                 new ResourceNotFoundException(Match.class, matchId)
         );
@@ -770,135 +838,6 @@ public class MatchControllerTests {
                 )
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.messages", hasItem(String.format("match %s could not be found", matchId))));
-    }
-
-    @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when home team not found")
-    public void updateMatch_HomeTeamNotFound_StatusUnprocessableEntity() throws Exception {
-        var matchId = UUID.randomUUID();
-        var homeTeamId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .homeTeamId(homeTeamId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.updateMatch(
-                eq(matchId),
-                argThat(m -> m.getHomeTeamId().equals(homeTeamId.toString()))
-        )).willThrow(new ResourceNotFoundException(Team.class, homeTeamId));
-
-        // when
-        mvc.perform(
-                        put("/api/matches/" + matchId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("homeTeamId", List.of(String.format("team %s could not be found", homeTeamId)))
-                        )
-                );
-
-    }
-
-    @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when away team not found")
-    public void updateMatch_AwayTeamNotFound_StatusUnprocessableEntity() throws Exception {
-        var matchId = UUID.randomUUID();
-        var awayTeamId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .awayTeamId(awayTeamId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.updateMatch(
-                eq(matchId),
-                argThat(m -> m.getAwayTeamId().equals(awayTeamId.toString()))
-        )).willThrow(new ResourceNotFoundException(Team.class, awayTeamId));
-
-        // when
-        mvc.perform(
-                        put("/api/matches/" + matchId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("awayTeamId", List.of(String.format("team %s could not be found", awayTeamId)))
-                        )
-                );
-    }
-
-    @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when venue not found")
-    public void updateMatch_VenueNotFound_StatusUnprocessableEntity() throws Exception {
-        var matchId = UUID.randomUUID();
-        var venueId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .venueId(venueId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.updateMatch(
-                eq(matchId),
-                argThat(m -> m.getVenueId().equals(venueId.toString()))
-        )).willThrow(new ResourceNotFoundException(Venue.class, venueId));
-
-        // when
-        mvc.perform(
-                        put("/api/matches/" + matchId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("venueId", List.of(String.format("venue %s could not be found", venueId)))
-                        )
-                );
-    }
-
-    @Test
-    @DisplayName("PUT /api/matches/:id returns 422 when referee not found")
-    public void updateMatch_RefereeNotFound_StatusUnprocessableEntity() throws Exception {
-        var matchId = UUID.randomUUID();
-        var refereeId = UUID.randomUUID();
-
-        var contentDto = TestUpsertMatchDto.builder()
-                .refereeId(refereeId.toString()).build();
-        var json = jsonUpsertMatchDto.write(contentDto).getJson();
-
-        // given
-        given(matchService.updateMatch(
-                eq(matchId),
-                argThat(m -> m.getRefereeId().equals(refereeId.toString()))
-        )).willThrow(new ResourceNotFoundException(Referee.class, refereeId));
-
-        // when
-        mvc.perform(
-                        put("/api/matches/" + matchId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath(
-                                "$.messages",
-                                hasEntry("refereeId", List.of(String.format("referee %s could not be found", refereeId)))
-                        )
-                );
     }
 
     @Test
@@ -923,6 +862,9 @@ public class MatchControllerTests {
 
 
         // given
+        given(teamRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(venueRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(refereeRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(matchService.updateMatch(
                 eq(matchId),
                 argThat(m ->

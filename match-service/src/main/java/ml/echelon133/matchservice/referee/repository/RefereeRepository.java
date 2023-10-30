@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface RefereeRepository extends JpaRepository<Referee, UUID> {
+    boolean existsByIdAndDeletedFalse(UUID refereeId);
 
     /**
      * Finds a non-deleted referee with the specified id.

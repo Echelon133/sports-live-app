@@ -4,15 +4,18 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
-import ml.echelon133.matchservice.coach.model.Coach;
-import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.TestValidatorFactory;
+import ml.echelon133.matchservice.coach.constraints.CoachExists;
+import ml.echelon133.matchservice.coach.repository.CoachRepository;
+import ml.echelon133.matchservice.country.constraints.CountryExists;
+import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.player.constraints.PlayerExists;
+import ml.echelon133.matchservice.player.repository.PlayerRepository;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.TestUpsertTeamDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
 import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.model.UpsertTeamDto;
 import ml.echelon133.matchservice.team.model.UpsertTeamPlayerDto;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
@@ -21,7 +24,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,13 +36,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import javax.validation.ConstraintValidator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -49,6 +52,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TeamControllerTests {
 
     private MockMvc mvc;
+
+    // used by @CountryExists.Validator
+    @Mock
+    private CountryRepository countryRepository;
+
+    // used by @CoachExists.Validator
+    @Mock
+    private CoachRepository coachRepository;
+
+    // used by @PlayerExists.Validator
+    @Mock
+    private PlayerRepository playerRepository;
 
     @Mock
     private TeamService teamService;
@@ -74,6 +89,15 @@ public class TeamControllerTests {
 
     @BeforeEach
     public void beforeEach() {
+        // validators with mocked dependencies which should be used by the standalone MockMvc configuration
+        // every time a custom constraint validator is requested
+        Map<Class<? extends ConstraintValidator>, ? extends ConstraintValidator> customValidators = Map.of(
+                CountryExists.Validator.class, new CountryExists.Validator(countryRepository),
+                CoachExists.Validator.class, new CoachExists.Validator(coachRepository),
+                PlayerExists.Validator.class, new PlayerExists.Validator(playerRepository)
+        );
+        var validatorFactoryBean = TestValidatorFactory.getInstance(customValidators);
+
         // use a mapper with date/time modules, otherwise LocalDate won't work
         var om = MatchServiceApplication.objectMapper();
 
@@ -84,6 +108,7 @@ public class TeamControllerTests {
                         // required while testing controller methods which use Pageable
                         new PageableHandlerMethodArgumentResolver()
                 )
+                .setValidator(validatorFactoryBean)
                 .build();
     }
 
@@ -183,6 +208,11 @@ public class TeamControllerTests {
                 "Xc9f0Gs7BSxW0SWDcEMz6vrM6e970ZQEB6LnTW3sIqtZwZOdcqAl2gvNvn2huYpPwCDnu7td5cFjAUXJaZDmaZ37oJSAKkTthS6hch6qhOJDQpvwISuXgLCHHrjl9VGRPInGCCla0yQ1ZkLVEYsjDUQ2RkrYFTi0wRvf75KXxvcLXqC7DoDGMPNpvvcy1Vh7WxaP3F4C"
         );
 
+        // given
+        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
         for (String correctName : correctNameLengths) {
             var contentDto = TestUpsertTeamDto.builder().name(correctName).build();
             var bodyJson = jsonUpsertTeamDto.write(contentDto).getJson();
@@ -265,25 +295,22 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
                 );
     }
 
     @Test
-    @DisplayName("POST /api/teams returns 422 when the service throws ResourceNotFoundException caused by Country")
-    public void createTeam_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
-        var contentDto = TestUpsertTeamDto.builder().countryId(UUID.randomUUID().toString()).build();
+    @DisplayName("POST /api/teams returns 422 when the countryId does not reference an existing entity")
+    public void createTeam_CountryDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var countryId = UUID.randomUUID();
+        var contentDto = TestUpsertTeamDto.builder().countryId(countryId.toString()).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
-        var countryId = UUID.fromString(contentDto.getCountryId());
 
         // given
-        given(teamService.createTeam(argThat(a ->
-                a.getName().equals(contentDto.getName()) &&
-                        a.getCountryId().equals(contentDto.getCountryId())
-        ))).willThrow(new ResourceNotFoundException(Country.class, countryId));
+        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(countryRepository.existsByIdAndDeletedFalse(countryId)).willReturn(false);
 
         // when
-        var expectedError = String.format("country %s could not be found", countryId);
         mvc.perform(
                         post("/api/teams")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -292,7 +319,7 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of(expectedError)))
+                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
                 );
     }
 
@@ -328,26 +355,22 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("coachId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("coachId", List.of("id does not belong to a valid coach")))
                 );
     }
 
     @Test
-    @DisplayName("POST /api/teams returns 422 when the service throws ResourceNotFoundException caused by Coach")
-    public void createTeam_ServiceThrowsWhenCoachNotFound_StatusUnprocessableEntity() throws Exception {
-        var contentDto = TestUpsertTeamDto.builder().countryId(UUID.randomUUID().toString()).build();
+    @DisplayName("POST /api/teams returns 422 when the coachId does not reference an existing entity")
+    public void createTeam_CoachDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var coachId = UUID.randomUUID();
+        var contentDto = TestUpsertTeamDto.builder().coachId(coachId.toString()).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
-        var coachId = UUID.fromString(contentDto.getCoachId());
 
         // given
-        given(teamService.createTeam(argThat(a ->
-                a.getName().equals(contentDto.getName()) &&
-                        a.getCountryId().equals(contentDto.getCountryId()) &&
-                        a.getCoachId().equals(contentDto.getCoachId())
-        ))).willThrow(new ResourceNotFoundException(Coach.class, coachId));
+        given(coachRepository.existsByIdAndDeletedFalse(coachId)).willReturn(false);
+        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
-        var expectedError = String.format("coach %s could not be found", coachId);
         mvc.perform(
                         post("/api/teams")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -356,7 +379,7 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("coachId", List.of(expectedError)))
+                        jsonPath("$.messages", hasEntry("coachId", List.of("id does not belong to a valid coach")))
                 );
     }
 
@@ -372,6 +395,8 @@ public class TeamControllerTests {
         var expectedJson = jsonTeamDto.write(expectedDto).getJson();
 
         // given
+        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(teamService.createTeam(argThat(a ->
                 a.getName().equals(contentDto.getName()) &&
                         a.getCrestUrl().equals(contentDto.getCrestUrl()) &&
@@ -414,7 +439,9 @@ public class TeamControllerTests {
         var upsertJson = jsonUpsertTeamDto.write(upsertDto).getJson();
 
         // given
-        given(teamService.updateTeam(eq(teamId), ArgumentMatchers.any())).willThrow(
+        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(teamService.updateTeam(eq(teamId), any())).willThrow(
                 new ResourceNotFoundException(Team.class, teamId)
         );
 
@@ -488,6 +515,11 @@ public class TeamControllerTests {
                 "Xc9f0Gs7BSxW0SWDcEMz6vrM6e970ZQEB6LnTW3sIqtZwZOdcqAl2gvNvn2huYpPwCDnu7td5cFjAUXJaZDmaZ37oJSAKkTthS6hch6qhOJDQpvwISuXgLCHHrjl9VGRPInGCCla0yQ1ZkLVEYsjDUQ2RkrYFTi0wRvf75KXxvcLXqC7DoDGMPNpvvcy1Vh7WxaP3F4C"
         );
 
+        // given
+        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
         for (String correctName : correctNameLengths) {
             var contentDto = TestUpsertTeamDto.builder().name(correctName).build();
             var bodyJson = jsonUpsertTeamDto.write(contentDto).getJson();
@@ -574,28 +606,23 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
                 );
     }
 
     @Test
-    @DisplayName("PUT /api/teams/:id returns 422 when the service throws ResourceNotFoundException caused by Country")
-    public void updateTeam_ServiceThrowsWhenCountryNotFound_StatusUnprocessableEntity() throws Exception {
+    @DisplayName("PUT /api/teams/:id returns 422 when the countryId does not reference an existing entity")
+    public void updateTeam_CountryDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var countryId = UUID.randomUUID();
         var teamId = UUID.randomUUID();
-        var contentDto = TestUpsertTeamDto.builder().build();
+        var contentDto = TestUpsertTeamDto.builder().countryId(countryId.toString()).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
-        var countryId = UUID.fromString(contentDto.getCountryId());
 
         // given
-        given(teamService.updateTeam(
-                eq(teamId),
-                argThat(a ->
-                        a.getName().equals(contentDto.getName()) && a.getCountryId().equals(contentDto.getCountryId())
-                )
-        )).willThrow(new ResourceNotFoundException(Country.class, countryId));
+        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(countryRepository.existsByIdAndDeletedFalse(countryId)).willReturn(false);
 
         // when
-        var expectedError = String.format("country %s could not be found", countryId);
         mvc.perform(
                         put("/api/teams/" + teamId)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -604,7 +631,7 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of(expectedError)))
+                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
                 );
     }
 
@@ -642,30 +669,23 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("coachId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("coachId", List.of("id does not belong to a valid coach")))
                 );
     }
 
     @Test
-    @DisplayName("PUT /api/teams/:id returns 422 when the service throws ResourceNotFoundException caused by Coach")
-    public void updateTeam_ServiceThrowsWhenCoachNotFound_StatusUnprocessableEntity() throws Exception {
+    @DisplayName("PUT /api/teams/:id returns 422 when the coachId does not reference an existing entity")
+    public void updateTeam_CoachDoesNotExist_StatusUnprocessableEntity() throws Exception {
+        var coachId = UUID.randomUUID();
         var teamId = UUID.randomUUID();
-        var contentDto = TestUpsertTeamDto.builder().build();
+        var contentDto = TestUpsertTeamDto.builder().coachId(coachId.toString()).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
-        var coachId = UUID.fromString(contentDto.getCountryId());
 
         // given
-        given(teamService.updateTeam(
-                eq(teamId),
-                argThat(a ->
-                        a.getName().equals(contentDto.getName()) &&
-                                a.getCountryId().equals(contentDto.getCountryId()) &&
-                                a.getCoachId().equals(contentDto.getCoachId())
-                )
-        )).willThrow(new ResourceNotFoundException(Coach.class, coachId));
+        given(coachRepository.existsByIdAndDeletedFalse(coachId)).willReturn(false);
+        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
-        var expectedError = String.format("coach %s could not be found", coachId);
         mvc.perform(
                         put("/api/teams/" + teamId)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -674,7 +694,7 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("coachId", List.of(expectedError)))
+                        jsonPath("$.messages", hasEntry("coachId", List.of("id does not belong to a valid coach")))
                 );
     }
 
@@ -691,6 +711,8 @@ public class TeamControllerTests {
         var expectedJson = jsonTeamDto.write(expectedDto).getJson();
 
         // given
+        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(teamService.updateTeam(
                 eq(teamId),
                 argThat(a ->
@@ -700,6 +722,7 @@ public class TeamControllerTests {
                                 a.getCoachId().equals(contentDto.getCoachId())
                 ))).willReturn(expectedDto);
 
+        // when
         mvc.perform(
                         put("/api/teams/" + teamId)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -808,6 +831,7 @@ public class TeamControllerTests {
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
         // given
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
         given(teamPlayerService.createTeamPlayer(
                 eq(teamId),
                 argThat(a ->
@@ -818,7 +842,6 @@ public class TeamControllerTests {
         )).willThrow(new ResourceNotFoundException(Team.class, teamId));
 
         // when
-        var expectedError = String.format("team %s could not be found", teamId);
         mvc.perform(
                         post("/api/teams/" + teamId + "/players")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -865,30 +888,22 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("playerId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("playerId", List.of("id does not belong to a valid player")))
                 );
     }
 
     @Test
-    @DisplayName("POST /api/teams/:id/players returns 422 when the service throws ResourceNotFoundException caused by Player")
-    public void assignPlayerToTeam_ServiceThrowsWhenPlayerNotFound_StatusUnprocessableEntity() throws Exception {
+    @DisplayName("POST /api/teams/:id/players returns 422 when the playerId does not reference an existing entity")
+    public void assignPlayerToTeam_PlayerDoesNotExist_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
         var playerId = UUID.randomUUID();
         var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
         // given
-        given(teamPlayerService.createTeamPlayer(
-                eq(teamId),
-                argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getNumber().equals(contentDto.getNumber()) &&
-                                a.getPosition().equals(contentDto.getPosition())
-                )
-        )).willThrow(new ResourceNotFoundException(Player.class, playerId));
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(false);
 
         // when
-        var expectedError = String.format("player %s could not be found", playerId);
         mvc.perform(
                         post("/api/teams/" + teamId + "/players")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -897,7 +912,7 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("playerId", List.of(expectedError)))
+                        jsonPath("$.messages", hasEntry("playerId", List.of("id does not belong to a valid player")))
                 );
     }
 
@@ -950,9 +965,15 @@ public class TeamControllerTests {
         var teamId = UUID.randomUUID();
 
         var correctPositions = List.of(
-                "GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD"
+                "GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD", // uppercase
+                "goalkeeper", "defender", "midfielder", "forward", // lowercase
+                "GOALkeeper", "DEFender", "MIDfielder", "FORward" // mixed
         );
 
+        // given
+        given(playerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
         for (String correctPosition: correctPositions) {
             var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), correctPosition, 1);
             var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
@@ -1020,6 +1041,7 @@ public class TeamControllerTests {
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
         // given
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
         given(teamPlayerService.createTeamPlayer(
                 eq(teamId),
                 argThat(a ->
@@ -1052,6 +1074,9 @@ public class TeamControllerTests {
                 1, 20, 50, 85, 99
         );
 
+        // given
+        given(playerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
         for (Integer correctNumber : correctNumbers) {
             var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), "DEFENDER", correctNumber);
             var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
@@ -1082,6 +1107,7 @@ public class TeamControllerTests {
         var expectedJson = jsonTeamPlayerDto.write(expectedDto).getJson();
 
         // given
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
         given(teamPlayerService.createTeamPlayer(
                 eq(teamId),
                 argThat(a ->
@@ -1132,6 +1158,7 @@ public class TeamControllerTests {
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
         // given
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
         given(teamPlayerService.updateTeamPlayer(
                 eq(teamPlayerId),
                 eq(teamId),
@@ -1152,39 +1179,6 @@ public class TeamControllerTests {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.messages[0]", is(
                         String.format("team %s could not be found", teamId)
-                )));
-    }
-
-    @Test
-    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 404 when the service throws ResourceNotFoundException caused by TeamPlayer")
-    public void updatePlayerOfTeam_ServiceThrowsWhenTeamPlayerNotFound_StatusNotFound() throws Exception {
-        var teamId = UUID.randomUUID();
-        var playerId = UUID.randomUUID();
-        var teamPlayerId = UUID.randomUUID();
-        var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
-        var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
-
-        // given
-        given(teamPlayerService.updateTeamPlayer(
-                eq(teamPlayerId),
-                eq(teamId),
-                argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getNumber().equals(contentDto.getNumber()) &&
-                                a.getPosition().equals(contentDto.getPosition())
-                )
-        )).willThrow(new ResourceNotFoundException(TeamPlayer.class, teamId));
-
-        // when
-        mvc.perform(
-                        put("/api/teams/" + teamId + "/players/" + teamPlayerId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.messages[0]", is(
-                        String.format("teamplayer %s could not be found", teamId)
                 )));
     }
 
@@ -1224,32 +1218,23 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("playerId", List.of("not a valid uuid")))
+                        jsonPath("$.messages", hasEntry("playerId", List.of("id does not belong to a valid player")))
                 );
     }
 
     @Test
-    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when the service throws ResourceNotFoundException caused by Player")
-    public void updatePlayerOfTeam_ServiceThrowsWhenPlayerNotFound_StatusUnprocessableEntity() throws Exception {
+    @DisplayName("PUT /api/teams/:id/players/:teamPlayerId returns 422 when the playerId does not reference an existing entity")
+    public void updatePlayerOfTeam_PlayerDoesNotExist_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var playerId = UUID.randomUUID();
         var teamPlayerId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
         var contentDto = new UpsertTeamPlayerDto(playerId.toString(), "FORWARD", 1);
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
         // given
-        given(teamPlayerService.updateTeamPlayer(
-                eq(teamPlayerId),
-                eq(teamId),
-                argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getNumber().equals(contentDto.getNumber()) &&
-                                a.getPosition().equals(contentDto.getPosition())
-                )
-        )).willThrow(new ResourceNotFoundException(Player.class, playerId));
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(false);
 
         // when
-        var expectedError = String.format("player %s could not be found", playerId);
         mvc.perform(
                         put("/api/teams/" + teamId + "/players/" + teamPlayerId)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -1258,7 +1243,7 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("playerId", List.of(expectedError)))
+                        jsonPath("$.messages", hasEntry("playerId", List.of("id does not belong to a valid player")))
                 );
     }
 
@@ -1316,9 +1301,15 @@ public class TeamControllerTests {
         var teamPlayerId = UUID.randomUUID();
 
         var correctPositions = List.of(
-                "GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD"
+                "GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD", // uppercase
+                "goalkeeper", "defender", "midfielder", "forward", // lowercase
+                "GOALkeeper", "DEFender", "MIDfielder", "FORward" // mixed
         );
 
+        // given
+        given(playerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
         for (String correctPosition: correctPositions) {
             var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), correctPosition, 1);
             var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
@@ -1390,6 +1381,10 @@ public class TeamControllerTests {
                 1, 20, 50, 85, 99
         );
 
+        // given
+        given(playerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
         for (Integer correctNumber: correctNumbers) {
             var contentDto = new UpsertTeamPlayerDto(UUID.randomUUID().toString(), "DEFENDER", correctNumber);
             var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
@@ -1415,6 +1410,7 @@ public class TeamControllerTests {
         var json = jsonUpsertTeamPlayerDto.write(contentDto).getJson();
 
         // given
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
         given(teamPlayerService.updateTeamPlayer(
                 eq(teamPlayerId),
                 eq(teamId),
@@ -1456,6 +1452,7 @@ public class TeamControllerTests {
         var expectedJson = jsonTeamPlayerDto.write(expectedDto).getJson();
 
         // given
+        given(playerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
         given(teamPlayerService.updateTeamPlayer(
                 eq(teamPlayerId),
                 eq(teamId),
