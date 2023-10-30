@@ -17,7 +17,7 @@ public class UpsertTeamPlayerDto {
     private String position;
 
     @NotNull
-    @Range(min = 1, max = 99, message = "expected number between 1 and 99")
+    @Range(min = 1, max = 99, message = "expected number between {min} and {max}")
     private Integer number;
 
     public UpsertTeamPlayerDto() {}
