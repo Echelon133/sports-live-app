@@ -7,6 +7,7 @@ import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
+import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.service.MatchService;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.json.JacksonTester;
 import org.springframework.data.domain.Pageable;
@@ -63,6 +65,9 @@ public class MatchControllerTests {
     // used by @RefereeExists.Validator
     @Mock
     private RefereeRepository refereeRepository;
+
+    @Spy
+    private MatchCriteriaValidator matchCriteriaValidator = MatchServiceApplication.matchCriteriaValidator();
 
     @Mock
     private MatchService matchService;
@@ -952,7 +957,7 @@ public class MatchControllerTests {
                     )
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.messages", hasItem(
-                            "query parameter 'date' format should be yyyy/mm/dd"
+                            "query parameter 'date' format should be yyyy/MM/d"
                     )));
         }
     }
@@ -1025,25 +1030,6 @@ public class MatchControllerTests {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath(path, hasSize(1)));
         }
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 200 when the values of `date` and `utcOffset` are valid but the keys use irregular case")
-    public void getMatchesByCriteria_DateAndUtcOffsetKeysWithIrregularCase_StatusOk() throws Exception {
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("DaTe", "2023/01/01")
-                                .param("UtCoFfSeT", "+02:00")
-                )
-                .andExpect(status().isOk());
-
-        verify(matchService).findMatchesByDate(
-                eq(LocalDate.of(2023, 1, 1)),
-                eq(ZoneOffset.of("+02:00")),
-                eq(Pageable.ofSize(20).withPage(0))
-        );
     }
 
     @Test

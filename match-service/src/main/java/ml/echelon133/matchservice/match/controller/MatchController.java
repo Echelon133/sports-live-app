@@ -1,40 +1,39 @@
 package ml.echelon133.matchservice.match.controller;
 
-import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
+import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.service.MatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/matches")
 public class MatchController {
 
     private final MatchService matchService;
-    private final DateTimeFormatter MATCH_DATE_FORMATTER = DateTimeFormatter.ofPattern(DateFormatConstants.DATE_FORMAT);
-    private final String DATE_PARAM_NAME = "date";
-    private final String UTC_OFFSET_PARAM_NAME = "utcOffset";
-    private final String COMPETITION_ID_PARAM_NAME = "competitionId";
-    private final String TYPE_PARAM_NAME = "type";
+    private final MatchCriteriaValidator matchCriteriaValidator;
 
     @Autowired
-    public MatchController(MatchService matchService) {
+    public MatchController(MatchService matchService, MatchCriteriaValidator matchCriteriaValidator) {
         this.matchService = matchService;
+        this.matchCriteriaValidator = matchCriteriaValidator;
     }
 
     @GetMapping("/{matchId}")
@@ -68,87 +67,8 @@ public class MatchController {
         return Map.of("deleted", matchService.markMatchAsDeleted(matchId));
     }
 
-    /**
-     * Helper method which handles the first variant of listing matches. This variant requires the client of the API
-     * to specify the date and the timezone offset.
-     *
-     * @param params request parameters provided with the request
-     * @param pageable information about the wanted page
-     * @return a map where the keys are IDs of competitions and the values are lists of matches that happen on a specific date
-     * @throws RequestParamsInvalidException thrown when request parameters provided with the request are not valid
-     */
-    private Map<UUID, List<CompactMatchDto>> handleMatchesByDate(Map<String, String> params, Pageable pageable) throws RequestParamsInvalidException {
-        Map<String, String> paramValidationErrors = new HashMap<>();
-
-        // extract `date` and turn it into LocalDate
-        LocalDate date = null;
-        try {
-            date = LocalDate.parse(params.get(DATE_PARAM_NAME), MATCH_DATE_FORMATTER);
-        } catch (DateTimeException ignore) {
-            paramValidationErrors.put(DATE_PARAM_NAME, "format should be yyyy/mm/dd");
-        }
-
-        // extract `utcOffset` and turn it into ZoneOffset
-        // (if `utcOffset` was not provided, assume "Z" which is simply UTC)
-        ZoneOffset zoneOffset = ZoneOffset.of("Z");
-        if (params.containsKey(UTC_OFFSET_PARAM_NAME)) {
-            try {
-                zoneOffset = ZoneOffset.of(params.get(UTC_OFFSET_PARAM_NAME));
-            } catch (DateTimeException ignore) {
-                paramValidationErrors.put(UTC_OFFSET_PARAM_NAME, "format should be ±hh:mm");
-            }
-        }
-
-        if (paramValidationErrors.isEmpty()) {
-            return matchService.findMatchesByDate(date, zoneOffset, pageable);
-        }
-        throw new RequestParamsInvalidException(paramValidationErrors);
-    }
-
-    /**
-     * Helper method which handles the second variant of listing matches. This variant requires the client of the API
-     * to specify the ID of the competition and the type of results that are expected. Type 'fixtures' makes the query
-     * fetch matches that are either ongoing or happening in the future. The other type - 'results' - causes fetching
-     * of matches that are finished.
-     *
-     * @param params request parameters provided with the request
-     * @param pageable information about the wanted page
-     * @return a map with at most a single key (the ID of the competition), where the value is a list of
-     *      matches that belong to the competition and are of specified type
-     * @throws RequestParamsInvalidException thrown when request parameters provided with the request are not valid
-     */
-    private Map<UUID, List<CompactMatchDto>> handleMatchesByCompetition(Map<String, String> params, Pageable pageable) throws RequestParamsInvalidException {
-        Map<String, String> paramValidationErrors = new HashMap<>();
-        UUID competitionId = null;
-        Boolean showFinishedMatches = null;
-
-        try {
-            competitionId = UUID.fromString(params.get(COMPETITION_ID_PARAM_NAME));
-        } catch (IllegalArgumentException ignore) {
-            paramValidationErrors.put(COMPETITION_ID_PARAM_NAME, "not a uuid");
-        }
-
-        if (params.containsKey(TYPE_PARAM_NAME)) {
-            var typeValue = params.get(TYPE_PARAM_NAME);
-            if (typeValue.equalsIgnoreCase("results")) {
-                showFinishedMatches = true;
-            } else if (typeValue.equalsIgnoreCase("fixtures")) {
-                showFinishedMatches = false;
-            } else {
-                paramValidationErrors.put(TYPE_PARAM_NAME, "should be either 'fixtures' or 'results'");
-            }
-        } else {
-            paramValidationErrors.put(TYPE_PARAM_NAME, "not provided");
-        }
-
-        if (paramValidationErrors.isEmpty()) {
-            return matchService.findMatchesByCompetition(competitionId, showFinishedMatches, pageable);
-        }
-        throw new RequestParamsInvalidException(paramValidationErrors);
-    }
-
     @GetMapping
-    public Map<UUID, List<CompactMatchDto>> getMatchesByCriteria(@RequestParam Map<String, String> params, Pageable pageable) throws RequestParamsInvalidException {
+    public Map<UUID, List<CompactMatchDto>> getMatchesByCriteria(MatchCriteriaRequestParams params, BindingResult result, Pageable pageable) throws RequestParamsInvalidException {
         // there are two variants of results this endpoint provides:
         //      * variant 1 - matches that happen on a specific date (in a specific timezone)
         //      * variant 2 - matches that happen in a specific competition and have a specific type
@@ -165,29 +85,33 @@ public class MatchController {
         //      * /api/matches?competitionId=6a2b04c0-b391-435f-bd36-982abcabd4a2&type=fixtures
         //      * /api/matches?competitionId=6a2b04c0-b391-435f-bd36-982abcabd4a2&type=results
 
-        // make the search of request param names case-insensitive
-        var caseInsensitiveParams = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
-        caseInsensitiveParams.putAll(params);
+        // Use a manually triggered Validator because validation annotations placed on controller's arguments
+        // do not work with request params.
+        // Custom validators require the controller to be annotated with @Validated - this in turn
+        // causes tests which use standalone MockMvc to completely ignore running these custom validators because
+        // @Validated is only supported in webAppContextSetup version of MockMvc
+        matchCriteriaValidator.validate(params, result);
+        if (result.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            for (FieldError fError : result.getFieldErrors()) {
+                errors.put(fError.getField(), fError.getDefaultMessage());
+            }
+            throw new RequestParamsInvalidException(errors);
+        }
 
-        // find out if the combination of all the request params actually represents a variant which is valid
-        if (caseInsensitiveParams.keySet().containsAll(Set.of(DATE_PARAM_NAME, COMPETITION_ID_PARAM_NAME))) {
-            // invalid call - both `date` and `competitionId` present in the same request
-            throw new RequestParamsInvalidException(Map.of(
-                    DATE_PARAM_NAME, String.format("cannot be provided together with '%s'", COMPETITION_ID_PARAM_NAME),
-                    COMPETITION_ID_PARAM_NAME, String.format("cannot be provided together with '%s'", DATE_PARAM_NAME)
-            ));
-        } else if (caseInsensitiveParams.containsKey(DATE_PARAM_NAME)) {
-            // handle the first variant
-            return handleMatchesByDate(caseInsensitiveParams, pageable);
-        } else if (caseInsensitiveParams.containsKey(COMPETITION_ID_PARAM_NAME)) {
-            // handle the second variant
-            return handleMatchesByCompetition(caseInsensitiveParams, pageable);
+        if (params.getDate() != null) {
+            // handle the first variant (date and utcOffset)
+            LocalDate date = LocalDate.parse(params.getDate(), matchCriteriaValidator.getMatchDateFormatter());
+            ZoneOffset zoneOffset = ZoneOffset.UTC;
+            if (params.getUtcOffset() != null) {
+                zoneOffset = ZoneOffset.of(params.getUtcOffset());
+            }
+            return matchService.findMatchesByDate(date, zoneOffset, pageable);
         } else {
-            // invalid call - neither `date` nor `competitionId` present in the request
-            throw new RequestParamsInvalidException(Map.of(
-                    DATE_PARAM_NAME, "not provided",
-                    COMPETITION_ID_PARAM_NAME, "not provided"
-            ));
+            // handle the second variant (competitionId and type)
+            UUID competitionId = UUID.fromString(params.getCompetitionId());
+            boolean matchFinished = params.getType().equalsIgnoreCase("results");
+            return matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
         }
     }
 }
