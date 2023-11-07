@@ -12,13 +12,11 @@ import ml.echelon133.matchservice.match.service.MatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -92,11 +90,7 @@ public class MatchController {
         // @Validated is only supported in webAppContextSetup version of MockMvc
         matchCriteriaValidator.validate(params, result);
         if (result.hasErrors()) {
-            Map<String, String> errors = new HashMap<>();
-            for (FieldError fError : result.getFieldErrors()) {
-                errors.put(fError.getField(), fError.getDefaultMessage());
-            }
-            throw new RequestParamsInvalidException(errors);
+            throw new RequestParamsInvalidException(ValidationResultMapper.requestParamResultIntoErrorMap(result));
         }
 
         if (params.getDate() != null) {

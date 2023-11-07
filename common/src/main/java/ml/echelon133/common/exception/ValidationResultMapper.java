@@ -12,9 +12,11 @@ import java.util.Map;
 public class ValidationResultMapper {
 
     /**
-     * Takes all errors from a {@link BindingResult} and creates a map in which all {@link ObjectError}s are associated
-     * with the key {@code general} and all {@link FieldError}s are associated with the keys which are named after the
-     * field names.
+     * Takes all errors from a {@link BindingResult} and creates a map in which:
+     * <ul>
+     *     <li>each {@link ObjectError}'s message is placed in a map, associated with the 'general' key</li>
+     *     <li>each {@link FieldError}'s message is placed in a map, associated with the key being that field's name</li>
+     * </ul>
      *
      * @param result representation of all errors which occurred during the bean validation process
      * @return a map which contains all errors which occurred during the bean validation process
@@ -35,6 +37,28 @@ public class ValidationResultMapper {
             }
         });
 
+        return mappedResult;
+    }
+
+    /**
+     * Takes all field errors from a {@link BindingResult} which validated request parameters
+     * and creates a map in which field names of all {@link FieldError}s are associated with
+     * the default messages of these errors.
+     *
+     * <p>
+     *     A field error of field 'test' with a message 'asdf' will end up as the equivalent of
+     *     {@code Map.of("test", "asdf")}
+     * </p>
+     *
+     * @param result representation of all field errors which occurred during the bean validation process
+     * @return a map which contains all field errors which occurred during the bean validation process
+     */
+    public static Map<String, String> requestParamResultIntoErrorMap(BindingResult result) {
+        Map<String, String> mappedResult = new HashMap<>();
+        // when we validate request params, we only use FieldErrors
+        result.getFieldErrors().forEach(fieldError -> {
+            mappedResult.put(fieldError.getField(), fieldError.getDefaultMessage());
+        });
         return mappedResult;
     }
 }
