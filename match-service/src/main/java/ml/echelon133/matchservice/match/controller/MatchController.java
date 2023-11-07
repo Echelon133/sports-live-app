@@ -66,7 +66,11 @@ public class MatchController {
     }
 
     @GetMapping
-    public Map<UUID, List<CompactMatchDto>> getMatchesByCriteria(MatchCriteriaRequestParams params, BindingResult result, Pageable pageable) throws RequestParamsInvalidException {
+    public Map<UUID, List<CompactMatchDto>> getMatchesByCriteria(
+            MatchCriteriaRequestParams params,
+            BindingResult result,
+            Pageable pageable
+    ) throws RequestParamsInvalidException {
         // there are two variants of results this endpoint provides:
         //      * variant 1 - matches that happen on a specific date (in a specific timezone)
         //      * variant 2 - matches that happen in a specific competition and have a specific type
@@ -83,11 +87,11 @@ public class MatchController {
         //      * /api/matches?competitionId=6a2b04c0-b391-435f-bd36-982abcabd4a2&type=fixtures
         //      * /api/matches?competitionId=6a2b04c0-b391-435f-bd36-982abcabd4a2&type=results
 
-        // Use a manually triggered Validator because validation annotations placed on controller's arguments
-        // do not work with request params.
-        // Custom validators require the controller to be annotated with @Validated - this in turn
-        // causes tests which use standalone MockMvc to completely ignore running these custom validators because
-        // @Validated is only supported in webAppContextSetup version of MockMvc
+        // Validation annotations placed on request parameters are not used unless the entire controller is annotated
+        // with '@Validated'. The standalone configuration of MockMvc does not support the '@Validated' annotation
+        // which results in all validation annotations of request parameters being ignored.
+        // To have a testable controller without having to create a 'webAppContextSetup' version of MockMvc we
+        // have to use Spring Validators and trigger them manually.
         matchCriteriaValidator.validate(params, result);
         if (result.hasErrors()) {
             throw new RequestParamsInvalidException(ValidationResultMapper.requestParamResultIntoErrorMap(result));
