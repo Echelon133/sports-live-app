@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, UUID> {
+    boolean existsByIdAndDeletedFalse(UUID teamPlayerId);
 
     /**
      * Finds all non-deleted players who are currently playing for the team with specified id.
