@@ -58,6 +58,58 @@ public class TeamPlayerServiceTests {
     }
 
     @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(teamPlayerRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            teamPlayerService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("teamplayer %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var teamPlayerEntity = new TeamPlayer();
+        teamPlayerEntity.setDeleted(true);
+
+        // given
+        given(teamPlayerRepository.findById(testId)).willReturn(Optional.of(teamPlayerEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            teamPlayerService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("teamplayer %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var teamPlayerEntity = new TeamPlayer();
+
+        // given
+        given(teamPlayerRepository.findById(testId)).willReturn(Optional.of(teamPlayerEntity));
+
+        // when
+        var entity = teamPlayerService.findEntityById(testId);
+
+        // then
+        assertEquals(teamPlayerEntity, entity);
+    }
+
+    @Test
     @DisplayName("findAllPlayersOfTeam returns dtos when the team is present")
     public void findAllPlayersOfTeam_TeamPresent_ReturnsDtos() throws ResourceNotFoundException {
         var teamId = UUID.randomUUID();

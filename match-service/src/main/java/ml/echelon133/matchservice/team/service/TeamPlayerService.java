@@ -35,6 +35,20 @@ public class TeamPlayerService {
         this.playerService = playerService;
     }
 
+
+    /**
+     * Returns the entity representing a team player with the specified id.
+     * @param id id of the team player's entity
+     * @return team player's entity
+     * @throws ResourceNotFoundException thrown when the team player does not exist in the database or is deleted
+     */
+    public TeamPlayer findEntityById(UUID id) throws ResourceNotFoundException {
+        return teamPlayerRepository
+                .findById(id)
+                .filter(p -> !p.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(TeamPlayer.class, id));
+    }
+
     /**
      * Finds all players who currently play for the team with specified id.
      *
