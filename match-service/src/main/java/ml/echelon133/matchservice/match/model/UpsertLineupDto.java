@@ -15,7 +15,7 @@ public class UpsertLineupDto {
     private List<@TeamPlayerExists String> startingPlayers;
 
     @NotNull
-    private List<@TeamPlayerExists String> benchedPlayers;
+    private List<@TeamPlayerExists String> substitutePlayers;
 
     public UpsertLineupDto() {}
 
@@ -27,11 +27,11 @@ public class UpsertLineupDto {
         this.startingPlayers = startingPlayers;
     }
 
-    public List<String> getBenchedPlayers() {
-        return benchedPlayers;
+    public List<String> getSubstitutePlayers() {
+        return substitutePlayers;
     }
 
-    public void setBenchedPlayers(List<String> benchedPlayers) {
-        this.benchedPlayers = benchedPlayers;
+    public void setSubstitutePlayers(List<String> substitutePlayers) {
+        this.substitutePlayers = substitutePlayers;
     }
 }

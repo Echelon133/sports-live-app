@@ -24,10 +24,10 @@ public @interface PlayerIdsUnique {
 
         @Override
         public boolean isValid(UpsertLineupDto upsertLineupDto, ConstraintValidatorContext constraintValidatorContext) {
-            var size = upsertLineupDto.getStartingPlayers().size() + upsertLineupDto.getBenchedPlayers().size();
+            var size = upsertLineupDto.getStartingPlayers().size() + upsertLineupDto.getSubstitutePlayers().size();
             var distinctSize = Stream.concat(
                     upsertLineupDto.getStartingPlayers().stream(),
-                    upsertLineupDto.getBenchedPlayers().stream()
+                    upsertLineupDto.getSubstitutePlayers().stream()
             ).distinct().count();
             return size == distinctSize;
         }
