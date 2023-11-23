@@ -4,11 +4,19 @@ import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.CompactMatchDto;
+import ml.echelon133.common.match.dto.LineupDto;
 import ml.echelon133.common.match.dto.MatchDto;
+import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
+import ml.echelon133.matchservice.match.model.Lineup;
 import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.UpsertLineupDto;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.referee.service.RefereeService;
+import ml.echelon133.matchservice.team.model.Team;
+import ml.echelon133.matchservice.team.model.TeamPlayer;
+import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import ml.echelon133.matchservice.venue.service.VenueService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +29,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,13 +40,19 @@ public class MatchService {
     public static final DateTimeFormatter DATE_OF_MATCH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_MATCH_FORMAT);
 
     private final TeamService teamService;
+    private final TeamPlayerService teamPlayerService;
     private final VenueService venueService;
     private final RefereeService refereeService;
     private final MatchRepository matchRepository;
 
     @Autowired
-    public MatchService(TeamService teamService, VenueService venueService, RefereeService refereeService, MatchRepository matchRepository) {
+    public MatchService(TeamService teamService,
+                        TeamPlayerService teamPlayerService,
+                        VenueService venueService,
+                        RefereeService refereeService,
+                        MatchRepository matchRepository) {
         this.teamService = teamService;
+        this.teamPlayerService = teamPlayerService;
         this.venueService = venueService;
         this.refereeService = refereeService;
         this.matchRepository = matchRepository;
@@ -224,5 +236,110 @@ public class MatchService {
                 competitionId,
                 matchRepository.findAllByCompetitionAndStatuses(competitionId, acceptedStatuses, pageable)
         );
+    }
+
+    /**
+     * Finds the lineup of the match with the specified id.
+     * @param matchId id of the match whose lineup will be fetched
+     * @return the lineup of the match
+     */
+    public LineupDto findMatchLineup(UUID matchId) {
+        return new LineupDto(
+            matchRepository.findHomeStartingPlayersByMatchId(matchId),
+            matchRepository.findHomeSubstitutePlayersByMatchId(matchId),
+            matchRepository.findAwayStartingPlayersByMatchId(matchId),
+            matchRepository.findAwaySubstitutePlayersByMatchId(matchId)
+        );
+    }
+
+    /**
+     * Updates the home lineup of the match with the specified id.
+     *
+     * The values in {@link UpsertLineupDto} have to be pre-validated before being used here,
+     * otherwise incorrect data will be placed into the database.
+     *
+     * @param matchId id of the match whose home lineup is to be updated
+     * @param lineupDto dto containing updated information about match's home lineup
+     * @throws ResourceNotFoundException thrown when the match with the specified id does not exist in the
+     *      database or is marked as deleted
+     * @throws LineupPlayerInvalidException thrown when at least one player to be placed in the lineup actually exists
+     *      but does not play for the particular team
+     */
+    public void updateHomeLineup(UUID matchId, UpsertLineupDto lineupDto)
+            throws ResourceNotFoundException, LineupPlayerInvalidException {
+        updateLineup(matchId, lineupDto, true);
+    }
+
+    /**
+     * Updates the away lineup of the match with the specified id.
+     *
+     * The values in {@link UpsertLineupDto} have to be pre-validated before being used here,
+     * otherwise incorrect data will be placed into the database.
+     *
+     * @param matchId id of the match whose away lineup is to be updated
+     * @param lineupDto dto containing updated information about match's away lineup
+     * @throws ResourceNotFoundException thrown when the match with the specified id does not exist in the
+     *      database or is marked as deleted
+     * @throws LineupPlayerInvalidException thrown when at least one player to be placed in the lineup actually exists
+     *      but does not play for the particular team
+     */
+    public void updateAwayLineup(UUID matchId, UpsertLineupDto lineupDto)
+            throws ResourceNotFoundException, LineupPlayerInvalidException {
+        updateLineup(matchId, lineupDto, false);
+    }
+
+    /**
+     * Updates either lineup of the match with the specified id.
+     *
+     * The values in {@link UpsertLineupDto} have to be pre-validated before being used here,
+     * otherwise incorrect data will be placed into the database.
+     *
+     * @param matchId id of the match whose lineup is to be updated
+     * @param lineupDto dto containing updated information about match's lineup
+     * @param homeLineup flag which signifies whether the lineup to be updated is the home lineup
+     * @throws ResourceNotFoundException thrown when the match with the specified id does not exist in the
+     *      database or is marked as deleted
+     * @throws LineupPlayerInvalidException thrown when at least one player to be placed in the lineup actually exists
+     *      but does not play for the particular team
+     */
+    private void updateLineup(UUID matchId, UpsertLineupDto lineupDto, boolean homeLineup)
+            throws ResourceNotFoundException, LineupPlayerInvalidException {
+        var match = findEntityById(matchId);
+
+        Team team = homeLineup ? match.getHomeTeam() : match.getAwayTeam();
+
+        Set<UUID> validTeamPlayerIds = teamPlayerService.findAllPlayersOfTeam(team.getId())
+                .stream().map(TeamPlayerDto::getId).collect(Collectors.toSet());
+
+        // UUID.fromString should never fail because the validation of UpsertLineupDto guarantees that every single
+        // string representing ids of starting players is a valid uuid
+        List<UUID> wantedStartingPlayers = lineupDto.getStartingPlayers().stream()
+                .map(UUID::fromString).collect(Collectors.toList());
+        List<TeamPlayer> startingPlayers;
+        if (validTeamPlayerIds.containsAll(wantedStartingPlayers)) {
+            // at this point we know that these ids belong to existing team players who play for that team,
+            // therefore we can just turn them into references to TeamPlayer entities
+            startingPlayers = teamPlayerService.mapAllIdsToReferences(wantedStartingPlayers);
+        } else {
+            throw new LineupPlayerInvalidException(true);
+        }
+
+        // UUID.fromString should never fail because the validation of UpsertLineupDto guarantees that every single
+        // string representing ids of substitute players is a valid uuid
+        List<UUID> wantedSubstitutePlayers = lineupDto.getSubstitutePlayers().stream()
+                .map(UUID::fromString).collect(Collectors.toList());
+        List<TeamPlayer> substitutePlayers;
+        if (validTeamPlayerIds.containsAll(wantedSubstitutePlayers)) {
+            // at this point we know that these ids belong to existing team players who play for that team,
+            // therefore we can just turn them into references to TeamPlayer entities
+            substitutePlayers = teamPlayerService.mapAllIdsToReferences(wantedSubstitutePlayers);
+        } else {
+            throw new LineupPlayerInvalidException(false);
+        }
+
+        Lineup lineup = homeLineup ? match.getHomeLineup() : match.getAwayLineup();
+        lineup.setStartingPlayers(startingPlayers);
+        lineup.setSubstitutePlayers(substitutePlayers);
+        matchRepository.save(match);
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -35,6 +36,15 @@ public class TeamPlayerService {
         this.playerService = playerService;
     }
 
+    /**
+     * Turns a list of {@link UUID}s of team players into a list of references to {@link TeamPlayer} entities.
+     *
+     * @param teamPlayerIds a list of ids to be turned into references
+     * @return a list of references to entities
+     */
+    public List<TeamPlayer> mapAllIdsToReferences(List<UUID> teamPlayerIds) {
+        return teamPlayerIds.stream().map(teamPlayerRepository::getReferenceById).collect(Collectors.toList());
+    }
 
     /**
      * Returns the entity representing a team player with the specified id.

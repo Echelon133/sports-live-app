@@ -18,6 +18,10 @@ public class UpsertLineupDto {
     private List<@TeamPlayerExists String> substitutePlayers;
 
     public UpsertLineupDto() {}
+    public UpsertLineupDto(List<String> startingPlayers, List<String> substitutePlayers) {
+        this.startingPlayers = startingPlayers;
+        this.substitutePlayers = substitutePlayers;
+    }
 
     public List<String> getStartingPlayers() {
         return startingPlayers;
