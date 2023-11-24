@@ -5,8 +5,11 @@ import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.common.match.dto.CompactMatchDto;
+import ml.echelon133.common.match.dto.LineupDto;
 import ml.echelon133.common.match.dto.MatchDto;
 import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
+import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
+import ml.echelon133.matchservice.match.model.UpsertLineupDto;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.service.MatchService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,5 +114,36 @@ public class MatchController {
             boolean matchFinished = params.getType().equalsIgnoreCase("results");
             return matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
         }
+    }
+
+    @GetMapping("/{matchId}/lineups")
+    public LineupDto getMatchLineup(@PathVariable UUID matchId) {
+        return matchService.findMatchLineup(matchId);
+    }
+
+    @PutMapping("/{matchId}/lineups/home")
+    public void updateHomeLineup(
+            @PathVariable UUID matchId,
+            @RequestBody @Valid UpsertLineupDto lineupDto,
+            BindingResult result
+    ) throws RequestBodyContentInvalidException, ResourceNotFoundException, LineupPlayerInvalidException {
+
+        if (result.hasErrors()) {
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+        matchService.updateHomeLineup(matchId, lineupDto);
+    }
+
+    @PutMapping("/{matchId}/lineups/away")
+    public void updateAwayLineup(
+            @PathVariable UUID matchId,
+            @RequestBody @Valid UpsertLineupDto lineupDto,
+            BindingResult result
+    ) throws RequestBodyContentInvalidException, ResourceNotFoundException, LineupPlayerInvalidException {
+
+        if (result.hasErrors()) {
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+        matchService.updateAwayLineup(matchId, lineupDto);
     }
 }
