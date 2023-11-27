@@ -1,14 +1,18 @@
 package ml.echelon133.matchservice.match.repository;
 
+import ml.echelon133.common.entity.BaseEntity;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.CompactMatchDto;
 import ml.echelon133.common.match.dto.MatchDto;
+import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.match.TestMatch;
+import ml.echelon133.matchservice.match.TestMatchLineup;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.ScoreInfo;
 import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.team.TestTeam;
+import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.venue.model.Venue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -743,5 +748,187 @@ public class MatchRepositoryTests {
         // results equal
         var resultDto = (dto.getResult() == null) ? null : MatchResult.valueOf(dto.getResult());
         assertEquals(entity.getResult(), resultDto);
+    }
+
+    @Test
+    @DisplayName("findHomeStartingPlayersByMatchId native query returns empty list if match does not exist")
+    public void findHomeStartingPlayersByMatchId_MatchDoesNotExist_IsEmpty() {
+        var matchId = UUID.randomUUID();
+
+        // when
+        var homeStartingPlayers = matchRepository.findHomeStartingPlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, homeStartingPlayers.size());
+    }
+
+    @Test
+    @DisplayName("findHomeStartingPlayersByMatchId native query returns empty list if match is marked as deleted")
+    public void findHomeStartingPlayersByMatchId_MatchExistsButMarkedAsDeleted_IsEmpty() {
+        var match = TestMatchLineup.createTestMatchWithLineup();
+        match.setDeleted(true);
+        match = matchRepository.save(match);
+        var matchId = match.getId();
+
+        // when
+        var homeStartingPlayers = matchRepository.findHomeStartingPlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, homeStartingPlayers.size());
+    }
+
+    @Test
+    @DisplayName("findHomeStartingPlayersByMatchId native query returns players from particular lineup")
+    public void findHomeStartingPlayersByMatchId_MultipleExistingMatches_OnlyFetchesParticularLineup() {
+        var match1 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match2 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match1Id = match1.getId();
+        var match2Id = match2.getId();
+
+        // when
+        var homeStartingPlayers1 = matchRepository.findHomeStartingPlayersByMatchId(match1Id);
+        var homeStartingPlayers2 = matchRepository.findHomeStartingPlayersByMatchId(match2Id);
+
+        // then
+        assertLineupContainsPlayers(homeStartingPlayers1, match1.getHomeLineup().getStartingPlayers());
+        assertLineupContainsPlayers(homeStartingPlayers2, match2.getHomeLineup().getStartingPlayers());
+    }
+
+    @Test
+    @DisplayName("findHomeSubstitutePlayersByMatchId native query returns empty list if match does not exist")
+    public void findHomeSubstitutePlayersByMatchId_MatchDoesNotExist_IsEmpty() {
+        var matchId = UUID.randomUUID();
+
+        // when
+        var homeSubstitutePlayers = matchRepository.findHomeSubstitutePlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, homeSubstitutePlayers.size());
+    }
+
+    @Test
+    @DisplayName("findHomeSubstitutePlayersByMatchId native query returns empty list if match is marked as deleted")
+    public void findHomeSubstitutePlayersByMatchId_MatchExistsButMarkedAsDeleted_IsEmpty() {
+        var match = TestMatchLineup.createTestMatchWithLineup();
+        match.setDeleted(true);
+        match = matchRepository.save(match);
+        var matchId = match.getId();
+
+        // when
+        var homeSubstitutePlayers = matchRepository.findHomeSubstitutePlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, homeSubstitutePlayers.size());
+    }
+
+    @Test
+    @DisplayName("findHomeSubstitutePlayersByMatchId native query returns players from particular lineup")
+    public void findHomeSubstitutePlayersByMatchId_MultipleExistingMatches_OnlyFetchesParticularLineup() {
+        var match1 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match2 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match1Id = match1.getId();
+        var match2Id = match2.getId();
+
+        // when
+        var homeSubstitutePlayers1 = matchRepository.findHomeSubstitutePlayersByMatchId(match1Id);
+        var homeSubstitutePlayers2 = matchRepository.findHomeSubstitutePlayersByMatchId(match2Id);
+
+        // then
+        assertLineupContainsPlayers(homeSubstitutePlayers1, match1.getHomeLineup().getSubstitutePlayers());
+        assertLineupContainsPlayers(homeSubstitutePlayers2, match2.getHomeLineup().getSubstitutePlayers());
+    }
+
+    @Test
+    @DisplayName("findAwayStartingPlayersByMatchId native query returns empty list if match does not exist")
+    public void findAwayStartingPlayersByMatchId_MatchDoesNotExist_IsEmpty() {
+        var matchId = UUID.randomUUID();
+
+        // when
+        var awayStartingPlayers = matchRepository.findAwayStartingPlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, awayStartingPlayers.size());
+    }
+
+    @Test
+    @DisplayName("findAwayStartingPlayersByMatchId native query returns empty list if match is marked as deleted")
+    public void findAwayStartingPlayersByMatchId_MatchExistsButMarkedAsDeleted_IsEmpty() {
+        var match = TestMatchLineup.createTestMatchWithLineup();
+        match.setDeleted(true);
+        match = matchRepository.save(match);
+        var matchId = match.getId();
+
+        // when
+        var awayStartingPlayers = matchRepository.findAwayStartingPlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, awayStartingPlayers.size());
+    }
+
+    @Test
+    @DisplayName("findAwayStartingPlayersByMatchId native query returns players from particular lineup")
+    public void findAwayStartingPlayersByMatchId_MultipleExistingMatches_OnlyFetchesParticularLineup() {
+        var match1 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match2 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match1Id = match1.getId();
+        var match2Id = match2.getId();
+
+        // when
+        var awayStartingPlayers1 = matchRepository.findAwayStartingPlayersByMatchId(match1Id);
+        var awayStartingPlayers2 = matchRepository.findAwayStartingPlayersByMatchId(match2Id);
+
+        // then
+        assertLineupContainsPlayers(awayStartingPlayers1, match1.getAwayLineup().getStartingPlayers());
+        assertLineupContainsPlayers(awayStartingPlayers2, match2.getAwayLineup().getStartingPlayers());
+    }
+
+    @Test
+    @DisplayName("findAwaySubstitutePlayersByMatchId native query returns empty list if match does not exist")
+    public void findAwaySubstitutePlayersByMatchId_MatchDoesNotExist_IsEmpty() {
+        var matchId = UUID.randomUUID();
+
+        // when
+        var awaySubstitutePlayers = matchRepository.findAwaySubstitutePlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, awaySubstitutePlayers.size());
+    }
+
+    @Test
+    @DisplayName("findAwaySubstitutePlayersByMatchId native query returns empty list if match is marked as deleted")
+    public void findAwaySubstitutePlayersByMatchId_MatchExistsButMarkedAsDeleted_IsEmpty() {
+        var match = TestMatchLineup.createTestMatchWithLineup();
+        match.setDeleted(true);
+        match = matchRepository.save(match);
+        var matchId = match.getId();
+
+        // when
+        var awaySubstitutePlayers = matchRepository.findAwaySubstitutePlayersByMatchId(matchId);
+
+        // then
+        assertEquals(0, awaySubstitutePlayers.size());
+    }
+
+    @Test
+    @DisplayName("findAwaySubstitutePlayersByMatchId native query returns players from particular lineup")
+    public void findAwaySubstitutePlayersByMatchId_MultipleExistingMatches_OnlyFetchesParticularLineup() {
+        var match1 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match2 = matchRepository.save(TestMatchLineup.createTestMatchWithLineup());
+        var match1Id = match1.getId();
+        var match2Id = match2.getId();
+
+        // when
+        var awaySubstitutePlayers1 = matchRepository.findAwaySubstitutePlayersByMatchId(match1Id);
+        var awaySubstitutePlayers2 = matchRepository.findAwaySubstitutePlayersByMatchId(match2Id);
+
+        // then
+        assertLineupContainsPlayers(awaySubstitutePlayers1, match1.getAwayLineup().getSubstitutePlayers());
+        assertLineupContainsPlayers(awaySubstitutePlayers2, match2.getAwayLineup().getSubstitutePlayers());
+    }
+
+    private static void assertLineupContainsPlayers(List<TeamPlayerDto> foundLineup, List<TeamPlayer> expectedLineup) {
+        var foundIds = foundLineup.stream().map(TeamPlayerDto::getId).collect(Collectors.toList());
+        var expectedIds = expectedLineup.stream().map(BaseEntity::getId).collect(Collectors.toList());
+        assertTrue(foundIds.containsAll(expectedIds));
     }
 }

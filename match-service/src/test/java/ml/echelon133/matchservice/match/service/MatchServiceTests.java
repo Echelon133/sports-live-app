@@ -3,14 +3,20 @@ package ml.echelon133.matchservice.match.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.CompactMatchDto;
+import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
+import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
 import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.UpsertLineupDto;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.referee.service.RefereeService;
+import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.model.Team;
+import ml.echelon133.matchservice.team.model.TeamPlayer;
+import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import ml.echelon133.matchservice.venue.model.Venue;
 import ml.echelon133.matchservice.venue.service.VenueService;
@@ -30,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -41,6 +48,9 @@ public class MatchServiceTests {
 
     @Mock
     private TeamService teamService;
+
+    @Mock
+    private TeamPlayerService teamPlayerService;
 
     @Mock
     private VenueService venueService;
@@ -790,5 +800,335 @@ public class MatchServiceTests {
                 eq(MatchStatus.FIXTURE_TYPE_STATUSES),
                 eq(pageable)
         );
+    }
+
+    @Test
+    @DisplayName("findMatchLineup correctly fetches match lineups")
+    public void findMatchLineup_MatchLineupsExist_CorrectlyFetchesLineups() {
+        var matchId = UUID.randomUUID();
+
+        var homeStartingPlayer = TestTeamPlayerDto.builder().build();
+        var homeSubstitutePlayer= TestTeamPlayerDto.builder().build();
+        var awayStartingPlayer= TestTeamPlayerDto.builder().build();
+        var awaySubstitutePlayer= TestTeamPlayerDto.builder().build();
+
+        // given
+        given(matchRepository.findHomeStartingPlayersByMatchId(matchId)).willReturn(List.of(homeStartingPlayer));
+        given(matchRepository.findHomeSubstitutePlayersByMatchId(matchId)).willReturn(List.of(homeSubstitutePlayer));
+        given(matchRepository.findAwayStartingPlayersByMatchId(matchId)).willReturn(List.of(awayStartingPlayer));
+        given(matchRepository.findAwaySubstitutePlayersByMatchId(matchId)).willReturn(List.of(awaySubstitutePlayer));
+
+        // when
+        var lineup = matchService.findMatchLineup(matchId);
+
+        // then
+        var homeLineup = lineup.getHome();
+        var awayLineup = lineup.getAway();
+        assertEquals(homeStartingPlayer.getId(), homeLineup.getStartingPlayers().get(0).getId());
+        assertEquals(homeSubstitutePlayer.getId(), homeLineup.getSubstitutePlayers().get(0).getId());
+        assertEquals(awayStartingPlayer.getId(), awayLineup.getStartingPlayers().get(0).getId());
+        assertEquals(awaySubstitutePlayer.getId(), awayLineup.getSubstitutePlayers().get(0).getId());
+    }
+
+    @Test
+    @DisplayName("updateHomeLineup throws when the match does not exist")
+    public void updateHomeLineup_MatchDoesNotExist_Throws() {
+        var matchId = UUID.randomUUID();
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            matchService.updateHomeLineup(matchId, new UpsertLineupDto());
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("match %s could not be found", matchId), message);
+    }
+
+    @Test
+    @DisplayName("updateHomeLineup throws when the match exists but is marked as deleted")
+    public void updateHomeLineup_MatchExistsButMarkedAsDeleted_Throws() {
+        var match = TestMatch.builder().deleted(true).build();
+        var matchId = match.getId();
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            matchService.updateHomeLineup(matchId, new UpsertLineupDto());
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("match %s could not be found", matchId), message);
+    }
+
+    @Test
+    @DisplayName("updateHomeLineup throws when the starting lineup contains players who do not play for the team")
+    public void updateHomeLineup_StartingLineupContainsInvalidPlayers_Throws() {
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var homeTeamId = match.getHomeTeam().getId();
+
+        // players who play for the home team
+        List<TeamPlayerDto> validHomeTeamPlayers = List.of(
+                TestTeamPlayerDto.builder().playerName("Player A").build(),
+                TestTeamPlayerDto.builder().playerName("Player B").build()
+        );
+
+        // have two ids of players who play for the home team and one random id
+        // representing a player from outside the team
+        var startingHomeTeamPlayers = validHomeTeamPlayers
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        startingHomeTeamPlayers.add(UUID.randomUUID().toString());
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+        given(teamPlayerService.findAllPlayersOfTeam(homeTeamId)).willReturn(validHomeTeamPlayers);
+
+        // when
+        String message = assertThrows(LineupPlayerInvalidException.class, () -> {
+            matchService.updateHomeLineup(matchId, new UpsertLineupDto(
+                    startingHomeTeamPlayers, List.of()
+            ));
+        }).getMessage();
+
+        // then
+        assertEquals("at least one of provided starting players does not play for this team", message);
+    }
+
+    @Test
+    @DisplayName("updateHomeLineup throws when the substitute lineup contains players who do not play for the team")
+    public void updateHomeLineup_SubstituteLineupContainsInvalidPlayers_Throws() {
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var homeTeamId = match.getHomeTeam().getId();
+
+        // players who play for the home team
+        List<TeamPlayerDto> validHomeTeamPlayers = List.of(
+                TestTeamPlayerDto.builder().playerName("Player A").build(),
+                TestTeamPlayerDto.builder().playerName("Player B").build()
+        );
+
+        // have two ids of players who play for the home team and one random id
+        // representing a player from outside the team
+        var substituteHomeTeamPlayers = validHomeTeamPlayers
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        substituteHomeTeamPlayers.add(UUID.randomUUID().toString());
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+        given(teamPlayerService.findAllPlayersOfTeam(homeTeamId)).willReturn(validHomeTeamPlayers);
+
+        // when
+        String message = assertThrows(LineupPlayerInvalidException.class, () -> {
+            matchService.updateHomeLineup(matchId, new UpsertLineupDto(
+                    List.of(), substituteHomeTeamPlayers
+            ));
+        }).getMessage();
+
+        // then
+        assertEquals("at least one of provided substitute players does not play for this team", message);
+    }
+
+    @Test
+    @DisplayName("updateHomeLineup saves the lineup when all of the players play for the team")
+    public void updateHomeLineup_LineupContainsOnlyValidPlayers_SavesLineup()
+            throws LineupPlayerInvalidException, ResourceNotFoundException {
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var homeTeamId = match.getHomeTeam().getId();
+
+        // players who play for the home team
+        List<TeamPlayerDto> validHomeTeamPlayers = List.of(
+                TestTeamPlayerDto.builder().playerName("Player A").build(),
+                TestTeamPlayerDto.builder().playerName("Player B").build(),
+                TestTeamPlayerDto.builder().playerName("Player C").build(),
+                TestTeamPlayerDto.builder().playerName("Player D").build()
+        );
+
+        var startingHomeTeamPlayers = validHomeTeamPlayers.subList(0, 3)
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        var substituteHomeTeamPlayers = validHomeTeamPlayers.subList(3, 4)
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+        given(teamPlayerService.findAllPlayersOfTeam(homeTeamId)).willReturn(validHomeTeamPlayers);
+        // simulate turning a list of ids into a list of entity references
+        given(teamPlayerService.mapAllIdsToReferences(anyList())).willAnswer(inv -> {
+            List<UUID> ids = inv.getArgument(0);
+            return ids.stream().map(id -> {
+                var teamPlayer = new TeamPlayer();
+                teamPlayer.setId(id);
+                return teamPlayer;
+            }).collect(Collectors.toList());
+        });
+
+        // when
+        matchService.updateHomeLineup(matchId, new UpsertLineupDto(
+                startingHomeTeamPlayers, substituteHomeTeamPlayers
+        ));
+
+        // then
+        verify(matchRepository).save(argThat(m ->
+                m.getHomeLineup().getStartingPlayers().size() == 3 &&
+                m.getHomeLineup().getSubstitutePlayers().size() == 1 &&
+                m.getAwayLineup().getStartingPlayers().size() == 0 &&
+                m.getAwayLineup().getSubstitutePlayers().size() == 0
+        ));
+    }
+
+    @Test
+    @DisplayName("updateAwayLineup throws when the match does not exist")
+    public void updateAwayLineup_MatchDoesNotExist_Throws() {
+        var matchId = UUID.randomUUID();
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            matchService.updateAwayLineup(matchId, new UpsertLineupDto());
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("match %s could not be found", matchId), message);
+    }
+
+    @Test
+    @DisplayName("updateAwayLineup throws when the match exists but is marked as deleted")
+    public void updateAwayLineup_MatchExistsButMarkedAsDeleted_Throws() {
+        var match = TestMatch.builder().deleted(true).build();
+        var matchId = match.getId();
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            matchService.updateAwayLineup(matchId, new UpsertLineupDto());
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("match %s could not be found", matchId), message);
+    }
+
+    @Test
+    @DisplayName("updateAwayLineup throws when the starting lineup contains players who do not play for the team")
+    public void updateAwayLineup_StartingLineupContainsInvalidPlayers_Throws() {
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var awayTeamId = match.getAwayTeam().getId();
+
+        // players who play for the away team
+        List<TeamPlayerDto> validAwayTeamPlayers = List.of(
+                TestTeamPlayerDto.builder().playerName("Player A").build(),
+                TestTeamPlayerDto.builder().playerName("Player B").build()
+        );
+
+        // have two ids of players who play for the away team and one random id
+        // representing a player from outside the team
+        var startingAwayTeamPlayers = validAwayTeamPlayers
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        startingAwayTeamPlayers.add(UUID.randomUUID().toString());
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+        given(teamPlayerService.findAllPlayersOfTeam(awayTeamId)).willReturn(validAwayTeamPlayers);
+
+        // when
+        String message = assertThrows(LineupPlayerInvalidException.class, () -> {
+            matchService.updateAwayLineup(matchId, new UpsertLineupDto(
+                    startingAwayTeamPlayers, List.of()
+            ));
+        }).getMessage();
+
+        // then
+        assertEquals("at least one of provided starting players does not play for this team", message);
+    }
+
+    @Test
+    @DisplayName("updateAwayLineup throws when the substitute lineup contains players who do not play for the team")
+    public void updateAwayLineup_SubstituteLineupContainsInvalidPlayers_Throws() {
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var awayTeamId = match.getAwayTeam().getId();
+
+        // players who play for the away team
+        List<TeamPlayerDto> validAwayTeamPlayers = List.of(
+                TestTeamPlayerDto.builder().playerName("Player A").build(),
+                TestTeamPlayerDto.builder().playerName("Player B").build()
+        );
+
+        // have two ids of players who play for the away team and one random id
+        // representing a player from outside the team
+        var substituteAwayTeamPlayers = validAwayTeamPlayers
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        substituteAwayTeamPlayers.add(UUID.randomUUID().toString());
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+        given(teamPlayerService.findAllPlayersOfTeam(awayTeamId)).willReturn(validAwayTeamPlayers);
+
+        // when
+        String message = assertThrows(LineupPlayerInvalidException.class, () -> {
+            matchService.updateAwayLineup(matchId, new UpsertLineupDto(
+                    List.of(), substituteAwayTeamPlayers
+            ));
+        }).getMessage();
+
+        // then
+        assertEquals("at least one of provided substitute players does not play for this team", message);
+    }
+
+    @Test
+    @DisplayName("updateAwayLineup saves the lineup when all of the players play for the team")
+    public void updateAwayLineup_LineupContainsOnlyValidPlayers_SavesLineup()
+            throws LineupPlayerInvalidException, ResourceNotFoundException {
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var awayTeamId = match.getAwayTeam().getId();
+
+        // players who play for the away team
+        List<TeamPlayerDto> validAwayTeamPlayers = List.of(
+                TestTeamPlayerDto.builder().playerName("Player A").build(),
+                TestTeamPlayerDto.builder().playerName("Player B").build(),
+                TestTeamPlayerDto.builder().playerName("Player C").build(),
+                TestTeamPlayerDto.builder().playerName("Player D").build()
+        );
+
+        var startingAwayTeamPlayers = validAwayTeamPlayers.subList(0, 3)
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        var substituteAwayTeamPlayers = validAwayTeamPlayers.subList(3, 4)
+                .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+
+        // given
+        given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
+        given(teamPlayerService.findAllPlayersOfTeam(awayTeamId)).willReturn(validAwayTeamPlayers);
+        // simulate turning a list of ids into a list of entity references
+        given(teamPlayerService.mapAllIdsToReferences(anyList())).willAnswer(inv -> {
+            List<UUID> ids = inv.getArgument(0);
+            return ids.stream().map(id -> {
+                var teamPlayer = new TeamPlayer();
+                teamPlayer.setId(id);
+                return teamPlayer;
+            }).collect(Collectors.toList());
+        });
+
+        // when
+        matchService.updateAwayLineup(matchId, new UpsertLineupDto(
+                startingAwayTeamPlayers, substituteAwayTeamPlayers
+        ));
+
+        // then
+        verify(matchRepository).save(argThat(m ->
+                m.getHomeLineup().getStartingPlayers().size() == 0 &&
+                m.getHomeLineup().getSubstitutePlayers().size() == 0 &&
+                m.getAwayLineup().getStartingPlayers().size() == 3 &&
+                m.getAwayLineup().getSubstitutePlayers().size() == 1
+        ));
     }
 }

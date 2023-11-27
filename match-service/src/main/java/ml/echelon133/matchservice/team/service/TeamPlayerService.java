@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -33,6 +34,29 @@ public class TeamPlayerService {
         this.teamPlayerRepository = teamPlayerRepository;
         this.teamRepository = teamRepository;
         this.playerService = playerService;
+    }
+
+    /**
+     * Turns a list of {@link UUID}s of team players into a list of references to {@link TeamPlayer} entities.
+     *
+     * @param teamPlayerIds a list of ids to be turned into references
+     * @return a list of references to entities
+     */
+    public List<TeamPlayer> mapAllIdsToReferences(List<UUID> teamPlayerIds) {
+        return teamPlayerIds.stream().map(teamPlayerRepository::getReferenceById).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns the entity representing a team player with the specified id.
+     * @param id id of the team player's entity
+     * @return team player's entity
+     * @throws ResourceNotFoundException thrown when the team player does not exist in the database or is deleted
+     */
+    public TeamPlayer findEntityById(UUID id) throws ResourceNotFoundException {
+        return teamPlayerRepository
+                .findById(id)
+                .filter(p -> !p.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(TeamPlayer.class, id));
     }
 
     /**

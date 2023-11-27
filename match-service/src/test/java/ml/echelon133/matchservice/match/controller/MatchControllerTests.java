@@ -2,6 +2,7 @@ package ml.echelon133.matchservice.match.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.dto.CompactMatchDto;
+import ml.echelon133.common.match.dto.LineupDto;
 import ml.echelon133.common.match.dto.MatchDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
@@ -9,11 +10,14 @@ import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
 import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
 import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.UpsertLineupDto;
 import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.referee.constraints.RefereeExists;
 import ml.echelon133.matchservice.referee.repository.RefereeRepository;
 import ml.echelon133.matchservice.team.constraints.TeamExists;
+import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
+import ml.echelon133.matchservice.team.repository.TeamPlayerRepository;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import ml.echelon133.matchservice.venue.constraints.VenueExists;
 import ml.echelon133.matchservice.venue.repository.VenueRepository;
@@ -36,16 +40,15 @@ import javax.validation.ConstraintValidator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -66,6 +69,10 @@ public class MatchControllerTests {
     @Mock
     private RefereeRepository refereeRepository;
 
+    // used by @TeamPlayerExists.Validator
+    @Mock
+    private TeamPlayerRepository teamPlayerRepository;
+
     @Spy
     private MatchCriteriaValidator matchCriteriaValidator = MatchServiceApplication.matchCriteriaValidator();
 
@@ -82,6 +89,8 @@ public class MatchControllerTests {
 
     private JacksonTester<UpsertMatchDto> jsonUpsertMatchDto;
 
+    private JacksonTester<UpsertLineupDto> jsonUpsertLineupDto;
+
     @BeforeEach
     public void beforeEach() {
         // validators with mocked dependencies which should be used by the standalone MockMvc configuration
@@ -89,7 +98,8 @@ public class MatchControllerTests {
         Map<Class<? extends ConstraintValidator>, ? extends ConstraintValidator> customValidators = Map.of(
                 TeamExists.Validator.class, new TeamExists.Validator(teamRepository),
                 VenueExists.Validator.class, new VenueExists.Validator(venueRepository),
-                RefereeExists.Validator.class, new RefereeExists.Validator(refereeRepository)
+                RefereeExists.Validator.class, new RefereeExists.Validator(refereeRepository),
+                TeamPlayerExists.Validator.class, new TeamPlayerExists.Validator(teamPlayerRepository)
         );
         var validatorFactoryBean = TestValidatorFactory.getInstance(customValidators);
 
@@ -1171,5 +1181,625 @@ public class MatchControllerTests {
                 eq(false),
                 eq(Pageable.ofSize(50).withPage(4))
         );
+    }
+
+    @Test
+    @DisplayName("GET /api/matches/:id/lineups returns 200 when the service returns the lineup")
+    public void getMatchLineup_LineupExists_StatusOk() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(new LineupDto());
+
+        // when
+        mvc.perform(
+                        get("/api/matches/" + matchId + "/lineups")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.home", hasEntry("startingPlayers", List.of())))
+                .andExpect(jsonPath("$.home", hasEntry("substitutePlayers", List.of())))
+                .andExpect(jsonPath("$.away", hasEntry("startingPlayers", List.of())))
+                .andExpect(jsonPath("$.away", hasEntry("substitutePlayers", List.of())));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when starting players not provided")
+    public void updateHomeLineup_StartingPlayersNotProvided_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var json = jsonUpsertLineupDto.write(
+                new UpsertLineupDto(null, null)
+        ).getJson();
+
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("startingPlayers", List.of("field has to be provided"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when substitute players not provided")
+    public void updateHomeLineup_SubstitutePlayersNotProvided_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var json = jsonUpsertLineupDto.write(
+                new UpsertLineupDto(null, null)
+        ).getJson();
+
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("substitutePlayers", List.of("field has to be provided"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when starting lineup does not have 11 players")
+    public void updateHomeLineup_NotEnoughStartingPlayers_StatusUnprocessableEntity() throws Exception {
+        var numbersOfStartingPlayers = List.of(10, 12);
+        var matchId = UUID.randomUUID();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        for (int howManyPlayers : numbersOfStartingPlayers) {
+            List<String> startingPlayerIds = generateRandomStringIds(howManyPlayers);
+            var json = jsonUpsertLineupDto.write(
+                    new UpsertLineupDto(startingPlayerIds, List.of())
+            ).getJson();
+
+            mvc.perform(
+                            put("/api/matches/" + matchId + "/lineups/home")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages",
+                            hasEntry("startingPlayers", List.of("starting lineup requires exactly 11 players"))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when starting lineup contains invalid uuids")
+    public void updateHomeLineup_StartingPlayersWithInvalidId_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        // have 10 valid ids and one invalid
+        List<String> startingPlayers = generateRandomStringIds(10);
+        startingPlayers.add("some-invalid-uuid");
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, List.of()
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("startingPlayers[10]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when substitute lineup contains invalid uuids")
+    public void updateHomeLineup_SubstitutePlayersWithInvalidId_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        // have 10 valid ids and one invalid
+        List<String> substitutePlayers = generateRandomStringIds(10);
+        substitutePlayers.add("some-invalid-uuid");
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                List.of(), substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("substitutePlayers[10]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when starting lineup contains duplicate ids")
+    public void updateHomeLineup_DuplicateStartingPlayers_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID().toString();
+
+        List<String> duplicateStartingPlayers = Collections.nCopies(11, teamPlayerId);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                duplicateStartingPlayers, List.of()
+        )).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("general", List.of("at least one team player's id occurs more than once in the lineup"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when substitute lineup contains duplicate ids")
+    public void updateHomeLineup_DuplicateSubstitutePlayers_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID().toString();
+
+        List<String> duplicateSubstitutePlayers = Collections.nCopies(11, teamPlayerId);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                List.of(), duplicateSubstitutePlayers
+        )).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("general", List.of("at least one team player's id occurs more than once in the lineup"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when a player occurs both in starting and substitute lineup")
+    public void updateHomeLineup_DuplicatePlayerInStartingAndSubstituteLineup_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var duplicatePlayerId = UUID.randomUUID().toString();
+
+        // 10 unique startingPlayers
+        List<String> startingPlayers = generateRandomStringIds(10);
+        // 5 unique substitutePlayers
+        List<String> substitutePlayers = generateRandomStringIds(5);
+        // add the duplicate id to both starting and substitute players
+        startingPlayers.add(duplicatePlayerId);
+        substitutePlayers.add(duplicatePlayerId);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("general", List.of("at least one team player's id occurs more than once in the lineup"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when starting lineup contains team player who does not exist")
+    public void updateHomeLineup_StartingPlayerNotFound_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var notFoundTeamPlayerId = UUID.randomUUID();
+
+        // have 10 valid ids and one invalid
+        List<String> startingPlayers = generateRandomStringIds(10);
+        startingPlayers.add(notFoundTeamPlayerId.toString());
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, List.of()
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willAnswer(inv -> {
+            UUID arg = inv.getArgument(0);
+            // pretend team player with every id exists except for the id we want to be non-existent
+            return !arg.equals(notFoundTeamPlayerId);
+        });
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("startingPlayers[10]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when substitute lineup contains team player who does not exist")
+    public void updateHomeLineup_SubstitutePlayerNotFound_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var notFoundTeamPlayerId = UUID.randomUUID();
+
+        // have 5 valid ids and one invalid
+        List<String> substitutePlayers = generateRandomStringIds(5);
+        substitutePlayers.add(notFoundTeamPlayerId.toString());
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                List.of(), substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willAnswer(inv -> {
+            UUID arg = inv.getArgument(0);
+            // pretend team player with every id exists except for the id we want to be non-existent
+            return !arg.equals(notFoundTeamPlayerId);
+        });
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("substitutePlayers[5]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 404 when the match not found")
+    public void updateHomeLineup_MatchNotFound_StatusNotFound() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        List<String> startingPlayers = generateRandomStringIds(11);
+        List<String> substitutePlayers = generateRandomStringIds(5);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        doThrow(new ResourceNotFoundException(Match.class, matchId)).when(matchService)
+                .updateHomeLineup(
+                        eq(matchId),
+                        argThat(dto -> dto.getStartingPlayers().size() == 11 && dto.getSubstitutePlayers().size() == 5)
+                );
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when starting players not provided")
+    public void updateAwayLineup_StartingPlayersNotProvided_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var json = jsonUpsertLineupDto.write(
+                new UpsertLineupDto(null, null)
+        ).getJson();
+
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("startingPlayers", List.of("field has to be provided"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when substitute players not provided")
+    public void updateAwayLineup_SubstitutePlayersNotProvided_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var json = jsonUpsertLineupDto.write(
+                new UpsertLineupDto(null, null)
+        ).getJson();
+
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("substitutePlayers", List.of("field has to be provided"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when starting lineup does not have 11 players")
+    public void updateAwayLineup_NotEnoughStartingPlayers_StatusUnprocessableEntity() throws Exception {
+        var numbersOfStartingPlayers = List.of(10, 12);
+        var matchId = UUID.randomUUID();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        for (int howManyPlayers : numbersOfStartingPlayers) {
+            List<String> startingPlayerIds = generateRandomStringIds(howManyPlayers);
+            var json = jsonUpsertLineupDto.write(
+                    new UpsertLineupDto(startingPlayerIds, List.of())
+            ).getJson();
+
+            mvc.perform(
+                            put("/api/matches/" + matchId + "/lineups/away")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages",
+                            hasEntry("startingPlayers", List.of("starting lineup requires exactly 11 players"))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when starting lineup contains invalid uuids")
+    public void updateAwayLineup_StartingPlayersWithInvalidId_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        // have 10 valid ids and one invalid
+        List<String> startingPlayers = generateRandomStringIds(10);
+        startingPlayers.add("some-invalid-uuid");
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, List.of()
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("startingPlayers[10]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when substitute lineup contains invalid uuids")
+    public void updateAwayLineup_SubstitutePlayersWithInvalidId_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        // have 10 valid ids and one invalid
+        List<String> substitutePlayers = generateRandomStringIds(10);
+        substitutePlayers.add("some-invalid-uuid");
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                List.of(), substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("substitutePlayers[10]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when starting lineup contains duplicate ids")
+    public void updateAwayLineup_DuplicateStartingPlayers_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID().toString();
+
+        List<String> duplicateStartingPlayers = Collections.nCopies(11, teamPlayerId);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                duplicateStartingPlayers, List.of()
+        )).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("general", List.of("at least one team player's id occurs more than once in the lineup"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when substitute lineup contains duplicate ids")
+    public void updateAwayLineup_DuplicateSubstitutePlayers_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var teamPlayerId = UUID.randomUUID().toString();
+
+        List<String> duplicateSubstitutePlayers = Collections.nCopies(11, teamPlayerId);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                List.of(), duplicateSubstitutePlayers
+        )).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("general", List.of("at least one team player's id occurs more than once in the lineup"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when a player occurs both in starting and substitute lineup")
+    public void updateAwayLineup_DuplicatePlayerInStartingAndSubstituteLineup_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var duplicatePlayerId = UUID.randomUUID().toString();
+
+        // 10 unique startingPlayers
+        List<String> startingPlayers = generateRandomStringIds(10);
+        // 5 unique substitutePlayers
+        List<String> substitutePlayers = generateRandomStringIds(5);
+        // add the duplicate id to both starting and substitute players
+        startingPlayers.add(duplicatePlayerId);
+        substitutePlayers.add(duplicatePlayerId);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("general", List.of("at least one team player's id occurs more than once in the lineup"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when starting lineup contains team player who does not exist")
+    public void updateAwayLineup_StartingPlayerNotFound_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var notFoundTeamPlayerId = UUID.randomUUID();
+
+        // have 10 valid ids and one invalid
+        List<String> startingPlayers = generateRandomStringIds(10);
+        startingPlayers.add(notFoundTeamPlayerId.toString());
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, List.of()
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willAnswer(inv -> {
+            UUID arg = inv.getArgument(0);
+            // pretend team player with every id exists except for the id we want to be non-existent
+            return !arg.equals(notFoundTeamPlayerId);
+        });
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("startingPlayers[10]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when substitute lineup contains team player who does not exist")
+    public void updateAwayLineup_SubstitutePlayerNotFound_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var notFoundTeamPlayerId = UUID.randomUUID();
+
+        // have 5 valid ids and one invalid
+        List<String> substitutePlayers = generateRandomStringIds(5);
+        substitutePlayers.add(notFoundTeamPlayerId.toString());
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                List.of(), substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willAnswer(inv -> {
+            UUID arg = inv.getArgument(0);
+            // pretend team player with every id exists except for the id we want to be non-existent
+            return !arg.equals(notFoundTeamPlayerId);
+        });
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages",
+                        hasEntry("substitutePlayers[5]", List.of("id does not belong to a valid team player"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 404 when the match not found")
+    public void updateAwayLineup_MatchNotFound_StatusNotFound() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        List<String> startingPlayers = generateRandomStringIds(11);
+        List<String> substitutePlayers = generateRandomStringIds(5);
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+        doThrow(new ResourceNotFoundException(Match.class, matchId)).when(matchService)
+                .updateAwayLineup(
+                        eq(matchId),
+                        argThat(dto -> dto.getStartingPlayers().size() == 11 && dto.getSubstitutePlayers().size() == 5)
+                );
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound());
+    }
+
+    private List<String> generateRandomStringIds(int numberOfIds) {
+        return IntStream.range(0, numberOfIds).mapToObj(i -> UUID.randomUUID().toString()).collect(Collectors.toList());
     }
 }

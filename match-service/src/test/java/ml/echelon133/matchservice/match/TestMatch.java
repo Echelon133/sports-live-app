@@ -2,6 +2,7 @@ package ml.echelon133.matchservice.match;
 
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
+import ml.echelon133.matchservice.match.model.Lineup;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.ScoreInfo;
 import ml.echelon133.matchservice.referee.model.Referee;
@@ -114,6 +115,8 @@ public interface TestMatch {
             match.setPenaltiesInfo(penaltiesInfo);
             match.setResult(result);
             match.setDeleted(deleted);
+            match.setHomeLineup(new Lineup());
+            match.setAwayLineup(new Lineup());
             return match;
         }
     }

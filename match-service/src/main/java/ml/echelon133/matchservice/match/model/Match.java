@@ -70,12 +70,22 @@ public class Match extends BaseEntity {
     @Column(nullable = false, length = 15)
     private MatchResult result;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "home_lineup_id", referencedColumnName = "id")
+    private Lineup homeLineup;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "away_lineup_id", referencedColumnName = "id")
+    private Lineup awayLineup;
+
     public Match() {
         this.status = MatchStatus.NOT_STARTED;
         this.halfTimeScoreInfo = new ScoreInfo();
         this.scoreInfo = new ScoreInfo();
         this.penaltiesInfo = new ScoreInfo();
         this.result = MatchResult.NONE;
+        this.homeLineup = new Lineup();
+        this.awayLineup = new Lineup();
     }
 
     public MatchStatus getStatus() {
@@ -164,5 +174,21 @@ public class Match extends BaseEntity {
 
     public void setResult(MatchResult result) {
         this.result = result;
+    }
+
+    public Lineup getHomeLineup() {
+        return homeLineup;
+    }
+
+    public void setHomeLineup(Lineup homeLineup) {
+        this.homeLineup = homeLineup;
+    }
+
+    public Lineup getAwayLineup() {
+        return awayLineup;
+    }
+
+    public void setAwayLineup(Lineup awayLineup) {
+        this.awayLineup = awayLineup;
     }
 }
