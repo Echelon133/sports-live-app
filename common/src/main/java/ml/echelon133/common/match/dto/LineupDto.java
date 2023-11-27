@@ -3,19 +3,15 @@ package ml.echelon133.common.match.dto;
 import ml.echelon133.common.team.dto.TeamPlayerDto;
 
 import java.util.List;
-import java.util.Map;
 
 public class LineupDto {
 
-    private static final String STARTING_PLAYERS = "startingPlayers";
-    private static final String SUBSTITUTE_PLAYERS = "substitutePlayers";
-
-    private final Map<String, List<TeamPlayerDto>> home;
-    private final Map<String, List<TeamPlayerDto>> away;
+    private final TeamLineup home;
+    private final TeamLineup away;
 
     public LineupDto() {
-        this.home = Map.of(STARTING_PLAYERS, List.of(), SUBSTITUTE_PLAYERS, List.of());
-        this.away = Map.of(STARTING_PLAYERS, List.of(), SUBSTITUTE_PLAYERS, List.of());
+        this.home = new TeamLineup();
+        this.away = new TeamLineup();
     }
     public LineupDto(
             List<TeamPlayerDto> homeStartingPlayers,
@@ -23,21 +19,37 @@ public class LineupDto {
             List<TeamPlayerDto> awayStartingPlayers,
             List<TeamPlayerDto> awaySubstitutePlayers
     ) {
-        this.home = Map.of(
-                STARTING_PLAYERS, homeStartingPlayers,
-                SUBSTITUTE_PLAYERS, homeSubstitutePlayers
-        );
-        this.away = Map.of(
-                STARTING_PLAYERS, awayStartingPlayers,
-                SUBSTITUTE_PLAYERS, awaySubstitutePlayers
-        );
+        this.home = new TeamLineup(homeStartingPlayers, homeSubstitutePlayers);
+        this.away = new TeamLineup(awayStartingPlayers, awaySubstitutePlayers);
     }
 
-    public Map<String, List<TeamPlayerDto>> getHome() {
+    public static class TeamLineup {
+        private final List<TeamPlayerDto> startingPlayers;
+        private final List<TeamPlayerDto> substitutePlayers;
+
+        public TeamLineup() {
+            this.startingPlayers = List.of();
+            this.substitutePlayers = List.of();
+        }
+        public TeamLineup(List<TeamPlayerDto> startingPlayers, List<TeamPlayerDto> substitutePlayers) {
+            this.startingPlayers = startingPlayers;
+            this.substitutePlayers = substitutePlayers;
+        }
+
+        public List<TeamPlayerDto> getStartingPlayers() {
+            return startingPlayers;
+        }
+
+        public List<TeamPlayerDto> getSubstitutePlayers() {
+            return substitutePlayers;
+        }
+    }
+
+    public TeamLineup getHome() {
         return home;
     }
 
-    public Map<String, List<TeamPlayerDto>> getAway() {
+    public TeamLineup getAway() {
         return away;
     }
 }

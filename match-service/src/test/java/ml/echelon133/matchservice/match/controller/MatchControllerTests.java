@@ -1197,7 +1197,11 @@ public class MatchControllerTests {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                 )
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.home", hasEntry("startingPlayers", List.of())))
+                .andExpect(jsonPath("$.home", hasEntry("substitutePlayers", List.of())))
+                .andExpect(jsonPath("$.away", hasEntry("startingPlayers", List.of())))
+                .andExpect(jsonPath("$.away", hasEntry("substitutePlayers", List.of())));
     }
 
     @Test

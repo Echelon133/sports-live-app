@@ -824,10 +824,10 @@ public class MatchServiceTests {
         // then
         var homeLineup = lineup.getHome();
         var awayLineup = lineup.getAway();
-        assertEquals(homeStartingPlayer.getId(), homeLineup.get("startingPlayers").get(0).getId());
-        assertEquals(homeSubstitutePlayer.getId(), homeLineup.get("substitutePlayers").get(0).getId());
-        assertEquals(awayStartingPlayer.getId(), awayLineup.get("startingPlayers").get(0).getId());
-        assertEquals(awaySubstitutePlayer.getId(), awayLineup.get("substitutePlayers").get(0).getId());
+        assertEquals(homeStartingPlayer.getId(), homeLineup.getStartingPlayers().get(0).getId());
+        assertEquals(homeSubstitutePlayer.getId(), homeLineup.getSubstitutePlayers().get(0).getId());
+        assertEquals(awayStartingPlayer.getId(), awayLineup.getStartingPlayers().get(0).getId());
+        assertEquals(awaySubstitutePlayer.getId(), awayLineup.getSubstitutePlayers().get(0).getId());
     }
 
     @Test
