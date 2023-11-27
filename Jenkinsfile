@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         KUBERNETES_USER_CRED = "echelon133-credentials"
-        KUBERNETES_SERVER_URL = "https://192.168.49.2:8443"
+        KUBERNETES_SERVER_URL = "https://192.168.67.2:8443"
         KUBERNETES_APP_NAMESPACE = "sports-live-app"
     }
 
