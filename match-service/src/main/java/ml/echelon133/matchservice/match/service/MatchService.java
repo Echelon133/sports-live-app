@@ -58,7 +58,7 @@ public class MatchService {
         this.matchRepository = matchRepository;
     }
 
-    private Match findEntityById(UUID id) throws ResourceNotFoundException {
+    public Match findEntityById(UUID id) throws ResourceNotFoundException {
         return matchRepository
                 .findById(id)
                 .filter(m -> !m.isDeleted())

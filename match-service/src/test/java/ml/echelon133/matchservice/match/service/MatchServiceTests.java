@@ -98,6 +98,58 @@ public class MatchServiceTests {
     }
 
     @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(matchRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            matchService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("match %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var matchEntity = new Match();
+        matchEntity.setDeleted(true);
+
+        // given
+        given(matchRepository.findById(testId)).willReturn(Optional.of(matchEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            matchService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("match %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var matchEntity = new Match();
+
+        // given
+        given(matchRepository.findById(testId)).willReturn(Optional.of(matchEntity));
+
+        // when
+        var entity = matchService.findEntityById(testId);
+
+        // then
+        assertEquals(matchEntity, entity);
+    }
+
+    @Test
     @DisplayName("markMatchAsDeleted calls repository's method and returns correct number of entries marked as deleted")
     public void markMatchAsDeleted_ProvidedId_CorrectlyCallsMethodAndReturnsCount() {
         var idToDelete = UUID.randomUUID();
