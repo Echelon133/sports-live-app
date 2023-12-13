@@ -1,6 +1,5 @@
 package ml.echelon133.common.event.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.common.match.MatchStatus;
 
@@ -15,9 +14,6 @@ import java.util.UUID;
  */
 public abstract class MatchEventDetails implements Serializable {
 
-    // this field contains information about the JSON subtype of the serialized object --
-    // @JsonIgnore prevents this field from being included twice in the output string
-    @JsonIgnore
     private MatchEventType type;
     private String minute;
     private UUID competitionId;

@@ -10,6 +10,7 @@ import ml.echelon133.common.event.dto.MatchEventDetails;
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.EXISTING_PROPERTY,
         property = "type",
         visible = true
 )
