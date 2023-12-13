@@ -45,6 +45,7 @@ public enum MatchStatus {
      *
      * @param status case-insensitive string representing the enum constant
      * @return the enum constant with the specified name (case-insensitive)
+     * @throws IllegalArgumentException thrown when there is no constant associated with that name
      */
     public static MatchStatus valueOfCaseIgnore(String status) {
         return MatchStatus.valueOf(status.toUpperCase());
