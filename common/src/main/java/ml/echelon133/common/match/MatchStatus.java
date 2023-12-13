@@ -2,6 +2,7 @@ package ml.echelon133.common.match;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,6 +19,21 @@ public enum MatchStatus {
     PENALTIES,
     POSTPONED,
     ABANDONED;
+
+
+    /**
+     * All valid possibilities of match's status change.
+     */
+    public static final Map<MatchStatus, List<MatchStatus>> VALID_STATUS_CHANGES = Map.of(
+            NOT_STARTED, List.of(FIRST_HALF, ABANDONED, POSTPONED),
+            FIRST_HALF, List.of(HALF_TIME, ABANDONED),
+            HALF_TIME, List.of(SECOND_HALF, ABANDONED),
+            SECOND_HALF, List.of(FINISHED, EXTRA_TIME, ABANDONED),
+            EXTRA_TIME, List.of(FINISHED, PENALTIES, ABANDONED),
+            PENALTIES, List.of(FINISHED, ABANDONED),
+            POSTPONED, List.of(),
+            ABANDONED, List.of()
+    );
 
     /**
      * All match statuses (represented as a list of strings).
