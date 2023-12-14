@@ -1,6 +1,7 @@
 package ml.echelon133.matchservice.event.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.matchservice.event.model.dto.constraints.EventMinuteFormat;
 import ml.echelon133.matchservice.event.model.dto.constraints.MatchStatusValid;
 import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
@@ -20,6 +21,12 @@ public abstract class InsertMatchEvent {
     @NotNull
     @EventMinuteFormat
     private String minute;
+
+    public InsertMatchEvent() {}
+    public InsertMatchEvent(String type, String minute) {
+        this.type = type;
+        this.minute = minute;
+    }
 
     public String getType() {
         return type;
@@ -46,8 +53,8 @@ public abstract class InsertMatchEvent {
         private String targetStatus;
 
         public StatusDto() {}
-
-        public StatusDto(String targetStatus) {
+        public StatusDto(String minute, String targetStatus) {
+            super(MatchEventType.STATUS.name(), minute);
             this.targetStatus = targetStatus;
         }
 
@@ -69,6 +76,10 @@ public abstract class InsertMatchEvent {
         private String message;
 
         public CommentaryDto() {}
+        public CommentaryDto(String minute, String message) {
+            super(MatchEventType.COMMENTARY.name(), minute);
+            this.message = message;
+        }
 
         public String getMessage() {
             return message;
@@ -91,6 +102,11 @@ public abstract class InsertMatchEvent {
         private boolean redCard;
 
         public CardDto() {}
+        public CardDto(String minute, String cardedPlayerId, boolean redCard) {
+            super(MatchEventType.CARD.name(), minute);
+            this.cardedPlayerId = cardedPlayerId;
+            this.redCard = redCard;
+        }
 
         public String getCardedPlayerId() {
             return cardedPlayerId;
@@ -124,6 +140,12 @@ public abstract class InsertMatchEvent {
         private boolean ownGoal;
 
         public GoalDto() {}
+        public GoalDto(String minute, String scoringPlayerId, String assistingPlayerId, boolean ownGoal) {
+            super(MatchEventType.GOAL.name(), minute);
+            this.scoringPlayerId = scoringPlayerId;
+            this.assistingPlayerId = assistingPlayerId;
+            this.ownGoal = ownGoal;
+        }
 
         public String getScoringPlayerId() {
             return scoringPlayerId;
@@ -156,19 +178,24 @@ public abstract class InsertMatchEvent {
     public static class PenaltyDto extends InsertMatchEvent {
         @NotNull
         @TeamPlayerExists
-        private String playerShootingId;
+        private String shootingPlayerId;
 
         @NotNull
         private boolean scored;
 
         public PenaltyDto() {}
-
-        public String getPlayerShootingId() {
-            return playerShootingId;
+        public PenaltyDto(String minute, String shootingPlayerId, boolean scored) {
+            super(MatchEventType.PENALTY.name(), minute);
+            this.shootingPlayerId = shootingPlayerId;
+            this.scored = scored;
         }
 
-        public void setPlayerShootingId(String playerShootingId) {
-            this.playerShootingId = playerShootingId;
+        public String getShootingPlayerId() {
+            return shootingPlayerId;
+        }
+
+        public void setShootingPlayerId(String shootingPlayerId) {
+            this.shootingPlayerId = shootingPlayerId;
         }
 
         public boolean isScored() {
@@ -193,6 +220,11 @@ public abstract class InsertMatchEvent {
         private String playerOutId;
 
         public SubstitutionDto() {}
+        public SubstitutionDto(String minute, String playerInId, String playerOutId) {
+            super(MatchEventType.SUBSTITUTION.name(), minute);
+            this.playerInId = playerInId;
+            this.playerOutId = playerOutId;
+        }
 
         public String getPlayerInId() {
             return playerInId;

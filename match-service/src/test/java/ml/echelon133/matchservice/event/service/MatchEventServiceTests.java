@@ -89,7 +89,7 @@ public class MatchEventServiceTests {
     @DisplayName("processEvent throws when the match does not exist")
     public void processEvent_MatchNotFound_Throws() throws ResourceNotFoundException {
         var matchId = UUID.randomUUID();
-        var eventDto = new InsertMatchEvent.StatusDto("asdf");
+        var eventDto = new InsertMatchEvent.StatusDto("1", "asdf");
 
         // given
         given(matchService.findEntityById(matchId)).willThrow(new ResourceNotFoundException(Match.class, matchId));
@@ -200,7 +200,7 @@ public class MatchEventServiceTests {
         for (MatchStatus attemptedTargetStatus : MatchStatus.values()) {
             // reset the original match status before every attempt
             match.setStatus(testedMatchStatus);
-            var testedEvent = new InsertMatchEvent.StatusDto(attemptedTargetStatus.name());
+            var testedEvent = new InsertMatchEvent.StatusDto("1", attemptedTargetStatus.name());
 
             try {
                 matchEventService.processEvent(matchId, testedEvent);
