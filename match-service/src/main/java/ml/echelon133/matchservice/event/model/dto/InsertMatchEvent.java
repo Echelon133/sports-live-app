@@ -98,7 +98,6 @@ public abstract class InsertMatchEvent {
         @TeamPlayerExists
         private String cardedPlayerId;
 
-        @NotNull
         private boolean redCard;
 
         public CardDto() {}
@@ -136,7 +135,6 @@ public abstract class InsertMatchEvent {
         @TeamPlayerExists
         private String assistingPlayerId;
 
-        @NotNull
         private boolean ownGoal;
 
         public GoalDto() {}
@@ -180,7 +178,6 @@ public abstract class InsertMatchEvent {
         @TeamPlayerExists
         private String shootingPlayerId;
 
-        @NotNull
         private boolean scored;
 
         public PenaltyDto() {}
