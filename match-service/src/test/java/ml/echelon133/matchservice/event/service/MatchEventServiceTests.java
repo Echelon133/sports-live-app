@@ -223,4 +223,25 @@ public class MatchEventServiceTests {
                 argThat(e -> e.getMatch().getId().equals(matchId))
         );
     }
+
+    @Test
+    @DisplayName("processEvent saves the commentary")
+    public void processEvent_CommentaryPresent_SavesEvent() throws MatchEventInvalidException, ResourceNotFoundException {
+        var match = new Match();
+        var matchId = match.getId();
+        var message = "This is a test message";
+        var testedEvent = new InsertMatchEvent.CommentaryDto("45", message);
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        // when
+        matchEventService.processEvent(matchId, testedEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.CommentaryDto eventDetails = (MatchEventDetails.CommentaryDto)matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) && eventDetails.getMessage().equals(message);
+        }));
+    }
 }

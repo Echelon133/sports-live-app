@@ -61,6 +61,8 @@ public class MatchEventService {
 
         if (eventDto instanceof InsertMatchEvent.StatusDto) {
             processStatusEvent(match, (InsertMatchEvent.StatusDto) eventDto);
+        } else if (eventDto instanceof InsertMatchEvent.CommentaryDto) {
+            processCommentaryEvent(match, (InsertMatchEvent.CommentaryDto) eventDto);
         } else {
             throw new MatchEventInvalidException("handling of this event is not implemented");
         }
@@ -90,6 +92,21 @@ public class MatchEventService {
                 targetStatus
         );
         match.setStatus(targetStatus);
+        matchEventRepository.save(new MatchEvent(match, eventDetails));
+    }
+
+    /**
+     * Processes the commentary event and saves it.
+     *
+     * @param match entity representing the match to which this event is related
+     * @param commentaryDto dto containing information about the event
+     */
+    private void processCommentaryEvent(Match match, InsertMatchEvent.CommentaryDto commentaryDto) {
+        var eventDetails = new MatchEventDetails.CommentaryDto(
+                commentaryDto.getMinute(),
+                match.getCompetitionId(),
+                commentaryDto.getMessage()
+        );
         matchEventRepository.save(new MatchEvent(match, eventDetails));
     }
 }

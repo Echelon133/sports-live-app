@@ -69,4 +69,25 @@ public abstract class MatchEventDetails implements Serializable {
             this.targetStatus = targetStatus;
         }
     }
+
+    /**
+     * Data class representing already processed match event of type <b>COMMENTARY</b>.
+     */
+    public static class CommentaryDto extends MatchEventDetails {
+        private String message;
+
+        public CommentaryDto() {}
+        public CommentaryDto(String minute, UUID competitionId, String message) {
+            super(MatchEventType.COMMENTARY, minute, competitionId);
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+    }
 }
