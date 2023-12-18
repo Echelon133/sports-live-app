@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.event.service;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
+import ml.echelon133.common.match.dto.LineupDto;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
 import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
@@ -10,6 +11,12 @@ import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.service.MatchService;
+import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.player.model.Position;
+import ml.echelon133.matchservice.team.TestTeam;
+import ml.echelon133.matchservice.team.TestTeamPlayerDto;
+import ml.echelon133.matchservice.team.model.TeamPlayer;
+import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +42,9 @@ public class MatchEventServiceTests {
 
     @Mock
     private MatchService matchService;
+
+    @Mock
+    private TeamPlayerService teamPlayerService;
 
     @InjectMocks
     private MatchEventService matchEventService;
@@ -243,5 +253,441 @@ public class MatchEventServiceTests {
             MatchEventDetails.CommentaryDto eventDetails = (MatchEventDetails.CommentaryDto)matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) && eventDetails.getMessage().equals(message);
         }));
+    }
+
+    @Test
+    @DisplayName("processEvent rejects CARD events if the ball in the match is not in play")
+    public void processEvent_BallNotInPlay_RejectsInvalidCard() throws ResourceNotFoundException {
+        var ballNotInPlayStatuses = List.of(
+                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME, MatchStatus.POSTPONED, MatchStatus.ABANDONED
+        );
+        var match = new Match();
+        var matchId = match.getId();
+        var testEvent = new InsertMatchEvent.CardDto("1", UUID.randomUUID().toString(), false);
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        for (MatchStatus status: ballNotInPlayStatuses) {
+            match.setStatus(status);
+
+            // when
+            String message = assertThrows(MatchEventInvalidException.class, () -> {
+                matchEventService.processEvent(matchId, testEvent);
+            }).getMessage();
+
+            // then
+            assertEquals("event cannot be processed when the ball is not in play", message);
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent rejects CARD events if the player does not play for either team")
+    public void processEvent_PlayerDoesNotPlayForTeams_RejectsInvalidCard() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team that is not in the match
+        var testTeamPlayer = new TeamPlayer(
+                TestTeam.builder().name("Team C").build(),
+                new Player(),
+                Position.GOALKEEPER,
+                1
+        );
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s does not play for either team", testTeamPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects CARD events if the player plays for the team in the match but is not in the lineup")
+    public void processEvent_PlayerNotInLineup_RejectsInvalidCard() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        // create an empty lineup which ensures that the player won't be in it
+        var teamLineup = new LineupDto();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not placed in the lineup of this match", testTeamPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent accepts a CARD event if a player with no cards gets a yellow card")
+    public void processEvent_PlayerWithNoCardsGetsYellow_SavesEvent() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // past events do not contain any card events for the player
+        List<MatchEvent> pastEvents = List.of();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            return match.getId().equals(matchId) &&
+                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.YELLOW);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts a CARD event if a player with no cards gets a red card")
+    public void processEvent_PlayerWithNoCardsGetsRed_SavesEvent() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // past events do not contain any card events for the player
+        List<MatchEvent> pastEvents = List.of();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            return match.getId().equals(matchId) &&
+                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts a CARD event if a player with a yellow card gets a second yellow card")
+    public void processEvent_PlayerWithYellowGetsSecondYellow_SavesEvent() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // create a past event with a yellow card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        testTeamPlayer.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.YELLOW,
+                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            return match.getId().equals(matchId) &&
+                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.SECOND_YELLOW);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts a CARD event if a player with a yellow card gets a direct red card")
+    public void processEvent_PlayerWithYellowGetsDirectRed_SavesEvent() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // create a past event with a yellow card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        null,
+                        MatchEventDetails.CardDto.CardType.YELLOW,
+                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            return match.getId().equals(matchId) &&
+                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent rejects a CARD event if a player with two yellow cards gets a third yellow card")
+    public void processEvent_PlayerWithTwoYellowGetsThirdYellow_Throws() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // create a past event with a yellow card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        testTeamPlayer.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("the player is already ejected", message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects a CARD event if a player with two yellow cards gets a direct red card")
+    public void processEvent_PlayerWithTwoYellowGetsDirectRed_Throws() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // create a past event with a yellow card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        testTeamPlayer.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("the player is already ejected", message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects a CARD event if a player with a direct red card gets a yellow card")
+    public void processEvent_PlayerWithDirectRedGetsYellow_Throws() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // create a past event with a yellow card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        testTeamPlayer.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
+                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("the player is already ejected", message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects a CARD event if a player with a direct red card gets a direct red card")
+    public void processEvent_PlayerWithDirectRedGetsDirectRed_Throws() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var testTeamPlayerId = testTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        // create a past event with a yellow card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        testTeamPlayer.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
+                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("the player is already ejected", message);
     }
 }

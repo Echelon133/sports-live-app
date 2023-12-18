@@ -90,4 +90,86 @@ public abstract class MatchEventDetails implements Serializable {
             this.message = message;
         }
     }
+
+    /**
+     * Data class representing already processed match event of type <b>CARD</b>.
+     */
+    public static class CardDto extends MatchEventDetails {
+        private UUID teamId;
+        private CardType cardType;
+        private CardedPlayerInfo cardedPlayer;
+
+        public enum CardType {
+            YELLOW, SECOND_YELLOW, DIRECT_RED
+        }
+
+        public CardDto() {}
+        public CardDto(String minute, UUID competitionId, UUID teamId, CardType cardType, CardedPlayerInfo cardedPlayer) {
+            super(MatchEventType.CARD, minute, competitionId);
+            this.teamId = teamId;
+            this.cardType = cardType;
+            this.cardedPlayer = cardedPlayer;
+        }
+
+        public static class CardedPlayerInfo implements Serializable {
+            private UUID teamPlayerId;
+            private UUID playerId;
+            private String name;
+
+            public CardedPlayerInfo() {}
+            public CardedPlayerInfo(UUID teamPlayerId, UUID playerId, String name) {
+                this.teamPlayerId = teamPlayerId;
+                this.playerId = playerId;
+                this.name = name;
+            }
+
+            public UUID getTeamPlayerId() {
+                return teamPlayerId;
+            }
+
+            public void setTeamPlayerId(UUID teamPlayerId) {
+                this.teamPlayerId = teamPlayerId;
+            }
+
+            public UUID getPlayerId() {
+                return playerId;
+            }
+
+            public void setPlayerId(UUID playerId) {
+                this.playerId = playerId;
+            }
+
+            public String getName() {
+                return name;
+            }
+
+            public void setName(String name) {
+                this.name = name;
+            }
+        }
+
+        public UUID getTeamId() {
+            return teamId;
+        }
+
+        public void setTeamId(UUID teamId) {
+            this.teamId = teamId;
+        }
+
+        public CardType getCardType() {
+            return cardType;
+        }
+
+        public void setCardType(CardType cardType) {
+            this.cardType = cardType;
+        }
+
+        public CardedPlayerInfo getCardedPlayer() {
+            return cardedPlayer;
+        }
+
+        public void setCardedPlayer(CardedPlayerInfo cardedPlayer) {
+            this.cardedPlayer = cardedPlayer;
+        }
+    }
 }
