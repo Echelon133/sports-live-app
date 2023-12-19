@@ -624,6 +624,32 @@ public class MatchEventControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/matches/:id/events returns 422 when GOAL event's scoringPlayerId and assistingPlayerId are the same")
+    public void processMatchEvent_ScoringAndAssistingPlayerIdentical_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var event = new InsertMatchEvent.GoalDto(
+                "1", playerId.toString(), playerId.toString(), false
+        );
+        var json = jsonInsertMatchEvent.write(event).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
+
+        // when
+        mvc.perform(
+                        post("/api/matches/" + matchId + "/events")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("general", List.of("the id of scoring and assisting player must not be identical")))
+                );
+    }
+
+    @Test
     @DisplayName("POST /api/matches/:id/events returns 200 when GOAL event's assistingPlayerId exists")
     public void processMatchEvent_AssistingPlayerIdFound_StatusOk() throws Exception {
         var matchId = UUID.randomUUID();
