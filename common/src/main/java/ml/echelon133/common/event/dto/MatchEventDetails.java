@@ -49,6 +49,44 @@ public abstract class MatchEventDetails implements Serializable {
         this.competitionId = competitionId;
     }
 
+
+    public static class SerializedPlayerInfo implements Serializable {
+        private UUID teamPlayerId;
+        private UUID playerId;
+        private String name;
+
+        public SerializedPlayerInfo() {}
+        public SerializedPlayerInfo(UUID teamPlayerId, UUID playerId, String name) {
+            this.teamPlayerId = teamPlayerId;
+            this.playerId = playerId;
+            this.name = name;
+        }
+
+        public UUID getTeamPlayerId() {
+            return teamPlayerId;
+        }
+
+        public void setTeamPlayerId(UUID teamPlayerId) {
+            this.teamPlayerId = teamPlayerId;
+        }
+
+        public UUID getPlayerId() {
+            return playerId;
+        }
+
+        public void setPlayerId(UUID playerId) {
+            this.playerId = playerId;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
     /**
      * Data class representing already processed match event of type <b>STATUS</b>.
      */
@@ -97,56 +135,20 @@ public abstract class MatchEventDetails implements Serializable {
     public static class CardDto extends MatchEventDetails {
         private UUID teamId;
         private CardType cardType;
-        private CardedPlayerInfo cardedPlayer;
+        private SerializedPlayerInfo cardedPlayer;
 
         public enum CardType {
             YELLOW, SECOND_YELLOW, DIRECT_RED
         }
 
         public CardDto() {}
-        public CardDto(String minute, UUID competitionId, UUID teamId, CardType cardType, CardedPlayerInfo cardedPlayer) {
+        public CardDto(String minute, UUID competitionId, UUID teamId, CardType cardType, SerializedPlayerInfo cardedPlayer) {
             super(MatchEventType.CARD, minute, competitionId);
             this.teamId = teamId;
             this.cardType = cardType;
             this.cardedPlayer = cardedPlayer;
         }
 
-        public static class CardedPlayerInfo implements Serializable {
-            private UUID teamPlayerId;
-            private UUID playerId;
-            private String name;
-
-            public CardedPlayerInfo() {}
-            public CardedPlayerInfo(UUID teamPlayerId, UUID playerId, String name) {
-                this.teamPlayerId = teamPlayerId;
-                this.playerId = playerId;
-                this.name = name;
-            }
-
-            public UUID getTeamPlayerId() {
-                return teamPlayerId;
-            }
-
-            public void setTeamPlayerId(UUID teamPlayerId) {
-                this.teamPlayerId = teamPlayerId;
-            }
-
-            public UUID getPlayerId() {
-                return playerId;
-            }
-
-            public void setPlayerId(UUID playerId) {
-                this.playerId = playerId;
-            }
-
-            public String getName() {
-                return name;
-            }
-
-            public void setName(String name) {
-                this.name = name;
-            }
-        }
 
         public UUID getTeamId() {
             return teamId;
@@ -164,11 +166,11 @@ public abstract class MatchEventDetails implements Serializable {
             this.cardType = cardType;
         }
 
-        public CardedPlayerInfo getCardedPlayer() {
+        public SerializedPlayerInfo getCardedPlayer() {
             return cardedPlayer;
         }
 
-        public void setCardedPlayer(CardedPlayerInfo cardedPlayer) {
+        public void setCardedPlayer(SerializedPlayerInfo cardedPlayer) {
             this.cardedPlayer = cardedPlayer;
         }
     }

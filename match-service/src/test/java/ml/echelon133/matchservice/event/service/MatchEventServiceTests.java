@@ -443,7 +443,7 @@ public class MatchEventServiceTests {
                         UUID.randomUUID(),
                         testTeamPlayer.getTeam().getId(),
                         MatchEventDetails.CardDto.CardType.YELLOW,
-                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
                 )
         ));
 
@@ -490,7 +490,7 @@ public class MatchEventServiceTests {
                         UUID.randomUUID(),
                         null,
                         MatchEventDetails.CardDto.CardType.YELLOW,
-                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
                 )
         ));
 
@@ -537,7 +537,7 @@ public class MatchEventServiceTests {
                         UUID.randomUUID(),
                         testTeamPlayer.getTeam().getId(),
                         MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
                 )
         ));
 
@@ -582,7 +582,7 @@ public class MatchEventServiceTests {
                         UUID.randomUUID(),
                         testTeamPlayer.getTeam().getId(),
                         MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
                 )
         ));
 
@@ -627,7 +627,7 @@ public class MatchEventServiceTests {
                         UUID.randomUUID(),
                         testTeamPlayer.getTeam().getId(),
                         MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
                 )
         ));
 
@@ -672,7 +672,7 @@ public class MatchEventServiceTests {
                         UUID.randomUUID(),
                         testTeamPlayer.getTeam().getId(),
                         MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.CardDto.CardedPlayerInfo(testTeamPlayerId, null, null)
+                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
                 )
         ));
 

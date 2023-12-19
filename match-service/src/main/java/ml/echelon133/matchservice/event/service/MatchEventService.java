@@ -227,7 +227,7 @@ public class MatchEventService {
                 match.getCompetitionId(),
                 cardedTeamPlayer.getTeam().getId(),
                 cardType,
-                new MatchEventDetails.CardDto.CardedPlayerInfo(
+                new MatchEventDetails.SerializedPlayerInfo(
                     cardedTeamPlayer.getId(),
                     cardedTeamPlayer.getPlayer().getId(),
                     cardedTeamPlayer.getPlayer().getName()
