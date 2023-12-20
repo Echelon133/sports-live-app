@@ -22,13 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.exceptions.misusing.InvalidUseOfMatchersException;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
@@ -52,6 +52,24 @@ public class MatchEventServiceTests {
     private MatchEvent createTestStatusMatchEvent(UUID matchId, String minute, MatchStatus targetStatus) {
         var match = TestMatch.builder().id(matchId).build();
         return new MatchEvent(match, new MatchEventDetails.StatusDto(minute, match.getCompetitionId(), targetStatus));
+    }
+
+    // this method simplifies binding concrete arguments to concrete responses from mocked
+    // TeamPlayerService's `findEntityById` method.
+    private void bindTeamPlayerIdsToTeamPlayers(Map<UUID, Optional<TeamPlayer>> idToResponseMap) throws ResourceNotFoundException {
+        given(teamPlayerService.findEntityById(any(UUID.class))).willAnswer(inv -> {
+            UUID id = inv.getArgument(0);
+            if (idToResponseMap.containsKey(id)) {
+                return idToResponseMap.get(id)
+                        .filter(t -> !t.isDeleted())
+                        .orElseThrow(() -> new ResourceNotFoundException(TeamPlayer.class, id)
+                        );
+            } else {
+                throw new InvalidUseOfMatchersException(
+                        String.format("Id %s does not match any of the expected ids", id)
+                );
+            }
+        });
     }
 
     @Test
@@ -374,7 +392,7 @@ public class MatchEventServiceTests {
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
-            return match.getId().equals(matchId) &&
+            return matchEvent.getMatch().getId().equals(matchId) &&
                     cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.YELLOW);
         }));
     }
@@ -412,7 +430,7 @@ public class MatchEventServiceTests {
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
-            return match.getId().equals(matchId) &&
+            return matchEvent.getMatch().getId().equals(matchId) &&
                     cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
         }));
     }
@@ -459,7 +477,7 @@ public class MatchEventServiceTests {
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
-            return match.getId().equals(matchId) &&
+            return matchEvent.getMatch().getId().equals(matchId) &&
                     cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.SECOND_YELLOW);
         }));
     }
@@ -506,7 +524,7 @@ public class MatchEventServiceTests {
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
-            return match.getId().equals(matchId) &&
+            return matchEvent.getMatch().getId().equals(matchId) &&
                     cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
         }));
     }
@@ -689,5 +707,703 @@ public class MatchEventServiceTests {
 
         // then
         assertEquals("the player is already ejected", message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the ball in the match is not in play")
+    public void processEvent_BallNotInPlay_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var ballNotInPlayStatuses = List.of(
+                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME, MatchStatus.POSTPONED, MatchStatus.ABANDONED
+        );
+        var match = new Match();
+        var matchId = match.getId();
+        var testEvent = new InsertMatchEvent.GoalDto(
+                "1", UUID.randomUUID().toString(), UUID.randomUUID().toString(), false
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        for (MatchStatus status: ballNotInPlayStatuses) {
+            match.setStatus(status);
+
+            // when
+            String message = assertThrows(MatchEventInvalidException.class, () -> {
+                matchEventService.processEvent(matchId, testEvent);
+            }).getMessage();
+
+            // then
+            assertEquals("event cannot be processed when the ball is not in play", message);
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring player does not play for either team")
+    public void processEvent_ScoringPlayerDoesNotPlayForTeams_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team that is not in the match
+        var scoringTeamPlayer = new TeamPlayer(TestTeam.builder().build(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s does not play for either team", scoringTeamPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring player plays for the team in the match but is not in the lineup")
+    public void processEvent_ScoringPlayerNotInLineup_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
+        // create an empty lineup which ensures that the player won't be in it
+        var teamLineup = new LineupDto();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not placed in the lineup of this match", scoringTeamPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects a GOAL event if an own goal contains information about an assisting player")
+    public void processEvent_OwnGoalContainsAssistingPlayer_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto(
+                "1", scoringTeamPlayerId.toString(), UUID.randomUUID().toString(), true
+        );
+
+        // put the player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("own goals cannot have a player assisting", message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the assisting player does not play for either team")
+    public void processEvent_AssistingPlayerDoesNotPlayForTeams_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+        // this player does not play for any of the teams that are in the match
+        var assistingTeamPlayer = new TeamPlayer(TestTeam.builder().name("Team C").build(), new Player(), Position.GOALKEEPER, 1);
+        var assistingTeamPlayerId = assistingTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto(
+                "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
+        );
+
+        // only have the scoring player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringTeamPlayerId, Optional.of(scoringTeamPlayer),
+                assistingTeamPlayerId, Optional.of(assistingTeamPlayer)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s does not play for either team", assistingTeamPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring player plays for the team in the match but is not in the lineup")
+    public void processEvent_AssistingPlayerNotInLineup_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match and is in the lineup
+        var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+        // this player plays for the same team but is not in the lineup
+        var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 8);
+        var assistingTeamPlayerId = assistingTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto(
+                "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
+        );
+
+        // only have the scoring player in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringTeamPlayerId, Optional.of(scoringTeamPlayer),
+                assistingTeamPlayerId, Optional.of(assistingTeamPlayer)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not placed in the lineup of this match", assistingTeamPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring and assisting players play for opposite teams")
+    public void processEvent_ScoringAndAssistingPlayersPlayForOppositeTeams_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+        // this player also plays in the match
+        var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var assistingTeamPlayerId = assistingTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto(
+                "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
+        );
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringTeamPlayerId, Optional.of(scoringTeamPlayer),
+                assistingTeamPlayerId, Optional.of(assistingTeamPlayer)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("players do not play for the same team", message);
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home GOAL events happening in the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_FirstHalfHomeGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+        // this player also plays in the match
+        var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 9);
+        var assistingTeamPlayerId = assistingTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto(
+                "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
+        );
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(
+                        TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
+                        TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
+                ),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringTeamPlayerId, Optional.of(scoringTeamPlayer),
+                assistingTeamPlayerId, Optional.of(assistingTeamPlayer)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 1-0
+        assertEquals(1, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 1-0
+        assertEquals(1, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    !gDto.isOwnGoal();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home own GOAL events happening in the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_FirstHalfHomeOwnGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+
+        // only have the scoring player in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-1
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(1, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-1
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(1, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getAssistingPlayer() == null &&
+                    gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                    gDto.isOwnGoal();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away GOAL events happening in the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_FirstHalfAwayGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+        // this player also plays in the match
+        var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.DEFENDER, 9);
+        var assistingTeamPlayerId = assistingTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto(
+                "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
+        );
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(),
+                List.of(
+                        TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
+                        TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
+                ),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringTeamPlayerId, Optional.of(scoringTeamPlayer),
+                assistingTeamPlayerId, Optional.of(assistingTeamPlayer)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-1
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(1, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-1
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(1, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                    !gDto.isOwnGoal();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away own GOAL events happening in the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_FirstHalfAwayOwnGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringTeamPlayerId = scoringTeamPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+
+        // only have the scoring player in the lineup
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 1-0
+        assertEquals(1, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 1-0
+        assertEquals(1, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getAssistingPlayer() == null &&
+                    gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    gDto.isOwnGoal();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home GOAL events happening outside the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_NonFirstHalfHomeGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            // this player plays in the match
+            var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+            var scoringTeamPlayerId = scoringTeamPlayer.getId();
+            // this player also plays in the match
+            var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 9);
+            var assistingTeamPlayerId = assistingTeamPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.GoalDto(
+                    "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
+            );
+
+            // have both players in the lineup
+            var teamLineup = new LineupDto(
+                    List.of(
+                            TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
+                            TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
+                    ),
+                    List.of(),
+                    List.of(),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            bindTeamPlayerIdsToTeamPlayers(Map.of(
+                    scoringTeamPlayerId, Optional.of(scoringTeamPlayer),
+                    assistingTeamPlayerId, Optional.of(assistingTeamPlayer)
+            ));
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 1-0
+            assertEquals(1, match.getScoreInfo().getHomeGoals());
+            assertEquals(0, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                        !gDto.isOwnGoal();
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home own GOAL events happening outside the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_NonFirstHalfHomeOwnGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            // this player plays in the match
+            var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+            var scoringTeamPlayerId = scoringTeamPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+
+            // only have the scoring player in the lineup
+            var teamLineup = new LineupDto(
+                    List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                    List.of(),
+                    List.of(),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 0-1
+            assertEquals(0, match.getScoreInfo().getHomeGoals());
+            assertEquals(1, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getAssistingPlayer() == null &&
+                        gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                        gDto.isOwnGoal();
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away GOAL events happening outside the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_NonFirstHalfAwayGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            // this player plays in the match
+            var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+            var scoringTeamPlayerId = scoringTeamPlayer.getId();
+            // this player also plays in the match
+            var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.DEFENDER, 9);
+            var assistingTeamPlayerId = assistingTeamPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.GoalDto(
+                    "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
+            );
+
+            // have both players in the lineup
+            var teamLineup = new LineupDto(
+                    List.of(),
+                    List.of(),
+                    List.of(
+                            TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
+                            TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
+                    ),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            bindTeamPlayerIdsToTeamPlayers(Map.of(
+                    scoringTeamPlayerId, Optional.of(scoringTeamPlayer),
+                    assistingTeamPlayerId, Optional.of(assistingTeamPlayer)
+            ));
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 0-1
+            assertEquals(0, match.getScoreInfo().getHomeGoals());
+            assertEquals(1, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                        !gDto.isOwnGoal();
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away own GOAL events happening outside the FIRST_HALF and correctly increments the scorelines")
+    public void processEvent_NonFirstHalfAwayOwnGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+            var scoringTeamPlayerId = scoringTeamPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+
+            // only have the scoring player in the lineup
+            var teamLineup = new LineupDto(
+                    List.of(),
+                    List.of(),
+                    List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 1-0
+            assertEquals(1, match.getScoreInfo().getHomeGoals());
+            assertEquals(0, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getAssistingPlayer() == null &&
+                        gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                        gDto.isOwnGoal();
+            }));
+        }
     }
 }

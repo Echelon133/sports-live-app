@@ -23,6 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static ml.echelon133.common.match.MatchStatus.FIRST_HALF;
 import static ml.echelon133.common.match.MatchStatus.VALID_STATUS_CHANGES;
 
 @Service
@@ -104,6 +105,8 @@ public class MatchEventService {
             processCommentaryEvent(match, (InsertMatchEvent.CommentaryDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.CardDto) {
             processCardEvent(match, (InsertMatchEvent.CardDto) eventDto);
+        } else if (eventDto instanceof InsertMatchEvent.GoalDto) {
+            processGoalEvent(match, (InsertMatchEvent.GoalDto) eventDto);
         } else {
             throw new MatchEventInvalidException("handling of this event is not implemented");
         }
@@ -233,6 +236,94 @@ public class MatchEventService {
                     cardedTeamPlayer.getPlayer().getName()
                 )
         );
+        matchEventRepository.save(new MatchEvent(match, eventDetails));
+    }
+
+    /**
+     * Processes the goal event and saves it.
+     *
+     * @param match entity representing the match to which this event is related
+     * @param goalDto dto containing information about the event
+     */
+    private void processGoalEvent(Match match, InsertMatchEvent.GoalDto goalDto)
+            throws MatchEventInvalidException, ResourceNotFoundException {
+
+        throwIfBallNotInPlay(match);
+
+        // this `UUID.fromString` should never fail because the scoringPlayerId is pre-validated
+        TeamPlayer scoringPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getScoringPlayerId()));
+        // player who scored has to be in the match's lineup
+        throwIfPlayerNotInLineup(match, scoringPlayer);
+
+        // assisting player is optional, but if it's set, make sure that the player scoring and assisting
+        // are from the same team
+        TeamPlayer assistingPlayer = null;
+
+        if (goalDto.getAssistingPlayerId() != null) {
+            // own goals cannot have assisting players, so reject the event before any checks that require db access
+            if (goalDto.isOwnGoal()) {
+                throw new MatchEventInvalidException("own goals cannot have a player assisting");
+            }
+
+            // this `UUID.fromString` should never fail because the assistingPlayerId is pre-validated when not null
+            assistingPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getAssistingPlayerId()));
+
+            // player who assisted has to be in the match's lineup
+            throwIfPlayerNotInLineup(match, assistingPlayer);
+
+            // make sure that both players - scoring and assisting - are from the same team
+            if (!scoringPlayer.getTeam().equals(assistingPlayer.getTeam())) {
+                throw new MatchEventInvalidException("players do not play for the same team");
+            }
+        }
+
+        // determine the team whose goals should be incremented
+        var scoredByHomeTeam = match.getHomeTeam().equals(scoringPlayer.getTeam());
+        // flip the scoring side if the goal is an own goal
+        if (goalDto.isOwnGoal()) {
+            scoredByHomeTeam = !scoredByHomeTeam;
+        }
+        var scoringTeam = scoredByHomeTeam ? match.getHomeTeam() : match.getAwayTeam();
+
+        MatchEventDetails.SerializedPlayerInfo scoringPlayerInfo =
+                new MatchEventDetails.SerializedPlayerInfo(
+                        scoringPlayer.getId(),
+                        scoringPlayer.getPlayer().getId(),
+                        scoringPlayer.getPlayer().getName()
+                );
+
+        MatchEventDetails.SerializedPlayerInfo assistingPlayerInfo = null;
+        if (assistingPlayer != null) {
+            assistingPlayerInfo =
+                new MatchEventDetails.SerializedPlayerInfo(
+                        assistingPlayer.getId(),
+                        assistingPlayer.getPlayer().getId(),
+                        assistingPlayer.getPlayer().getName()
+                );
+        }
+
+        var eventDetails = new MatchEventDetails.GoalDto(
+                goalDto.getMinute(),
+                match.getCompetitionId(),
+                scoringTeam.getId(),
+                scoringPlayerInfo,
+                assistingPlayerInfo,
+                goalDto.isOwnGoal()
+        );
+
+        var scoreInfo = match.getScoreInfo();
+
+        if (scoredByHomeTeam) {
+            scoreInfo.incrementHomeGoals();
+        } else {
+            scoreInfo.incrementAwayGoals();
+        }
+
+        // set the half-time score in case we are in the FIRST_HALF
+        if (match.getStatus().equals(FIRST_HALF)) {
+            match.setHalfTimeScoreInfo(scoreInfo);
+        }
+
         matchEventRepository.save(new MatchEvent(match, eventDetails));
     }
 }

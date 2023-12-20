@@ -174,4 +174,58 @@ public abstract class MatchEventDetails implements Serializable {
             this.cardedPlayer = cardedPlayer;
         }
     }
+
+    /**
+     * Data class representing already processed match event of type <b>GOAL</b>.
+     */
+    public static class GoalDto extends MatchEventDetails {
+        private UUID teamId;
+        private SerializedPlayerInfo scoringPlayer;
+        private SerializedPlayerInfo assistingPlayer;
+        private boolean ownGoal;
+
+        public GoalDto() {}
+        public GoalDto(
+                String minute, UUID competitionId, UUID teamId,
+                SerializedPlayerInfo scoringPlayer, SerializedPlayerInfo assistingPlayer, boolean ownGoal
+        ) {
+            super(MatchEventType.GOAL, minute, competitionId);
+            this.teamId = teamId;
+            this.scoringPlayer = scoringPlayer;
+            this.assistingPlayer = assistingPlayer;
+            this.ownGoal = ownGoal;
+        }
+
+        public UUID getTeamId() {
+            return teamId;
+        }
+
+        public void setTeamId(UUID teamId) {
+            this.teamId = teamId;
+        }
+
+        public SerializedPlayerInfo getScoringPlayer() {
+            return scoringPlayer;
+        }
+
+        public void setScoringPlayer(SerializedPlayerInfo scoringPlayer) {
+            this.scoringPlayer = scoringPlayer;
+        }
+
+        public SerializedPlayerInfo getAssistingPlayer() {
+            return assistingPlayer;
+        }
+
+        public void setAssistingPlayer(SerializedPlayerInfo assistingPlayer) {
+            this.assistingPlayer = assistingPlayer;
+        }
+
+        public boolean isOwnGoal() {
+            return ownGoal;
+        }
+
+        public void setOwnGoal(boolean ownGoal) {
+            this.ownGoal = ownGoal;
+        }
+    }
 }
