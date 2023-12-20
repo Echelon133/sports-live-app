@@ -1,18 +1,18 @@
 package ml.echelon133.common.match.dto;
 
 public interface ScoreInfoDto {
-    Byte getHomeGoals();
-    Byte getAwayGoals();
+    Integer getHomeGoals();
+    Integer getAwayGoals();
 
-    static ScoreInfoDto from(Byte homeGoals, Byte awayGoals) {
+    static ScoreInfoDto from(Integer homeGoals, Integer awayGoals) {
         return new ScoreInfoDto() {
             @Override
-            public Byte getHomeGoals() {
+            public Integer getHomeGoals() {
                 return homeGoals;
             }
 
             @Override
-            public Byte getAwayGoals() {
+            public Integer getAwayGoals() {
                 return awayGoals;
             }
         };
