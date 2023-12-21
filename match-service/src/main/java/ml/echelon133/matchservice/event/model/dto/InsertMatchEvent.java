@@ -5,6 +5,7 @@ import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.matchservice.event.model.dto.constraints.EventMinuteFormat;
 import ml.echelon133.matchservice.event.model.dto.constraints.GoalPlayerIdsDifferent;
 import ml.echelon133.matchservice.event.model.dto.constraints.MatchStatusValid;
+import ml.echelon133.matchservice.event.model.dto.constraints.SubstitutionPlayerIdsDifferent;
 import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
 
 import javax.validation.constraints.NotNull;
@@ -209,6 +210,7 @@ public abstract class InsertMatchEvent {
     /**
      * Data class representing client-provided match event of type <b>SUBSTITUTION</b>.
      */
+    @SubstitutionPlayerIdsDifferent
     public static class SubstitutionDto extends InsertMatchEvent {
         @NotNull
         @TeamPlayerExists

@@ -931,6 +931,30 @@ public class MatchEventControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/matches/:id/events returns 422 when SUBSTITUTION event's playerInId and playerOutId are the same")
+    public void processMatchEvent_InAndOutPlayerIdentical_StatusUnprocessableEntity() throws Exception {
+        var matchId = UUID.randomUUID();
+        var playerId = UUID.randomUUID();
+        var event = new InsertMatchEvent.SubstitutionDto("1", playerId.toString(), playerId.toString());
+        var json = jsonInsertMatchEvent.write(event).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(playerId)).willReturn(true);
+
+        // when
+        mvc.perform(
+                        post("/api/matches/" + matchId + "/events")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("general", List.of("the id of in and out players must not be identical")))
+                );
+    }
+
+    @Test
     @DisplayName("POST /api/matches/:id/events returns 422 when processing throws on invalid event")
     public void processMatchEvent_InvalidEvent_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
