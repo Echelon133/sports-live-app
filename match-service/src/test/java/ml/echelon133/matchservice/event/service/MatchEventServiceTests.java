@@ -547,7 +547,7 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a yellow card for the player
+        // create a past event with a two yellow cards for the player
         List<MatchEvent> pastEvents = List.of(new MatchEvent(
                 match,
                 new MatchEventDetails.CardDto(
@@ -592,7 +592,7 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a yellow card for the player
+        // create a past event with two yellow cards for the player
         List<MatchEvent> pastEvents = List.of(new MatchEvent(
                 match,
                 new MatchEventDetails.CardDto(
@@ -637,7 +637,7 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a yellow card for the player
+        // create a past event with a direct red card for the player
         List<MatchEvent> pastEvents = List.of(new MatchEvent(
                 match,
                 new MatchEventDetails.CardDto(
@@ -682,7 +682,7 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a yellow card for the player
+        // create a past event with a direct red card for the player
         List<MatchEvent> pastEvents = List.of(new MatchEvent(
                 match,
                 new MatchEventDetails.CardDto(
@@ -713,7 +713,9 @@ public class MatchEventServiceTests {
     @DisplayName("processEvent rejects GOAL events if the ball in the match is not in play")
     public void processEvent_BallNotInPlay_RejectsInvalidGoal() throws ResourceNotFoundException {
         var ballNotInPlayStatuses = List.of(
-                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME, MatchStatus.POSTPONED, MatchStatus.ABANDONED
+                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
+                MatchStatus.POSTPONED, MatchStatus.ABANDONED,
+                MatchStatus.FINISHED
         );
         var match = new Match();
         var matchId = match.getId();
@@ -1405,5 +1407,794 @@ public class MatchEventServiceTests {
                         gDto.isOwnGoal();
             }));
         }
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the ball in the match is not in play")
+    public void processEvent_BallNotInPlay_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var ballNotInPlayStatuses = List.of(
+                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
+                MatchStatus.POSTPONED, MatchStatus.ABANDONED,
+                MatchStatus.FINISHED
+        );
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var testEvent = new InsertMatchEvent.SubstitutionDto(
+                "1", UUID.randomUUID().toString(), UUID.randomUUID().toString()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        for (MatchStatus status: ballNotInPlayStatuses) {
+            match.setStatus(status);
+
+            // when
+            String message = assertThrows(MatchEventInvalidException.class, () -> {
+                matchEventService.processEvent(matchId, testEvent);
+            }).getMessage();
+
+            // then
+            assertEquals("event cannot be processed when the ball is not in play", message);
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerIn does not play for either team")
+    public void processEvent_PlayerInDoesNotPlayForTeams_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team that is not in the match
+        var teamPlayerIn = new TeamPlayer(TestTeam.builder().build(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), UUID.randomUUID().toString());
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(teamPlayerInId)).willReturn(teamPlayerIn);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s does not play for either team", teamPlayerInId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerIn plays for the team in the match but is not in the lineup")
+    public void processEvent_PlayerInNotInLineup_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // make sure that the player plays for a team from the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), null);
+        // create an empty lineup which ensures that the player won't be in it
+        var teamLineup = new LineupDto();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(teamPlayerInId)).willReturn(teamPlayerIn);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not placed in the lineup of this match", teamPlayerInId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerOut does not play for either team")
+    public void processEvent_PlayerOutDoesNotPlayForTeams_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player does not play for any of the teams that are in the match
+        var teamPlayerOut = new TeamPlayer(TestTeam.builder().name("Team C").build(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // only have the playerIn in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s does not play for either team", teamPlayerOutId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerOut plays for the team in the match but is not in the lineup")
+    public void processEvent_PlayerOutNotInLineup_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match and is in the lineup
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player plays for the same team but is not in the lineup
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 8);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // only have the playerIn in the starting home lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not placed in the lineup of this match", teamPlayerOutId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerIn and playerOut play for opposite teams")
+    public void processEvent_PlayerInAndPlayerOutPlayForOppositeTeams_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("players do not play for the same team", message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerIn did not start the game on the bench")
+    public void processEvent_PlayerInDidNotStartOnBench_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build(),
+                        TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s cannot enter the pitch", teamPlayerInId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerIn got two yellow cards")
+    public void processEvent_PlayerInHasTwoYellowCards_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // create a past event with two yellow cards for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        teamPlayerIn.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s cannot enter the pitch", teamPlayerInId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerIn got a red card")
+    public void processEvent_PlayerInHasRedCard_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // create a past event with a direct red card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        teamPlayerIn.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s cannot enter the pitch", teamPlayerInId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerIn got already subbed on before")
+    public void processEvent_PlayerInAlreadySubbedOn_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // create a past event where the playerIn already got subbed on before
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.SubstitutionDto(
+                        "45",
+                        UUID.randomUUID(),
+                        teamPlayerIn.getTeam().getId(),
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null),
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s cannot enter the pitch", teamPlayerInId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerOut got two yellow cards")
+    public void processEvent_PlayerOutHasTwoYellowCards_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // create a past event with two yellow cards for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        teamPlayerIn.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerOut got a red card")
+    public void processEvent_PlayerOutHasRedCard_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // create a past event with a direct red card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        teamPlayerIn.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerOut got already subbed off")
+    public void processEvent_PlayerOutAlreadySubbedOff_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // create a past event where the playerOut already got subbed off before
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.SubstitutionDto(
+                        "45",
+                        UUID.randomUUID(),
+                        teamPlayerIn.getTeam().getId(),
+                        new MatchEventDetails.SerializedPlayerInfo(UUID.randomUUID(), null, null),
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects SUBSTITUTION events if the playerOut spent the entire match on the bench")
+    public void processEvent_PlayerOutConstantlyOnBench_RejectsInvalidSubstitution() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(
+                        TestTeamPlayerDto.builder().id(teamPlayerInId).build(),
+                        TestTeamPlayerDto.builder().id(teamPlayerOutId).build()
+                ),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent accepts SUBSTITUTION events if neither player has been carded")
+    public void processEvent_CorrectPlayerInAndPlayerOutWithoutCards_SavesSubstitution() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
+                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts SUBSTITUTION events if both players have a yellow card each")
+    public void processEvent_CorrectPlayerInAndPlayerOutWithYellowCards_SavesSubstitution() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
+                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // give both players yellow cards
+        List<MatchEvent> pastEvents = List.of(
+                new MatchEvent(
+                    match,
+                    new MatchEventDetails.CardDto(
+                            "45",
+                            UUID.randomUUID(),
+                            teamPlayerIn.getTeam().getId(),
+                            MatchEventDetails.CardDto.CardType.YELLOW,
+                            new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null)
+                    )),
+                new MatchEvent(
+                    match,
+                    new MatchEventDetails.CardDto(
+                            "45",
+                            UUID.randomUUID(),
+                            teamPlayerIn.getTeam().getId(),
+                            MatchEventDetails.CardDto.CardType.YELLOW,
+                            new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
+                    ))
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
+                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts SUBSTITUTION events if the player getting subbed off got subbed on before")
+    public void processEvent_SubstituteCanBeBenchedAgain_SavesSubstitution() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerInId = teamPlayerIn.getId();
+        // this player also plays in the match
+        var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayerOutId = teamPlayerOut.getId();
+
+        // assume that playerIn is already on the pitch because of a substitution
+        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+
+        // have both players in the lineup
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(
+                        TestTeamPlayerDto.builder().id(teamPlayerInId).build(),
+                        TestTeamPlayerDto.builder().id(teamPlayerOutId).build()
+                ),
+                List.of(),
+                List.of()
+        );
+
+        // create a past event where the playerOut gets subbed on
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.SubstitutionDto(
+                        "45",
+                        UUID.randomUUID(),
+                        teamPlayerIn.getTeam().getId(),
+                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null),
+                        new MatchEventDetails.SerializedPlayerInfo(UUID.randomUUID(), null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayerInId, Optional.of(teamPlayerIn),
+                teamPlayerOutId, Optional.of(teamPlayerOut)
+        ));
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
+                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+        }));
     }
 }

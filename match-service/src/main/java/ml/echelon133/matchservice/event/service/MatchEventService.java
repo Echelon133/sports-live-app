@@ -77,6 +77,103 @@ public class MatchEventService {
         }
     }
 
+    private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
+        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
+            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
+            return e.getPlayerOut().getTeamPlayerId().equals(teamPlayerId);
+        } else {
+            return false;
+        }
+    }
+
+    private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
+        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
+            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
+            return e.getPlayerIn().getTeamPlayerId().equals(teamPlayerId);
+        } else {
+            return false;
+        }
+    }
+
+    private void throwIfPlayerNotOnPitch(Match match, TeamPlayer player) throws MatchEventInvalidException {
+        var matchEvents = this.findAllByMatchId(match.getId());
+        var exception = new MatchEventInvalidException(
+                String.format("the player %s is not on the pitch", player.getId())
+        );
+
+        boolean sentOff = matchEvents.stream()
+                .filter(e -> isCardEventOfPlayer(e, player.getId()))
+                .anyMatch(
+                        e -> isCardEventOfCardType(
+                                e,
+                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                        )
+                );
+        if (sentOff) {
+            throw exception;
+        }
+
+        boolean substitutedOff = matchEvents.stream().anyMatch(
+            e -> isSubstitutionOffEventOfPlayer(e, player.getId())
+        );
+        if (substitutedOff) {
+            throw exception;
+        }
+
+        var lineup = matchService.findMatchLineup(match.getId());
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+
+        boolean substitutedOn = matchEvents.stream().anyMatch(
+                e -> isSubstitutionOnEventOfPlayer(e, player.getId())
+        );
+        boolean startingPlayer = teamLineup.getStartingPlayers().stream()
+                .anyMatch(teamPlayer -> teamPlayer.getId().equals(player.getId()));
+
+        if (!(startingPlayer || substitutedOn)) {
+            throw exception;
+        }
+    }
+
+    private void throwIfPlayerCannotBeSubbedOn(Match match, TeamPlayer player) throws MatchEventInvalidException {
+        var matchEvents = this.findAllByMatchId(match.getId());
+        var exception = new MatchEventInvalidException(
+                String.format("the player %s cannot enter the pitch", player.getId())
+        );
+
+        var lineup = matchService.findMatchLineup(match.getId());
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+
+        boolean substitutePlayer= teamLineup.getSubstitutePlayers().stream()
+                .anyMatch(teamPlayer -> teamPlayer.getId().equals(player.getId()));
+        // a player who started the game on the pitch cannot be subbed on in the game
+        if (!substitutePlayer) {
+            throw exception;
+        }
+
+        boolean sentOff = matchEvents.stream()
+                .filter(e -> isCardEventOfPlayer(e, player.getId()))
+                .anyMatch(
+                        e -> isCardEventOfCardType(
+                                e,
+                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                        )
+                );
+        // if the player got two yellows or a red while on the bench, they cannot be subbed on
+        if (sentOff) {
+            throw exception;
+        }
+
+        boolean substitutionOn = matchEvents.stream().anyMatch(
+            e -> isSubstitutionOnEventOfPlayer(e, player.getId())
+        );
+        // a player once subbed on cannot be subbed on again
+        if (substitutionOn) {
+            throw exception;
+        }
+    }
+
     /**
      * Finds all events of the match with the specified id.
      *
@@ -107,6 +204,8 @@ public class MatchEventService {
             processCardEvent(match, (InsertMatchEvent.CardDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.GoalDto) {
             processGoalEvent(match, (InsertMatchEvent.GoalDto) eventDto);
+        } else if (eventDto instanceof InsertMatchEvent.SubstitutionDto) {
+            processSubstitutionEvent(match, (InsertMatchEvent.SubstitutionDto) eventDto);
         } else {
             throw new MatchEventInvalidException("handling of this event is not implemented");
         }
@@ -164,9 +263,13 @@ public class MatchEventService {
     }
 
     private static boolean isCardEventOfCardType(MatchEventDto event, MatchEventDetails.CardDto.CardType... cardTypes) {
-        MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) event.getEvent();
-        var foundCardType= cDto.getCardType();
-        return Arrays.asList(cardTypes).contains(foundCardType);
+        if (event.getEvent() instanceof MatchEventDetails.CardDto) {
+            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) event.getEvent();
+            var foundCardType= cDto.getCardType();
+            return Arrays.asList(cardTypes).contains(foundCardType);
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -323,6 +426,67 @@ public class MatchEventService {
         if (match.getStatus().equals(FIRST_HALF)) {
             match.setHalfTimeScoreInfo(scoreInfo);
         }
+
+        matchEventRepository.save(new MatchEvent(match, eventDetails));
+    }
+
+    /**
+     * Processes the substitution event and saves it.
+     *
+     * @param match entity representing the match to which this event is related
+     * @param substitutionDto dto containing information about the event
+     */
+    private void processSubstitutionEvent(Match match, InsertMatchEvent.SubstitutionDto substitutionDto)
+            throws MatchEventInvalidException, ResourceNotFoundException {
+
+        throwIfBallNotInPlay(match);
+
+        // this `UUID.fromString` should never fail because the playerInId is pre-validated
+        TeamPlayer playerIn = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.getPlayerInId()));
+        throwIfPlayerNotInLineup(match, playerIn);
+
+        // this `UUID.fromString` should never fail because the playerOutId is pre-validated
+        TeamPlayer playerOut = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.getPlayerOutId()));
+        throwIfPlayerNotInLineup(match, playerOut);
+
+        // make sure that both players - in and out - are from the same team
+        if (!playerIn.getTeam().equals(playerOut.getTeam())) {
+            throw new MatchEventInvalidException("players do not play for the same team");
+        }
+
+        // player can enter the pitch if they:
+        //      * started the game on the bench
+        //      * have not received double yellow or direct red
+        //      * have not been subbed on before
+        throwIfPlayerCannotBeSubbedOn(match, playerIn);
+
+        // player can leave the pitch if they:
+        //      * have not received double yellow or direct red
+        //      * have not been subbed off before
+        //      * have been on the pitch from the start or got subbed on during the match
+        throwIfPlayerNotOnPitch(match, playerOut);
+
+        MatchEventDetails.SerializedPlayerInfo playerInInfo =
+                new MatchEventDetails.SerializedPlayerInfo(
+                        playerIn.getId(),
+                        playerIn.getPlayer().getId(),
+                        playerIn.getPlayer().getName()
+                );
+
+        MatchEventDetails.SerializedPlayerInfo playerOutInfo =
+                new MatchEventDetails.SerializedPlayerInfo(
+                        playerOut.getId(),
+                        playerOut.getPlayer().getId(),
+                        playerOut.getPlayer().getName()
+                );
+
+        var eventDetails = new MatchEventDetails.SubstitutionDto(
+                substitutionDto.getMinute(),
+                match.getCompetitionId(),
+                playerIn.getTeam().getId(),
+                playerInInfo,
+                playerOutInfo
+        );
 
         matchEventRepository.save(new MatchEvent(match, eventDetails));
     }

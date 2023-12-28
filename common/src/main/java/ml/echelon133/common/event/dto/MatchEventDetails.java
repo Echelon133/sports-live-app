@@ -228,4 +228,48 @@ public abstract class MatchEventDetails implements Serializable {
             this.ownGoal = ownGoal;
         }
     }
+
+    /**
+     * Data class representing already processed match event of type <b>SUBSTITUTION</b>.
+     */
+    public static class SubstitutionDto extends MatchEventDetails {
+        private UUID teamId;
+        private SerializedPlayerInfo playerIn;
+        private SerializedPlayerInfo playerOut;
+
+        public SubstitutionDto() {}
+        public SubstitutionDto(
+                String minute, UUID competitionId, UUID teamId,
+                SerializedPlayerInfo playerIn, SerializedPlayerInfo playerOut
+        ) {
+            super(MatchEventType.GOAL, minute, competitionId);
+            this.teamId = teamId;
+            this.playerIn = playerIn;
+            this.playerOut = playerOut;
+        }
+
+        public UUID getTeamId() {
+            return teamId;
+        }
+
+        public void setTeamId(UUID teamId) {
+            this.teamId = teamId;
+        }
+
+        public SerializedPlayerInfo getPlayerIn() {
+            return playerIn;
+        }
+
+        public void setPlayerIn(SerializedPlayerInfo playerIn) {
+            this.playerIn = playerIn;
+        }
+
+        public SerializedPlayerInfo getPlayerOut() {
+            return playerOut;
+        }
+
+        public void setPlayerOut(SerializedPlayerInfo playerOut) {
+            this.playerOut = playerOut;
+        }
+    }
 }
