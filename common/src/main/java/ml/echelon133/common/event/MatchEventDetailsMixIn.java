@@ -19,7 +19,8 @@ import ml.echelon133.common.event.dto.MatchEventDetails;
         @JsonSubTypes.Type(value = MatchEventDetails.CommentaryDto.class, name = "COMMENTARY"),
         @JsonSubTypes.Type(value = MatchEventDetails.CardDto.class, name = "CARD"),
         @JsonSubTypes.Type(value = MatchEventDetails.GoalDto.class, name = "GOAL"),
-        @JsonSubTypes.Type(value = MatchEventDetails.SubstitutionDto.class, name = "SUBSTITUTION")
+        @JsonSubTypes.Type(value = MatchEventDetails.SubstitutionDto.class, name = "SUBSTITUTION"),
+        @JsonSubTypes.Type(value = MatchEventDetails.PenaltyDto.class, name = "PENALTY")
 })
 public abstract class MatchEventDetailsMixIn {
 }

@@ -272,4 +272,58 @@ public abstract class MatchEventDetails implements Serializable {
             this.playerOut = playerOut;
         }
     }
+
+    /**
+     * Data class representing already processed match event of type <b>PENALTY</b>.
+     */
+    public static class PenaltyDto extends MatchEventDetails {
+        private UUID teamId;
+        private SerializedPlayerInfo shootingPlayer;
+        private boolean countAsGoal;
+        private boolean scored;
+
+        public PenaltyDto() {}
+        public PenaltyDto(
+                String minute, UUID competitionId, UUID teamId,
+                SerializedPlayerInfo shootingPlayer, boolean countAsGoal, boolean scored
+        ) {
+            super(MatchEventType.PENALTY, minute, competitionId);
+            this.teamId = teamId;
+            this.shootingPlayer = shootingPlayer;
+            this.countAsGoal = countAsGoal;
+            this.scored = scored;
+        }
+
+        public UUID getTeamId() {
+            return teamId;
+        }
+
+        public void setTeamId(UUID teamId) {
+            this.teamId = teamId;
+        }
+
+        public SerializedPlayerInfo getShootingPlayer() {
+            return shootingPlayer;
+        }
+
+        public void setShootingPlayer(SerializedPlayerInfo shootingPlayer) {
+            this.shootingPlayer = shootingPlayer;
+        }
+
+        public boolean isCountAsGoal() {
+            return countAsGoal;
+        }
+
+        public void setCountAsGoal(boolean countAsGoal) {
+            this.countAsGoal = countAsGoal;
+        }
+
+        public boolean isScored() {
+            return scored;
+        }
+
+        public void setScored(boolean scored) {
+            this.scored = scored;
+        }
+    }
 }

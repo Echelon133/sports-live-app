@@ -23,8 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ml.echelon133.common.match.MatchStatus.FIRST_HALF;
-import static ml.echelon133.common.match.MatchStatus.VALID_STATUS_CHANGES;
+import static ml.echelon133.common.match.MatchStatus.*;
 
 @Service
 @Transactional
@@ -174,6 +173,29 @@ public class MatchEventService {
         }
     }
 
+    private void incrementMatchScoreline(Match match, boolean homeGoal, boolean penaltyShootout) {
+        if (penaltyShootout) {
+            var penaltyScore = match.getPenaltiesInfo();
+            if (homeGoal) {
+                penaltyScore.incrementHomeGoals();
+            } else {
+                penaltyScore.incrementAwayGoals();
+            }
+        } else {
+            var score = match.getScoreInfo();
+            if (homeGoal) {
+                score.incrementHomeGoals();
+            } else {
+                score.incrementAwayGoals();
+            }
+
+            // set the half-time score in case we are in the FIRST_HALF
+            if (match.getStatus().equals(FIRST_HALF)) {
+                match.setHalfTimeScoreInfo(score);
+            }
+        }
+    }
+
     /**
      * Finds all events of the match with the specified id.
      *
@@ -206,6 +228,8 @@ public class MatchEventService {
             processGoalEvent(match, (InsertMatchEvent.GoalDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.SubstitutionDto) {
             processSubstitutionEvent(match, (InsertMatchEvent.SubstitutionDto) eventDto);
+        } else if (eventDto instanceof InsertMatchEvent.PenaltyDto) {
+            processPenaltyEvent(match, (InsertMatchEvent.PenaltyDto) eventDto);
         } else {
             throw new MatchEventInvalidException("handling of this event is not implemented");
         }
@@ -414,19 +438,7 @@ public class MatchEventService {
                 goalDto.isOwnGoal()
         );
 
-        var scoreInfo = match.getScoreInfo();
-
-        if (scoredByHomeTeam) {
-            scoreInfo.incrementHomeGoals();
-        } else {
-            scoreInfo.incrementAwayGoals();
-        }
-
-        // set the half-time score in case we are in the FIRST_HALF
-        if (match.getStatus().equals(FIRST_HALF)) {
-            match.setHalfTimeScoreInfo(scoreInfo);
-        }
-
+        incrementMatchScoreline(match, scoredByHomeTeam, false);
         matchEventRepository.save(new MatchEvent(match, eventDetails));
     }
 
@@ -486,6 +498,50 @@ public class MatchEventService {
                 playerIn.getTeam().getId(),
                 playerInInfo,
                 playerOutInfo
+        );
+
+        matchEventRepository.save(new MatchEvent(match, eventDetails));
+    }
+
+    /**
+     * Processes the penalty event and saves it.
+     *
+     * @param match entity representing the match to which this event is related
+     * @param penaltyDto dto containing information about the event
+     */
+    private void processPenaltyEvent(Match match, InsertMatchEvent.PenaltyDto penaltyDto)
+            throws MatchEventInvalidException, ResourceNotFoundException {
+
+        throwIfBallNotInPlay(match);
+
+        // this `UUID.fromString` should never fail because the shootingPlayerId is pre-validated
+        TeamPlayer shootingPlayer = teamPlayerService.findEntityById(UUID.fromString(penaltyDto.getShootingPlayerId()));
+
+        // player shooting must be on the pitch
+        throwIfPlayerNotOnPitch(match, shootingPlayer);
+
+        // penalties scored during the penalty shootout do not count as goals
+        boolean duringPenaltyShootout = match.getStatus().equals(PENALTIES);
+
+        // determine the team whose goals should potentially be incremented
+        var scoredByHomeTeam = match.getHomeTeam().equals(shootingPlayer.getTeam());
+
+        // update the scoreline only if the penalty is scored
+        if (penaltyDto.isScored()) {
+            incrementMatchScoreline(match, scoredByHomeTeam, duringPenaltyShootout);
+        }
+
+        var eventDetails = new MatchEventDetails.PenaltyDto(
+                penaltyDto.getMinute(),
+                match.getCompetitionId(),
+                shootingPlayer.getTeam().getId(),
+                new MatchEventDetails.SerializedPlayerInfo(
+                        shootingPlayer.getId(),
+                        shootingPlayer.getPlayer().getId(),
+                        shootingPlayer.getPlayer().getName()
+                ),
+                !duringPenaltyShootout,
+                penaltyDto.isScored()
         );
 
         matchEventRepository.save(new MatchEvent(match, eventDetails));

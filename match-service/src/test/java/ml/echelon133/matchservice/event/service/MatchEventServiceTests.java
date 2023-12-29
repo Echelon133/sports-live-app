@@ -2197,4 +2197,774 @@ public class MatchEventServiceTests {
                     sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
         }));
     }
+
+    @Test
+    @DisplayName("processEvent rejects PENALTY events if the ball in the match is not in play")
+    public void processEvent_BallNotInPlay_RejectsInvalidPenalty() throws ResourceNotFoundException {
+        var ballNotInPlayStatuses = List.of(
+                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
+                MatchStatus.POSTPONED, MatchStatus.ABANDONED,
+                MatchStatus.FINISHED
+        );
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", UUID.randomUUID().toString(), true);
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        for (MatchStatus status: ballNotInPlayStatuses) {
+            match.setStatus(status);
+
+            // when
+            String message = assertThrows(MatchEventInvalidException.class, () -> {
+                matchEventService.processEvent(matchId, testEvent);
+            }).getMessage();
+
+            // then
+            assertEquals("event cannot be processed when the ball is not in play", message);
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent rejects PENALTY events if the shootingPlayer got two yellow cards")
+    public void processEvent_ShootingPlayerHasTwoYellowCards_RejectsInvalidPenalty() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // create a past event with two yellow cards for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        shootingPlayer.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                        new MatchEventDetails.SerializedPlayerInfo(shootingPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects PENALTY events if the shootingPlayer got a red card")
+    public void processEvent_ShootingPlayerHasRedCard_RejectsInvalidPenalty() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // create a past event with a red card for the player
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.CardDto(
+                        "45",
+                        UUID.randomUUID(),
+                        shootingPlayer.getTeam().getId(),
+                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
+                        new MatchEventDetails.SerializedPlayerInfo(shootingPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects PENALTY events if the shooting player got already subbed off")
+    public void processEvent_PlayerOutAlreadySubbedOff_RejectsInvalidPenalty() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // create a past event where the shootingPlayer already got subbed off before
+        List<MatchEvent> pastEvents = List.of(new MatchEvent(
+                match,
+                new MatchEventDetails.SubstitutionDto(
+                        "45",
+                        UUID.randomUUID(),
+                        shootingPlayer.getTeam().getId(),
+                        new MatchEventDetails.SerializedPlayerInfo(UUID.randomUUID(), null, null),
+                        new MatchEventDetails.SerializedPlayerInfo(shootingPlayerId, null, null)
+                )
+        ));
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects PENALTY events if the shootingPlayer spent the entire match on the bench")
+    public void processEvent_ShootingPlayerConstantlyOnBench_RejectsInvalidPenalty() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // have the shootingPlayer on the bench
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home PENALTY events happening in the FIRST_HALF and correctly increments the scorelines when the penalty is scored")
+    public void processEvent_FirstHalfHomePenaltyGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 1-0
+        assertEquals(1, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 1-0
+        assertEquals(1, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.isCountAsGoal() &&
+                    pDto.isScored();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home PENALTY events happening in the FIRST_HALF and does not increment the scorelines when the penalty is missed")
+    public void processEvent_FirstHalfHomePenaltyMissed_DoesNotTouchScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-0
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-0
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.isCountAsGoal() &&
+                    !pDto.isScored();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away PENALTY events happening in the FIRST_HALF and correctly increments the scorelines when the penalty is scored")
+    public void processEvent_FirstHalfAwayPenaltyGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-1
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(1, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-1
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(1, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.isCountAsGoal() &&
+                    pDto.isScored();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away PENALTY events happening in the FIRST_HALF and does not increment the scorelines when the penalty is missed")
+    public void processEvent_FirstHalfAwayPenaltyMissed_DoesNotTouchScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-0
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-0
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.isCountAsGoal() &&
+                    !pDto.isScored();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home PENALTY events happening outside the FIRST_HALF and correctly increments the scorelines when the penalty is scored")
+    public void processEvent_NonFirstHalfHomePenaltyGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+            var shootingPlayerId = shootingPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+            // have the shootingPlayer start on the pitch
+            var teamLineup = new LineupDto(
+                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                    List.of(),
+                    List.of(),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 1-0
+            assertEquals(1, match.getScoreInfo().getHomeGoals());
+            assertEquals(0, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.isCountAsGoal() &&
+                        pDto.isScored();
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home PENALTY events happening outside the FIRST_HALF and does not increment the scorelines when the penalty is missed")
+    public void processEvent_NonFirstHalfHomePenaltyMissed_DoesNotTouchScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+            var shootingPlayerId = shootingPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+
+            // have the shootingPlayer start on the pitch
+            var teamLineup = new LineupDto(
+                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                    List.of(),
+                    List.of(),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 0-0
+            assertEquals(0, match.getScoreInfo().getHomeGoals());
+            assertEquals(0, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.isCountAsGoal() &&
+                        !pDto.isScored();
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away PENALTY events happening outside the FIRST_HALF and correctly increments the scorelines when the penalty is scored")
+    public void processEvent_NonFirstHalfAwayPenaltyGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+            var shootingPlayerId = shootingPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+            // have the shootingPlayer start on the pitch
+            var teamLineup = new LineupDto(
+                    List.of(),
+                    List.of(),
+                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 0-1
+            assertEquals(0, match.getScoreInfo().getHomeGoals());
+            assertEquals(1, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.isCountAsGoal() &&
+                        pDto.isScored();
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away PENALTY events happening outside the FIRST_HALF and does not increment the scorelines when the penalty is missed")
+    public void processEvent_NonFirstHalfAwayPenaltyMissed_DoesNotTouchScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var statuses = List.of(MatchStatus.SECOND_HALF, MatchStatus.EXTRA_TIME);
+
+        for (MatchStatus status : statuses) {
+            var match = TestMatch.builder().status(status).build();
+            var matchId = match.getId();
+
+            var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+            var shootingPlayerId = shootingPlayer.getId();
+
+            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+
+            // have the shootingPlayer start on the pitch
+            var teamLineup = new LineupDto(
+                    List.of(),
+                    List.of(),
+                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                    List.of()
+            );
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+            given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+            // when
+            matchEventService.processEvent(matchId, testEvent);
+
+            // then
+            // the main score should be 0-0
+            assertEquals(0, match.getScoreInfo().getHomeGoals());
+            assertEquals(0, match.getScoreInfo().getAwayGoals());
+            // the half-time score should remain untouched
+            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+            // the penalty score should remain untouched
+            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+            verify(matchEventRepository).save(argThat(matchEvent -> {
+                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                return matchEvent.getMatch().getId().equals(matchId) &&
+                        pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.isCountAsGoal() &&
+                        !pDto.isScored();
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home PENALTY events happening during the PENALTIES and correctly increments the scorelines when the penalty is scored")
+    public void processEvent_PenaltiesHomePenaltyGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.PENALTIES).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-0
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should remain untouched
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should be 1-0
+        assertEquals(1, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.isCountAsGoal() &&
+                    pDto.isScored();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts home PENALTY events happening during the PENALTIES and does not increment the scorelines when the penalty is missed")
+    public void processEvent_PenaltiesHomePenaltyMissed_DoesNotTouchScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.PENALTIES).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-0
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-0
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.isCountAsGoal() &&
+                    !pDto.isScored();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away PENALTY events happening during the PENALTIES and correctly increments the scorelines when the penalty is scored")
+    public void processEvent_PenaltiesAwayPenaltyGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.PENALTIES).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-0
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-0
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should be 0-1
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(1, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.isCountAsGoal() &&
+                    pDto.isScored();
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts away PENALTY events happening during the PENALTIES and does not increment the scorelines when the penalty is missed")
+    public void processEvent_PenaltiesAwayPenaltyMissed_DoesNotTouchScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.PENALTIES).build();
+        var matchId = match.getId();
+
+        var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var shootingPlayerId = shootingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+
+        // have the shootingPlayer start on the pitch
+        var teamLineup = new LineupDto(
+                List.of(),
+                List.of(),
+                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
+                List.of()
+        );
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        matchEventService.processEvent(matchId, testEvent);
+
+        // then
+        // the main score should be 0-0
+        assertEquals(0, match.getScoreInfo().getHomeGoals());
+        assertEquals(0, match.getScoreInfo().getAwayGoals());
+        // the half-time score should also be 0-0
+        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
+        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
+        // the penalty score should remain untouched
+        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
+        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+
+        verify(matchEventRepository).save(argThat(matchEvent -> {
+            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) &&
+                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.isCountAsGoal() &&
+                    !pDto.isScored();
+        }));
+    }
 }
