@@ -212,7 +212,7 @@ public class MatchEventServiceTests {
             List<MatchStatus> expectedValidStatusChanges
     ) throws ResourceNotFoundException {
 
-        var match = new Match();
+        var match = TestMatch.builder().build();
         match.setStatus(testedMatchStatus);
         var matchId = match.getId();
 
@@ -253,7 +253,7 @@ public class MatchEventServiceTests {
     @Test
     @DisplayName("processEvent saves the commentary")
     public void processEvent_CommentaryPresent_SavesEvent() throws MatchEventInvalidException, ResourceNotFoundException {
-        var match = new Match();
+        var match = TestMatch.builder().build();
         var matchId = match.getId();
         var message = "This is a test message";
         var testedEvent = new InsertMatchEvent.CommentaryDto("45", message);
@@ -277,7 +277,7 @@ public class MatchEventServiceTests {
         var ballNotInPlayStatuses = List.of(
                 MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME, MatchStatus.POSTPONED, MatchStatus.ABANDONED
         );
-        var match = new Match();
+        var match = TestMatch.builder().build();
         var matchId = match.getId();
         var testEvent = new InsertMatchEvent.CardDto("1", UUID.randomUUID().toString(), false);
 
@@ -715,7 +715,7 @@ public class MatchEventServiceTests {
                 MatchStatus.POSTPONED, MatchStatus.ABANDONED,
                 MatchStatus.FINISHED
         );
-        var match = new Match();
+        var match = TestMatch.builder().build();
         var matchId = match.getId();
         var testEvent = new InsertMatchEvent.GoalDto(
                 "1", UUID.randomUUID().toString(), UUID.randomUUID().toString(), false
