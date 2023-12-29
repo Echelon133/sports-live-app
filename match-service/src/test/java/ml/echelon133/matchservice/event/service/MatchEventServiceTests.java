@@ -49,11 +49,6 @@ public class MatchEventServiceTests {
     @InjectMocks
     private MatchEventService matchEventService;
 
-    private MatchEvent createTestStatusMatchEvent(UUID matchId, String minute, MatchStatus targetStatus) {
-        var match = TestMatch.builder().id(matchId).build();
-        return new MatchEvent(match, new MatchEventDetails.StatusDto(minute, match.getCompetitionId(), targetStatus));
-    }
-
     // this method simplifies binding concrete arguments to concrete responses from mocked
     // TeamPlayerService's `findEntityById` method.
     private void bindTeamPlayerIdsToTeamPlayers(Map<UUID, Optional<TeamPlayer>> idToResponseMap) throws ResourceNotFoundException {
@@ -88,11 +83,14 @@ public class MatchEventServiceTests {
     }
 
     @Test
-    @DisplayName("findAllByMatchId returns expected status event dtos")
+    @DisplayName("findAllByMatchId returns expected event dtos")
     public void findAllByMatchId_HasStatusEvent_ReturnsDto() {
-        var matchId = UUID.randomUUID();
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
         var targetStatus = MatchStatus.FIRST_HALF;
-        var statusEvent = createTestStatusMatchEvent(matchId, "1", targetStatus);
+        var statusEvent = new MatchEvent(
+                match, new MatchEventDetails.StatusDto("1", match.getCompetitionId(), targetStatus)
+        );
 
         // given
         given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId))
