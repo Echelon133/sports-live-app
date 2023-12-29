@@ -67,11 +67,24 @@ public class MatchEventServiceTests {
         });
     }
 
-    private static List<MatchStatus> BALL_NOT_IN_PLAY_STATUSES = List.of(
-            MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
-            MatchStatus.POSTPONED, MatchStatus.ABANDONED,
-            MatchStatus.FINISHED
-    );
+    private void assertEventInvalidWhenBallNotInPlay(Match testedMatch, InsertMatchEvent event) {
+        var ballNotInPlay = List.of(
+                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
+                MatchStatus.POSTPONED, MatchStatus.ABANDONED,
+                MatchStatus.FINISHED
+        );
+        for (MatchStatus status: ballNotInPlay) {
+            testedMatch.setStatus(status);
+
+            // when
+            String message = assertThrows(MatchEventInvalidException.class, () -> {
+                matchEventService.processEvent(testedMatch.getId(), event);
+            }).getMessage();
+
+            // then
+            assertEquals("event cannot be processed when the ball is not in play", message);
+        }
+    }
 
     @Test
     @DisplayName("findAllByMatchId returns an empty list when there are no events")
@@ -287,17 +300,8 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
-            match.setStatus(status);
-
-            // when
-            String message = assertThrows(MatchEventInvalidException.class, () -> {
-                matchEventService.processEvent(matchId, testEvent);
-            }).getMessage();
-
-            // then
-            assertEquals("event cannot be processed when the ball is not in play", message);
-        }
+        // then
+        assertEventInvalidWhenBallNotInPlay(match, testEvent);
     }
 
     @Test
@@ -722,17 +726,8 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
-            match.setStatus(status);
-
-            // when
-            String message = assertThrows(MatchEventInvalidException.class, () -> {
-                matchEventService.processEvent(matchId, testEvent);
-            }).getMessage();
-
-            // then
-            assertEquals("event cannot be processed when the ball is not in play", message);
-        }
+        // then
+        assertEventInvalidWhenBallNotInPlay(match, testEvent);
     }
 
     @Test
@@ -1417,17 +1412,8 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
-            match.setStatus(status);
-
-            // when
-            String message = assertThrows(MatchEventInvalidException.class, () -> {
-                matchEventService.processEvent(matchId, testEvent);
-            }).getMessage();
-
-            // then
-            assertEquals("event cannot be processed when the ball is not in play", message);
-        }
+        // then
+        assertEventInvalidWhenBallNotInPlay(match, testEvent);
     }
 
     @Test
@@ -2199,17 +2185,8 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
-            match.setStatus(status);
-
-            // when
-            String message = assertThrows(MatchEventInvalidException.class, () -> {
-                matchEventService.processEvent(matchId, testEvent);
-            }).getMessage();
-
-            // then
-            assertEquals("event cannot be processed when the ball is not in play", message);
-        }
+        // then
+        assertEventInvalidWhenBallNotInPlay(match, testEvent);
     }
 
     @Test
