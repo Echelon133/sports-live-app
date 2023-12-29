@@ -67,6 +67,12 @@ public class MatchEventServiceTests {
         });
     }
 
+    private static List<MatchStatus> BALL_NOT_IN_PLAY_STATUSES = List.of(
+            MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
+            MatchStatus.POSTPONED, MatchStatus.ABANDONED,
+            MatchStatus.FINISHED
+    );
+
     @Test
     @DisplayName("findAllByMatchId returns an empty list when there are no events")
     public void findAllByMatchId_NoEvents_ReturnsEmptyList() {
@@ -274,9 +280,6 @@ public class MatchEventServiceTests {
     @Test
     @DisplayName("processEvent rejects CARD events if the ball in the match is not in play")
     public void processEvent_BallNotInPlay_RejectsInvalidCard() throws ResourceNotFoundException {
-        var ballNotInPlayStatuses = List.of(
-                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME, MatchStatus.POSTPONED, MatchStatus.ABANDONED
-        );
         var match = TestMatch.builder().build();
         var matchId = match.getId();
         var testEvent = new InsertMatchEvent.CardDto("1", UUID.randomUUID().toString(), false);
@@ -284,7 +287,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: ballNotInPlayStatuses) {
+        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
             match.setStatus(status);
 
             // when
@@ -710,11 +713,6 @@ public class MatchEventServiceTests {
     @Test
     @DisplayName("processEvent rejects GOAL events if the ball in the match is not in play")
     public void processEvent_BallNotInPlay_RejectsInvalidGoal() throws ResourceNotFoundException {
-        var ballNotInPlayStatuses = List.of(
-                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
-                MatchStatus.POSTPONED, MatchStatus.ABANDONED,
-                MatchStatus.FINISHED
-        );
         var match = TestMatch.builder().build();
         var matchId = match.getId();
         var testEvent = new InsertMatchEvent.GoalDto(
@@ -724,7 +722,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: ballNotInPlayStatuses) {
+        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
             match.setStatus(status);
 
             // when
@@ -1410,11 +1408,6 @@ public class MatchEventServiceTests {
     @Test
     @DisplayName("processEvent rejects SUBSTITUTION events if the ball in the match is not in play")
     public void processEvent_BallNotInPlay_RejectsInvalidSubstitution() throws ResourceNotFoundException {
-        var ballNotInPlayStatuses = List.of(
-                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
-                MatchStatus.POSTPONED, MatchStatus.ABANDONED,
-                MatchStatus.FINISHED
-        );
         var match = TestMatch.builder().build();
         var matchId = match.getId();
         var testEvent = new InsertMatchEvent.SubstitutionDto(
@@ -1424,7 +1417,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: ballNotInPlayStatuses) {
+        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
             match.setStatus(status);
 
             // when
@@ -2199,11 +2192,6 @@ public class MatchEventServiceTests {
     @Test
     @DisplayName("processEvent rejects PENALTY events if the ball in the match is not in play")
     public void processEvent_BallNotInPlay_RejectsInvalidPenalty() throws ResourceNotFoundException {
-        var ballNotInPlayStatuses = List.of(
-                MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
-                MatchStatus.POSTPONED, MatchStatus.ABANDONED,
-                MatchStatus.FINISHED
-        );
         var match = TestMatch.builder().build();
         var matchId = match.getId();
         var testEvent = new InsertMatchEvent.PenaltyDto("1", UUID.randomUUID().toString(), true);
@@ -2211,7 +2199,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
 
-        for (MatchStatus status: ballNotInPlayStatuses) {
+        for (MatchStatus status: BALL_NOT_IN_PLAY_STATUSES) {
             match.setStatus(status);
 
             // when
