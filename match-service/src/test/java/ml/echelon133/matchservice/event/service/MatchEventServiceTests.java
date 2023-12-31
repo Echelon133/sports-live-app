@@ -67,6 +67,36 @@ public class MatchEventServiceTests {
         });
     }
 
+    private void givenMatchReturnEvents(UUID matchId, List<MatchEvent> matchEvents) {
+        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(matchEvents);
+    }
+
+    private MatchEvent createTestCardEvent(Match match, UUID receivingTeamPlayerId, MatchEventDetails.CardDto.CardType type) {
+        return new MatchEvent(
+            match,
+            new MatchEventDetails.CardDto(
+                    "1",
+                    UUID.randomUUID(),
+                    null,
+                    type,
+                    new MatchEventDetails.SerializedPlayerInfo(receivingTeamPlayerId, null, null)
+            )
+        );
+    }
+
+    private MatchEvent createTestSubstitutionEvent(Match match, UUID playerInId, UUID playerOutId) {
+        return new MatchEvent(
+            match,
+            new MatchEventDetails.SubstitutionDto(
+                    "1",
+                    UUID.randomUUID(),
+                    null,
+                    new MatchEventDetails.SerializedPlayerInfo(playerInId, null, null),
+                    new MatchEventDetails.SerializedPlayerInfo(playerOutId, null, null)
+            )
+        );
+    }
+
     private void assertEventInvalidWhenBallNotInPlay(Match testedMatch, InsertMatchEvent event) {
         var ballNotInPlay = List.of(
                 MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
@@ -92,7 +122,7 @@ public class MatchEventServiceTests {
         var matchId = UUID.randomUUID();
 
         // given
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(List.of());
+        givenMatchReturnEvents(matchId, List.of());
 
         // when
         var events = matchEventService.findAllByMatchId(matchId);
@@ -112,8 +142,7 @@ public class MatchEventServiceTests {
         );
 
         // given
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId))
-                .willReturn(List.of(statusEvent));
+        givenMatchReturnEvents(matchId, List.of(statusEvent));
 
         // when
         var events = matchEventService.findAllByMatchId(matchId);
@@ -382,14 +411,12 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // past events do not contain any card events for the player
-        List<MatchEvent> pastEvents = List.of();
 
         // given
+        givenMatchReturnEvents(matchId, List.of());
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         matchEventService.processEvent(matchId, testEvent);
@@ -420,14 +447,12 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // past events do not contain any card events for the player
-        List<MatchEvent> pastEvents = List.of();
 
         // given
+        givenMatchReturnEvents(matchId, List.of());
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         matchEventService.processEvent(matchId, testEvent);
@@ -458,23 +483,14 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a yellow card for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        testTeamPlayer.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
-                )
-        ));
 
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         matchEventService.processEvent(matchId, testEvent);
@@ -505,23 +521,14 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a yellow card for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        null,
-                        MatchEventDetails.CardDto.CardType.YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
-                )
-        ));
 
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         matchEventService.processEvent(matchId, testEvent);
@@ -552,23 +559,14 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a two yellow cards for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        testTeamPlayer.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
-                )
-        ));
 
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -597,23 +595,14 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with two yellow cards for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        testTeamPlayer.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
-                )
-        ));
 
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -642,23 +631,14 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a direct red card for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        testTeamPlayer.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
-                )
-        ));
 
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -687,23 +667,14 @@ public class MatchEventServiceTests {
                 List.of(),
                 List.of()
         );
-        // create a past event with a direct red card for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        testTeamPlayer.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(testTeamPlayerId, null, null)
-                )
-        ));
 
         // given
+        givenMatchReturnEvents(matchId, List.of(
+            createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -1658,26 +1629,16 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // create a past event with two yellow cards for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        teamPlayerIn.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+               createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -1712,26 +1673,16 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // create a past event with a direct red card for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        teamPlayerIn.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -1766,26 +1717,16 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // create a past event where the playerIn already got subbed on before
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.SubstitutionDto(
-                        "45",
-                        UUID.randomUUID(),
-                        teamPlayerIn.getTeam().getId(),
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null),
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestSubstitutionEvent(match, teamPlayerInId, teamPlayerOutId)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -1820,26 +1761,16 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // create a past event with two yellow cards for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        teamPlayerIn.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -1874,26 +1805,16 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // create a past event with a direct red card for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        teamPlayerIn.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -1928,26 +1849,16 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // create a past event where the playerOut already got subbed off before
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.SubstitutionDto(
-                        "45",
-                        UUID.randomUUID(),
-                        teamPlayerIn.getTeam().getId(),
-                        new MatchEventDetails.SerializedPlayerInfo(UUID.randomUUID(), null, null),
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestSubstitutionEvent(match, UUID.randomUUID(), teamPlayerOutId)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -2070,36 +1981,18 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // give both players yellow cards
-        List<MatchEvent> pastEvents = List.of(
-                new MatchEvent(
-                    match,
-                    new MatchEventDetails.CardDto(
-                            "45",
-                            UUID.randomUUID(),
-                            teamPlayerIn.getTeam().getId(),
-                            MatchEventDetails.CardDto.CardType.YELLOW,
-                            new MatchEventDetails.SerializedPlayerInfo(teamPlayerInId, null, null)
-                    )),
-                new MatchEvent(
-                    match,
-                    new MatchEventDetails.CardDto(
-                            "45",
-                            UUID.randomUUID(),
-                            teamPlayerIn.getTeam().getId(),
-                            MatchEventDetails.CardDto.CardType.YELLOW,
-                            new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null)
-                    ))
-        );
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                // give both players yellow cards
+                createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.YELLOW),
+                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         matchEventService.processEvent(matchId, testEvent);
@@ -2141,26 +2034,16 @@ public class MatchEventServiceTests {
                 List.of()
         );
 
-        // create a past event where the playerOut gets subbed on
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.SubstitutionDto(
-                        "45",
-                        UUID.randomUUID(),
-                        teamPlayerIn.getTeam().getId(),
-                        new MatchEventDetails.SerializedPlayerInfo(teamPlayerOutId, null, null),
-                        new MatchEventDetails.SerializedPlayerInfo(UUID.randomUUID(), null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestSubstitutionEvent(match, teamPlayerOutId, UUID.randomUUID())
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
                 teamPlayerInId, Optional.of(teamPlayerIn),
                 teamPlayerOutId, Optional.of(teamPlayerOut)
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         matchEventService.processEvent(matchId, testEvent);
@@ -2201,22 +2084,12 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
-        // create a past event with two yellow cards for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        shootingPlayer.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(shootingPlayerId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, shootingPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -2240,22 +2113,12 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
-        // create a past event with a red card for the player
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.CardDto(
-                        "45",
-                        UUID.randomUUID(),
-                        shootingPlayer.getTeam().getId(),
-                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(shootingPlayerId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, shootingPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -2278,22 +2141,12 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
-        // create a past event where the shootingPlayer already got subbed off before
-        List<MatchEvent> pastEvents = List.of(new MatchEvent(
-                match,
-                new MatchEventDetails.SubstitutionDto(
-                        "45",
-                        UUID.randomUUID(),
-                        shootingPlayer.getTeam().getId(),
-                        new MatchEventDetails.SerializedPlayerInfo(UUID.randomUUID(), null, null),
-                        new MatchEventDetails.SerializedPlayerInfo(shootingPlayerId, null, null)
-                )
-        ));
-
         // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestSubstitutionEvent(match, UUID.randomUUID(), shootingPlayerId)
+        ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
-        given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(pastEvents);
 
         // when
         String message = assertThrows(MatchEventInvalidException.class, () -> {
