@@ -10,6 +10,7 @@ import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.ScoreInfo;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
@@ -113,6 +114,17 @@ public class MatchEventServiceTests {
             // then
             assertEquals("event cannot be processed when the ball is not in play", message);
         }
+    }
+
+    private void assertMatchScoreEqual(
+            Match match,
+            ScoreInfo expectedHalfTimeScore,
+            ScoreInfo expectedMainScore,
+            ScoreInfo expectedPenaltyScore
+    ) {
+        assertEquals(expectedHalfTimeScore, match.getHalfTimeScoreInfo());
+        assertEquals(expectedMainScore, match.getScoreInfo());
+        assertEquals(expectedPenaltyScore, match.getPenaltiesInfo());
     }
 
     @Test
@@ -897,15 +909,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 1-0
-        assertEquals(1, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 1-0
-        assertEquals(1, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(1, 0);
+        var expectedMainScore = ScoreInfo.of(1, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -941,15 +948,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-1
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(1, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-1
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(1, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 1);
+        var expectedMainScore = ScoreInfo.of(0, 1);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -996,15 +998,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-1
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(1, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-1
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(1, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 1);
+        var expectedMainScore = ScoreInfo.of(0, 1);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -1040,15 +1037,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 1-0
-        assertEquals(1, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 1-0
-        assertEquals(1, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(1, 0);
+        var expectedMainScore = ScoreInfo.of(1, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -1097,15 +1089,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 1-0
-            assertEquals(1, match.getScoreInfo().getHomeGoals());
-            assertEquals(0, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(1, 0);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -1145,15 +1132,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 0-1
-            assertEquals(0, match.getScoreInfo().getHomeGoals());
-            assertEquals(1, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(0, 1);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -1203,15 +1185,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 0-1
-            assertEquals(0, match.getScoreInfo().getHomeGoals());
-            assertEquals(1, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(0, 1);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -1250,15 +1227,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 1-0
-            assertEquals(1, match.getScoreInfo().getHomeGoals());
-            assertEquals(0, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(1, 0);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
@@ -2070,15 +2042,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 1-0
-        assertEquals(1, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 1-0
-        assertEquals(1, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(1, 0);
+        var expectedMainScore = ScoreInfo.of(1, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2115,15 +2082,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-0
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-0
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+        var expectedMainScore = ScoreInfo.of(0, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2160,15 +2122,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-1
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(1, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-1
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(1, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 1);
+        var expectedMainScore = ScoreInfo.of(0, 1);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2205,15 +2162,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-0
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-0
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+        var expectedMainScore = ScoreInfo.of(0, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2253,15 +2205,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 1-0
-            assertEquals(1, match.getScoreInfo().getHomeGoals());
-            assertEquals(0, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(1, 0);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2302,15 +2249,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 0-0
-            assertEquals(0, match.getScoreInfo().getHomeGoals());
-            assertEquals(0, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(0, 0);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2351,15 +2293,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 0-1
-            assertEquals(0, match.getScoreInfo().getHomeGoals());
-            assertEquals(1, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(0, 1);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2400,15 +2337,10 @@ public class MatchEventServiceTests {
             matchEventService.processEvent(matchId, testEvent);
 
             // then
-            // the main score should be 0-0
-            assertEquals(0, match.getScoreInfo().getHomeGoals());
-            assertEquals(0, match.getScoreInfo().getAwayGoals());
-            // the half-time score should remain untouched
-            assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-            assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-            // the penalty score should remain untouched
-            assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-            assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+            var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+            var expectedMainScore = ScoreInfo.of(0, 0);
+            var expectedPenaltyScore = ScoreInfo.of(0, 0);
+            assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2446,15 +2378,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-0
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should remain untouched
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should be 1-0
-        assertEquals(1, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+        var expectedMainScore = ScoreInfo.of(0, 0);
+        var expectedPenaltyScore = ScoreInfo.of(1, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2491,15 +2418,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-0
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-0
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+        var expectedMainScore = ScoreInfo.of(0, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2536,15 +2458,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-0
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-0
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should be 0-1
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(1, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+        var expectedMainScore = ScoreInfo.of(0, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 1);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
@@ -2581,15 +2498,10 @@ public class MatchEventServiceTests {
         matchEventService.processEvent(matchId, testEvent);
 
         // then
-        // the main score should be 0-0
-        assertEquals(0, match.getScoreInfo().getHomeGoals());
-        assertEquals(0, match.getScoreInfo().getAwayGoals());
-        // the half-time score should also be 0-0
-        assertEquals(0, match.getHalfTimeScoreInfo().getHomeGoals());
-        assertEquals(0, match.getHalfTimeScoreInfo().getAwayGoals());
-        // the penalty score should remain untouched
-        assertEquals(0, match.getPenaltiesInfo().getHomeGoals());
-        assertEquals(0, match.getPenaltiesInfo().getAwayGoals());
+        var expectedHalfTimeScore = ScoreInfo.of(0, 0);
+        var expectedMainScore = ScoreInfo.of(0, 0);
+        var expectedPenaltyScore = ScoreInfo.of(0, 0);
+        assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();

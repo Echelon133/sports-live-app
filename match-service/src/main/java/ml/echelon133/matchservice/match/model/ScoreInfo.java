@@ -41,4 +41,26 @@ public class ScoreInfo {
     public void incrementAwayGoals() {
         ++this.awayGoals;
     }
+
+    public static ScoreInfo of(Integer homeGoals, Integer awayGoals) {
+        return new ScoreInfo(homeGoals, awayGoals);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ScoreInfo scoreInfo = (ScoreInfo) o;
+
+        if (!homeGoals.equals(scoreInfo.homeGoals)) return false;
+        return awayGoals.equals(scoreInfo.awayGoals);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = homeGoals.hashCode();
+        result = 31 * result + awayGoals.hashCode();
+        return result;
+    }
 }
