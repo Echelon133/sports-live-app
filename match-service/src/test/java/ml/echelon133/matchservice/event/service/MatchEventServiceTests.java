@@ -3,18 +3,17 @@ package ml.echelon133.matchservice.event.service;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.common.match.dto.LineupDto;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
 import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
+import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.team.TestTeam;
-import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import org.junit.jupiter.api.DisplayName;
@@ -376,7 +375,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
         // create an empty lineup which ensures that the player won't be in it
-        var teamLineup = new LineupDto();
+        var teamLineup = TestLineupDto.builder().build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -404,13 +403,9 @@ public class MatchEventServiceTests {
         var testTeamPlayerId = testTeamPlayer.getId();
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of());
@@ -441,12 +436,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of());
@@ -477,12 +467,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -515,12 +500,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -553,12 +533,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -589,12 +564,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -625,12 +595,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -661,12 +626,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(testTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -739,7 +699,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
         // create an empty lineup which ensures that the player won't be in it
-        var teamLineup = new LineupDto();
+        var teamLineup = TestLineupDto.builder().build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -771,12 +731,7 @@ public class MatchEventServiceTests {
         );
 
         // put the player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -810,12 +765,7 @@ public class MatchEventServiceTests {
         );
 
         // only have the scoring player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -853,12 +803,7 @@ public class MatchEventServiceTests {
         );
 
         // only have the scoring player in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -896,12 +841,10 @@ public class MatchEventServiceTests {
         );
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(scoringTeamPlayerId)
+                .awayStarting(assistingTeamPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -938,15 +881,9 @@ public class MatchEventServiceTests {
         );
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(
-                        TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
-                        TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
-                ),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(scoringTeamPlayerId, assistingTeamPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -993,12 +930,7 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
 
         // only have the scoring player in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1047,15 +979,10 @@ public class MatchEventServiceTests {
         );
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(),
-                List.of(
-                        TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
-                        TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
-                ),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .awayStarting(scoringTeamPlayerId)
+                .awaySubstitutes(assistingTeamPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1102,12 +1029,7 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
 
         // only have the scoring player in the lineup
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().awayStarting(scoringTeamPlayerId).build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1159,15 +1081,9 @@ public class MatchEventServiceTests {
             );
 
             // have both players in the lineup
-            var teamLineup = new LineupDto(
-                    List.of(
-                            TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
-                            TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
-                    ),
-                    List.of(),
-                    List.of(),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder()
+                    .homeStarting(scoringTeamPlayerId, assistingTeamPlayerId)
+                    .build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1218,12 +1134,7 @@ public class MatchEventServiceTests {
             var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
 
             // only have the scoring player in the lineup
-            var teamLineup = new LineupDto(
-                    List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                    List.of(),
-                    List.of(),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1276,15 +1187,9 @@ public class MatchEventServiceTests {
             );
 
             // have both players in the lineup
-            var teamLineup = new LineupDto(
-                    List.of(),
-                    List.of(),
-                    List.of(
-                            TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build(),
-                            TestTeamPlayerDto.builder().id(assistingTeamPlayerId).build()
-                    ),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder()
+                    .awayStarting(scoringTeamPlayerId, assistingTeamPlayerId)
+                    .build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1334,12 +1239,7 @@ public class MatchEventServiceTests {
             var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
 
             // only have the scoring player in the lineup
-            var teamLineup = new LineupDto(
-                    List.of(),
-                    List.of(),
-                    List.of(TestTeamPlayerDto.builder().id(scoringTeamPlayerId).build()),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder().awayStarting(scoringTeamPlayerId).build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1425,7 +1325,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), null);
         // create an empty lineup which ensures that the player won't be in it
-        var teamLineup = new LineupDto();
+        var teamLineup = TestLineupDto.builder().build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1458,12 +1358,7 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // only have the playerIn in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(teamPlayerInId).build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1499,12 +1394,7 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // only have the playerIn in the starting home lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder().homeStarting(teamPlayerInId).build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1540,12 +1430,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerInId)
+                .awayStarting(teamPlayerOutId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1580,13 +1468,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build(),
-                        TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerInId, teamPlayerOutId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1622,12 +1506,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1666,12 +1548,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1710,12 +1590,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1754,12 +1632,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1798,12 +1674,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1842,12 +1716,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1886,15 +1758,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(
-                        TestTeamPlayerDto.builder().id(teamPlayerInId).build(),
-                        TestTeamPlayerDto.builder().id(teamPlayerOutId).build()
-                ),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeSubstitutes(teamPlayerOutId, teamPlayerInId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1930,12 +1796,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -1974,12 +1838,10 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerOutId).build()),
-                List.of(TestTeamPlayerDto.builder().id(teamPlayerInId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayerOutId)
+                .homeSubstitutes(teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -2024,15 +1886,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(
-                        TestTeamPlayerDto.builder().id(teamPlayerInId).build(),
-                        TestTeamPlayerDto.builder().id(teamPlayerOutId).build()
-                ),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeSubstitutes(teamPlayerOutId, teamPlayerInId)
+                .build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -2170,12 +2026,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer on the bench
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeSubstitutes(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2204,12 +2057,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2252,12 +2102,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2300,12 +2147,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .awayStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2348,12 +2192,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .awayStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2399,12 +2240,9 @@ public class MatchEventServiceTests {
             var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
             // have the shootingPlayer start on the pitch
-            var teamLineup = new LineupDto(
-                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                    List.of(),
-                    List.of(),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder()
+                    .homeStarting(shootingPlayerId)
+                    .build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2451,12 +2289,9 @@ public class MatchEventServiceTests {
             var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
 
             // have the shootingPlayer start on the pitch
-            var teamLineup = new LineupDto(
-                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                    List.of(),
-                    List.of(),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder()
+                    .homeStarting(shootingPlayerId)
+                    .build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2503,12 +2338,9 @@ public class MatchEventServiceTests {
             var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
             // have the shootingPlayer start on the pitch
-            var teamLineup = new LineupDto(
-                    List.of(),
-                    List.of(),
-                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder()
+                    .awayStarting(shootingPlayerId)
+                    .build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2555,12 +2387,9 @@ public class MatchEventServiceTests {
             var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
 
             // have the shootingPlayer start on the pitch
-            var teamLineup = new LineupDto(
-                    List.of(),
-                    List.of(),
-                    List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                    List.of()
-            );
+            var teamLineup = TestLineupDto.builder()
+                    .awayStarting(shootingPlayerId)
+                    .build();
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2604,12 +2433,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2652,12 +2478,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of(),
-                List.of(),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2700,12 +2523,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .awayStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2748,12 +2568,9 @@ public class MatchEventServiceTests {
         var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
-        var teamLineup = new LineupDto(
-                List.of(),
-                List.of(),
-                List.of(TestTeamPlayerDto.builder().id(shootingPlayerId).build()),
-                List.of()
-        );
+        var teamLineup = TestLineupDto.builder()
+                .awayStarting(shootingPlayerId)
+                .build();
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
