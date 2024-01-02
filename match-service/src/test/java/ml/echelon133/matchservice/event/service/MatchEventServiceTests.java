@@ -127,6 +127,15 @@ public class MatchEventServiceTests {
         assertEquals(expectedPenaltyScore, match.getPenaltiesInfo());
     }
 
+    private void assertPlayerNotOnPitch(UUID matchId, InsertMatchEvent testEvent, UUID checkedPlayer) {
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        var expectedMessage = String.format("the player %s is not on the pitch", checkedPlayer);
+        assertEquals(expectedMessage, message);
+    }
+
     @Test
     @DisplayName("findAllByMatchId returns an empty list when there are no events")
     public void findAllByMatchId_NoEvents_ReturnsEmptyList() {
@@ -692,14 +701,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", scoringTeamPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, scoringTeamPlayerId);
     }
 
     @Test
@@ -721,14 +724,8 @@ public class MatchEventServiceTests {
         given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", scoringTeamPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, scoringTeamPlayerId);
     }
 
     @Test
@@ -750,14 +747,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
     }
 
     @Test
@@ -779,14 +770,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
     }
 
     @Test
@@ -808,14 +793,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
     }
 
     @Test
@@ -838,14 +817,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
     }
 
     @Test
@@ -907,14 +880,8 @@ public class MatchEventServiceTests {
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", assistingTeamPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, assistingTeamPlayerId);
     }
 
     @Test
@@ -945,14 +912,8 @@ public class MatchEventServiceTests {
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", assistingTeamPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, assistingTeamPlayerId);
     }
 
     @Test
@@ -1025,14 +986,8 @@ public class MatchEventServiceTests {
         ));
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
     }
 
     @Test
@@ -1065,14 +1020,8 @@ public class MatchEventServiceTests {
         ));
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
     }
 
     @Test
@@ -1105,14 +1054,8 @@ public class MatchEventServiceTests {
         ));
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
     }
 
     @Test
@@ -1145,14 +1088,8 @@ public class MatchEventServiceTests {
         ));
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
     }
 
     @Test
@@ -1898,14 +1835,8 @@ public class MatchEventServiceTests {
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, teamPlayerOutId);
     }
 
     @Test
@@ -1940,14 +1871,8 @@ public class MatchEventServiceTests {
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, teamPlayerOutId);
     }
 
     @Test
@@ -1982,14 +1907,8 @@ public class MatchEventServiceTests {
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, teamPlayerOutId);
     }
 
     @Test
@@ -2020,14 +1939,8 @@ public class MatchEventServiceTests {
         ));
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", teamPlayerOutId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, teamPlayerOutId);
     }
 
     @Test
@@ -2197,14 +2110,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, shootingPlayerId);
     }
 
     @Test
@@ -2226,14 +2133,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, shootingPlayerId);
     }
 
     @Test
@@ -2254,14 +2155,8 @@ public class MatchEventServiceTests {
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, shootingPlayerId);
     }
 
     @Test
@@ -2285,14 +2180,8 @@ public class MatchEventServiceTests {
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        var expectedMessage = String.format("the player %s is not on the pitch", shootingPlayerId);
-        assertEquals(expectedMessage, message);
+        assertPlayerNotOnPitch(matchId, testEvent, shootingPlayerId);
     }
 
     @Test
