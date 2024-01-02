@@ -136,6 +136,15 @@ public class MatchEventServiceTests {
         assertEquals(expectedMessage, message);
     }
 
+    private void assertPlayerIsAlreadyEjected(UUID matchId, InsertMatchEvent testEvent) {
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        assertEquals("the player is already ejected", message);
+    }
+
     @Test
     @DisplayName("findAllByMatchId returns an empty list when there are no events")
     public void findAllByMatchId_NoEvents_ReturnsEmptyList() {
@@ -564,13 +573,8 @@ public class MatchEventServiceTests {
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        assertEquals("the player is already ejected", message);
+        assertPlayerIsAlreadyEjected(matchId, testEvent);
     }
 
     @Test
@@ -595,13 +599,8 @@ public class MatchEventServiceTests {
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        assertEquals("the player is already ejected", message);
+        assertPlayerIsAlreadyEjected(matchId, testEvent);
     }
 
     @Test
@@ -626,13 +625,8 @@ public class MatchEventServiceTests {
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        assertEquals("the player is already ejected", message);
+        assertPlayerIsAlreadyEjected(matchId, testEvent);
     }
 
     @Test
@@ -657,13 +651,8 @@ public class MatchEventServiceTests {
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
-        // when
-        String message = assertThrows(MatchEventInvalidException.class, () -> {
-            matchEventService.processEvent(matchId, testEvent);
-        }).getMessage();
-
         // then
-        assertEquals("the player is already ejected", message);
+        assertPlayerIsAlreadyEjected(matchId, testEvent);
     }
 
     @Test
