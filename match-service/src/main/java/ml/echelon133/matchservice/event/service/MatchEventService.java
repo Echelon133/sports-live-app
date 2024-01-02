@@ -385,8 +385,6 @@ public class MatchEventService {
 
         // this `UUID.fromString` should never fail because the scoringPlayerId is pre-validated
         TeamPlayer scoringPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getScoringPlayerId()));
-        // player who scored has to be in the match's lineup
-        throwIfPlayerNotInLineup(match, scoringPlayer);
         // player who scored has to be on the pitch
         throwIfPlayerNotOnPitch(match, scoringPlayer);
 
@@ -403,8 +401,6 @@ public class MatchEventService {
             // this `UUID.fromString` should never fail because the assistingPlayerId is pre-validated when not null
             assistingPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getAssistingPlayerId()));
 
-            // player who assisted has to be in the match's lineup
-            throwIfPlayerNotInLineup(match, assistingPlayer);
             // player who assisted has to be on the pitch
             throwIfPlayerNotOnPitch(match, assistingPlayer);
 

@@ -685,7 +685,10 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
 
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
+
         // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringTeamPlayerId)).willReturn(scoringTeamPlayer);
 
@@ -695,7 +698,7 @@ public class MatchEventServiceTests {
         }).getMessage();
 
         // then
-        var expectedMessage = String.format("the player %s does not play for either team", scoringTeamPlayerId);
+        var expectedMessage = String.format("the player %s is not on the pitch", scoringTeamPlayerId);
         assertEquals(expectedMessage, message);
     }
 
@@ -724,7 +727,7 @@ public class MatchEventServiceTests {
         }).getMessage();
 
         // then
-        var expectedMessage = String.format("the player %s is not placed in the lineup of this match", scoringTeamPlayerId);
+        var expectedMessage = String.format("the player %s is not on the pitch", scoringTeamPlayerId);
         assertEquals(expectedMessage, message);
     }
 
@@ -740,11 +743,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
 
-        // put the scoring player in the starting home lineup
-        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId).build();
-
         // given
-        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         givenMatchReturnEvents(matchId, List.of(
                 createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
         ));
@@ -773,11 +772,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
 
-        // put the scoring player in the starting home lineup
-        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId).build();
-
         // given
-        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         givenMatchReturnEvents(matchId, List.of(
                 createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
         ));
@@ -806,11 +801,7 @@ public class MatchEventServiceTests {
 
         var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
 
-        // put the scoring player in the starting home lineup
-        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId).build();
-
         // given
-        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         givenMatchReturnEvents(matchId, List.of(
                 createTestSubstitutionEvent(match, UUID.randomUUID(), scoringPlayerId)
         ));
@@ -922,7 +913,7 @@ public class MatchEventServiceTests {
         }).getMessage();
 
         // then
-        var expectedMessage = String.format("the player %s does not play for either team", assistingTeamPlayerId);
+        var expectedMessage = String.format("the player %s is not on the pitch", assistingTeamPlayerId);
         assertEquals(expectedMessage, message);
     }
 
@@ -960,7 +951,7 @@ public class MatchEventServiceTests {
         }).getMessage();
 
         // then
-        var expectedMessage = String.format("the player %s is not placed in the lineup of this match", assistingTeamPlayerId);
+        var expectedMessage = String.format("the player %s is not on the pitch", assistingTeamPlayerId);
         assertEquals(expectedMessage, message);
     }
 
