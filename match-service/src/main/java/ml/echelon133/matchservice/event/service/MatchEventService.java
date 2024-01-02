@@ -94,6 +94,12 @@ public class MatchEventService {
         }
     }
 
+    private void throwIfPlayersPlayForDifferentTeams(TeamPlayer player1, TeamPlayer player2) throws MatchEventInvalidException {
+        if (!player1.getTeam().equals(player2.getTeam())) {
+            throw new MatchEventInvalidException("players do not play for the same team");
+        }
+    }
+
     private void throwIfPlayerNotOnPitch(Match match, TeamPlayer player) throws MatchEventInvalidException {
         var matchEvents = this.findAllByMatchId(match.getId());
         var exception = new MatchEventInvalidException(
@@ -399,9 +405,7 @@ public class MatchEventService {
             throwIfPlayerNotInLineup(match, assistingPlayer);
 
             // make sure that both players - scoring and assisting - are from the same team
-            if (!scoringPlayer.getTeam().equals(assistingPlayer.getTeam())) {
-                throw new MatchEventInvalidException("players do not play for the same team");
-            }
+            throwIfPlayersPlayForDifferentTeams(scoringPlayer, assistingPlayer);
         }
 
         // determine the team whose goals should be incremented
@@ -462,9 +466,7 @@ public class MatchEventService {
         throwIfPlayerNotInLineup(match, playerOut);
 
         // make sure that both players - in and out - are from the same team
-        if (!playerIn.getTeam().equals(playerOut.getTeam())) {
-            throw new MatchEventInvalidException("players do not play for the same team");
-        }
+        throwIfPlayersPlayForDifferentTeams(playerIn, playerOut);
 
         // player can enter the pitch if they:
         //      * started the game on the bench
