@@ -729,6 +729,135 @@ public class MatchEventServiceTests {
     }
 
     @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring player got two yellow cards")
+    public void processEvent_ScoringPlayerHasTwoYellowCards_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+
+        // put the scoring player in the starting home lineup
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId).build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring player got a red card")
+    public void processEvent_ScoringPlayerHasRedCard_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+
+        // put the scoring player in the starting home lineup
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId).build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring player got already subbed off")
+    public void processEvent_ScoringPlayerAlreadySubbedOff_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+
+        // put the scoring player in the starting home lineup
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId).build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        givenMatchReturnEvents(matchId, List.of(
+                createTestSubstitutionEvent(match, UUID.randomUUID(), scoringPlayerId)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the scoring player spent the entire match on the bench")
+    public void processEvent_ScoringPlayerConstantlyOnBench_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+
+        // put the scoring player in the starting home lineup
+        var teamLineup = TestLineupDto.builder().homeSubstitutes(scoringPlayerId).build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", scoringPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
     @DisplayName("processEvent rejects a GOAL event if an own goal contains information about an assisting player")
     public void processEvent_OwnGoalContainsAssistingPlayer_RejectsInvalidGoal() throws ResourceNotFoundException {
         var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
@@ -876,6 +1005,166 @@ public class MatchEventServiceTests {
     }
 
     @Test
+    @DisplayName("processEvent rejects GOAL events if the assisting player got two yellow cards")
+    public void processEvent_AssistingPlayerHasTwoYellowCards_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+        // this player also plays in the match
+        var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var assistingPlayerId = assistingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+
+        // put the scoring and assisting players in the starting home lineup
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, assistingPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringPlayerId, Optional.of(scoringPlayer),
+                assistingPlayerId, Optional.of(assistingPlayer)
+        ));
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the assisting player got a red card")
+    public void processEvent_AssistingPlayerHasRedCard_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+        // this player also plays in the match
+        var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var assistingPlayerId = assistingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+
+        // put the scoring and assisting players in the starting home lineup
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, assistingPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringPlayerId, Optional.of(scoringPlayer),
+                assistingPlayerId, Optional.of(assistingPlayer)
+        ));
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the assisting player got already subbed off")
+    public void processEvent_AssistingPlayerAlreadySubbedOff_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+        // this player also plays in the match
+        var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var assistingPlayerId = assistingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+
+        // put the scoring and assisting players in the starting home lineup
+        var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        givenMatchReturnEvents(matchId, List.of(
+                createTestSubstitutionEvent(match, UUID.randomUUID(), assistingPlayerId)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringPlayerId, Optional.of(scoringPlayer),
+                assistingPlayerId, Optional.of(assistingPlayer)
+        ));
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
+    @DisplayName("processEvent rejects GOAL events if the assisting player spent the entire match on the bench")
+    public void processEvent_AssistingPlayerConstantlyOnBench_RejectsInvalidGoal() throws ResourceNotFoundException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // this player plays in the match
+        var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var scoringPlayerId = scoringPlayer.getId();
+        // this player also plays in the match
+        var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var assistingPlayerId = assistingPlayer.getId();
+
+        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+
+        // put the assisting player on the bench
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(scoringPlayerId)
+                .homeSubstitutes(assistingPlayerId)
+                .build();
+
+        // given
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                scoringPlayerId, Optional.of(scoringPlayer),
+                assistingPlayerId, Optional.of(assistingPlayer)
+        ));
+        given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
+
+        // when
+        String message = assertThrows(MatchEventInvalidException.class, () -> {
+            matchEventService.processEvent(matchId, testEvent);
+        }).getMessage();
+
+        // then
+        var expectedMessage = String.format("the player %s is not on the pitch", assistingPlayerId);
+        assertEquals(expectedMessage, message);
+    }
+
+    @Test
     @DisplayName("processEvent accepts home GOAL events happening in the FIRST_HALF and correctly increments the scorelines")
     public void processEvent_FirstHalfHomeGoal_CorrectlyIncrementsScorelines() throws ResourceNotFoundException, MatchEventInvalidException {
         var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
@@ -981,9 +1270,7 @@ public class MatchEventServiceTests {
         );
 
         // have both players in the lineup
-        var teamLineup = TestLineupDto.builder()
-                .awayStarting(scoringTeamPlayerId)
-                .awaySubstitutes(assistingTeamPlayerId)
+        var teamLineup = TestLineupDto.builder().awayStarting(scoringTeamPlayerId, assistingTeamPlayerId)
                 .build();
 
         // given

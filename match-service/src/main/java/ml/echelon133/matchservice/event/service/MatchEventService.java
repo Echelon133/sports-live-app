@@ -387,6 +387,8 @@ public class MatchEventService {
         TeamPlayer scoringPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getScoringPlayerId()));
         // player who scored has to be in the match's lineup
         throwIfPlayerNotInLineup(match, scoringPlayer);
+        // player who scored has to be on the pitch
+        throwIfPlayerNotOnPitch(match, scoringPlayer);
 
         // assisting player is optional, but if it's set, make sure that the player scoring and assisting
         // are from the same team
@@ -403,6 +405,8 @@ public class MatchEventService {
 
             // player who assisted has to be in the match's lineup
             throwIfPlayerNotInLineup(match, assistingPlayer);
+            // player who assisted has to be on the pitch
+            throwIfPlayerNotOnPitch(match, assistingPlayer);
 
             // make sure that both players - scoring and assisting - are from the same team
             throwIfPlayersPlayForDifferentTeams(scoringPlayer, assistingPlayer);
