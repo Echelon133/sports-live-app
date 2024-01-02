@@ -2,6 +2,7 @@ package ml.echelon133.matchservice.event.service;
 
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
@@ -167,7 +168,7 @@ public class MatchEventServiceTests {
         var matchId = match.getId();
         var targetStatus = MatchStatus.FIRST_HALF;
         var statusEvent = new MatchEvent(
-                match, new MatchEventDetails.StatusDto("1", match.getCompetitionId(), targetStatus)
+                match, new MatchEventDetails.StatusDto("1", match.getCompetitionId(), targetStatus, null, null)
         );
 
         // given
@@ -289,7 +290,12 @@ public class MatchEventServiceTests {
             List<MatchStatus> expectedValidStatusChanges
     ) throws ResourceNotFoundException {
 
-        var match = TestMatch.builder().build();
+        var match = TestMatch.builder()
+                // set both scorelines to an impossible state to avoid throwing on checks that do not allow
+                // the extra-time or penalties to end in a draw
+                .scoreInfo(ScoreInfo.of(2, 1))
+                .penaltiesInfo(ScoreInfo.of(3, 1))
+                .build();
         match.setStatus(testedMatchStatus);
         var matchId = match.getId();
 
@@ -320,11 +326,337 @@ public class MatchEventServiceTests {
         // then
         assertTrue(
                 expectedValidStatusChanges.size() == nonRejectedStatuses.size() &&
-                nonRejectedStatuses.containsAll(expectedValidStatusChanges)
+                        nonRejectedStatuses.containsAll(expectedValidStatusChanges)
         );
         verify(matchEventRepository, times(expectedValidStatusChanges.size())).save(
                 argThat(e -> e.getMatch().getId().equals(matchId))
         );
+    }
+
+    @Test
+    @DisplayName("processEvent correctly sets the final result of the match when the home side wins in regular time")
+    public void processEvent_HomeSideWinsAfterRegularTime_SetsCorrectFinalResult()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(1, 0), ScoreInfo.of(2, 1), ScoreInfo.of(3, 2), ScoreInfo.of(5, 1)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.SECOND_HALF)
+                    .scoreInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+
+            // when
+            matchEventService.processEvent(matchId, testedEvent);
+
+            // then
+            var expectedResult = MatchResult.HOME_WIN;
+            assertEquals(expectedResult, match.getResult());
+            verify(matchEventRepository).save(argThat(e -> {
+                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
+                var teams = sDto.getTeams();
+                return e.getMatch().getId().equals(matchId) &&
+                        sDto.getResult().equals(expectedResult) &&
+                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent correctly sets the final result of the match when the away side wins in regular time")
+    public void processEvent_AwaySideWinsAfterRegularTime_SetsCorrectFinalResult()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(0, 1), ScoreInfo.of(1, 2), ScoreInfo.of(2, 3), ScoreInfo.of(1, 5)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.SECOND_HALF)
+                    .scoreInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+
+            // when
+            matchEventService.processEvent(matchId, testedEvent);
+
+            // then
+            var expectedResult = MatchResult.AWAY_WIN;
+            assertEquals(expectedResult, match.getResult());
+            verify(matchEventRepository).save(argThat(e -> {
+                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
+                var teams = sDto.getTeams();
+                return e.getMatch().getId().equals(matchId) &&
+                        sDto.getResult().equals(expectedResult) &&
+                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent correctly sets the final result of the match when there is a draw in regular time")
+    public void processEvent_DrawAfterRegularTime_SetsCorrectFinalResult()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(1, 1), ScoreInfo.of(2, 2), ScoreInfo.of(3, 3), ScoreInfo.of(5, 5)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.SECOND_HALF)
+                    .scoreInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+
+            // when
+            matchEventService.processEvent(matchId, testedEvent);
+
+            // then
+            var expectedResult = MatchResult.DRAW;
+            assertEquals(expectedResult, match.getResult());
+            verify(matchEventRepository).save(argThat(e -> {
+                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
+                var teams = sDto.getTeams();
+                return e.getMatch().getId().equals(matchId) &&
+                        sDto.getResult().equals(expectedResult) &&
+                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent correctly sets the final result of the match when the home side wins in extra time")
+    public void processEvent_HomeSideWinsAfterExtraTime_SetsCorrectFinalResult()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(1, 0), ScoreInfo.of(2, 1), ScoreInfo.of(3, 2), ScoreInfo.of(5, 1)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.EXTRA_TIME)
+                    .scoreInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+
+            // when
+            matchEventService.processEvent(matchId, testedEvent);
+
+            // then
+            var expectedResult = MatchResult.HOME_WIN;
+            assertEquals(expectedResult, match.getResult());
+            verify(matchEventRepository).save(argThat(e -> {
+                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
+                var teams = sDto.getTeams();
+                return e.getMatch().getId().equals(matchId) &&
+                        sDto.getResult().equals(expectedResult) &&
+                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent correctly sets the final result of the match when the away side wins in extra time")
+    public void processEvent_AwaySideWinsAfterExtraTime_SetsCorrectFinalResult()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(0, 1), ScoreInfo.of(1, 2), ScoreInfo.of(2, 3), ScoreInfo.of(1, 5)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.EXTRA_TIME)
+                    .scoreInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+
+            // when
+            matchEventService.processEvent(matchId, testedEvent);
+
+            // then
+            var expectedResult = MatchResult.AWAY_WIN;
+            assertEquals(expectedResult, match.getResult());
+            verify(matchEventRepository).save(argThat(e -> {
+                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
+                var teams = sDto.getTeams();
+                return e.getMatch().getId().equals(matchId) &&
+                        sDto.getResult().equals(expectedResult) &&
+                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent rejects the STATUS event if the final result of the match is a draw in the extra time")
+    public void processEvent_DrawAfterExtraTime_RejectsInvalidStatus() throws ResourceNotFoundException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(1, 1), ScoreInfo.of(2, 2), ScoreInfo.of(3, 3), ScoreInfo.of(5, 5)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.EXTRA_TIME)
+                    .scoreInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+
+            // when
+            String message = assertThrows(MatchEventInvalidException.class, () -> {
+                matchEventService.processEvent(matchId, testedEvent);
+            }).getMessage();
+
+            // then
+            assertEquals("match cannot finish after extra time when the score is a draw", message);
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent correctly sets the final result of the match when the home side wins in penalties")
+    public void processEvent_HomeSideWinsAfterPenalties_SetsCorrectFinalResult()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(5, 3), ScoreInfo.of(7, 5), ScoreInfo.of(6, 4), ScoreInfo.of(8, 6)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.PENALTIES)
+                    .penaltiesInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+
+            // when
+            matchEventService.processEvent(matchId, testedEvent);
+
+            // then
+            var expectedResult = MatchResult.HOME_WIN;
+            assertEquals(expectedResult, match.getResult());
+            verify(matchEventRepository).save(argThat(e -> {
+                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
+                var teams = sDto.getTeams();
+                return e.getMatch().getId().equals(matchId) &&
+                        sDto.getResult().equals(expectedResult) &&
+                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent correctly sets the final result of the match when the away side wins in penalties")
+    public void processEvent_AwaySideWinsAfterPenalties_SetsCorrectFinalResult()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(3, 5), ScoreInfo.of(5, 7), ScoreInfo.of(4, 6), ScoreInfo.of(6, 8)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.PENALTIES)
+                    .penaltiesInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+
+            // when
+            matchEventService.processEvent(matchId, testedEvent);
+
+            // then
+            var expectedResult = MatchResult.AWAY_WIN;
+            assertEquals(expectedResult, match.getResult());
+            verify(matchEventRepository).save(argThat(e -> {
+                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
+                var teams = sDto.getTeams();
+                return e.getMatch().getId().equals(matchId) &&
+                        sDto.getResult().equals(expectedResult) &&
+                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+            }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent rejects the STATUS event if the final result of the match is a draw after the penalties")
+    public void processEvent_DrawAfterPenalties_RejectsInvalidStatus() throws ResourceNotFoundException {
+
+        var testedScorelines = List.of(
+                ScoreInfo.of(5, 5), ScoreInfo.of(6, 6), ScoreInfo.of(8, 8), ScoreInfo.of(12, 12)
+        );
+
+        for (ScoreInfo testedScoreline: testedScorelines) {
+            // reset the match after every tested scoreline
+            var match = TestMatch.builder()
+                    .status(MatchStatus.PENALTIES)
+                    .penaltiesInfo(testedScoreline)
+                    .build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+
+            // when
+            String message = assertThrows(MatchEventInvalidException.class, () -> {
+                matchEventService.processEvent(matchId, testedEvent);
+            }).getMessage();
+
+            // then
+            assertEquals("match cannot finish after penalties when the score is a draw", message);
+        }
     }
 
     @Test

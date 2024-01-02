@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.event.service;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.event.dto.MatchEventDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.common.match.dto.LineupDto;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
@@ -259,11 +260,43 @@ public class MatchEventService {
             throw new MatchEventInvalidException("current status of the match cannot be changed to the requested target status");
         }
 
+        var mainScore = match.getScoreInfo();
+        var penaltyScore = match.getPenaltiesInfo();
+
+        // set the final result of the match
+        if (targetStatus.equals(FINISHED)) {
+            var endResult = MatchResult.NONE;
+
+            if (match.getStatus().equals(PENALTIES)) {
+                // a match finishing after penalties cannot end in a draw
+                endResult = MatchResult
+                        .getResultBasedOnScore(penaltyScore.getHomeGoals(), penaltyScore.getAwayGoals());
+
+                // make sure there is no draw if the game is finishing after the penalties
+                if (endResult.equals(MatchResult.DRAW)) {
+                    throw new MatchEventInvalidException("match cannot finish after penalties when the score is a draw");
+                }
+            } else {
+                // a match ending after the second half and the extra time is evaluated based on the main score
+                endResult = MatchResult
+                        .getResultBasedOnScore(mainScore.getHomeGoals(), mainScore.getAwayGoals());
+
+                // make sure there is no draw if the game is finishing after the extra time
+                if (match.getStatus().equals(EXTRA_TIME) && endResult.equals(MatchResult.DRAW)) {
+                    throw new MatchEventInvalidException("match cannot finish after extra time when the score is a draw");
+                }
+            }
+            match.setResult(endResult);
+        }
+
         var eventDetails = new MatchEventDetails.StatusDto(
                 statusDto.getMinute(),
                 match.getCompetitionId(),
-                targetStatus
+                targetStatus,
+                new MatchEventDetails.SerializedTeamInfo(match.getHomeTeam().getId(), match.getAwayTeam().getId()),
+                match.getResult()
         );
+
         match.setStatus(targetStatus);
         matchEventRepository.save(new MatchEvent(match, eventDetails));
     }

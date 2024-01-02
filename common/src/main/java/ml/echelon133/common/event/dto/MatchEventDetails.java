@@ -1,6 +1,7 @@
 package ml.echelon133.common.event.dto;
 
 import ml.echelon133.common.event.MatchEventType;
+import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 
 import java.io.Serializable;
@@ -87,16 +88,53 @@ public abstract class MatchEventDetails implements Serializable {
         }
     }
 
+    public static class SerializedTeamInfo implements Serializable {
+        private UUID homeTeamId;
+        private UUID awayTeamId;
+
+        public SerializedTeamInfo() {}
+        public SerializedTeamInfo(UUID homeTeamId, UUID awayTeamId) {
+            this.homeTeamId = homeTeamId;
+            this.awayTeamId = awayTeamId;
+        }
+
+        public UUID getHomeTeamId() {
+            return homeTeamId;
+        }
+
+        public void setHomeTeamId(UUID homeTeamId) {
+            this.homeTeamId = homeTeamId;
+        }
+
+        public UUID getAwayTeamId() {
+            return awayTeamId;
+        }
+
+        public void setAwayTeamId(UUID awayTeamId) {
+            this.awayTeamId = awayTeamId;
+        }
+    }
+
     /**
      * Data class representing already processed match event of type <b>STATUS</b>.
      */
     public static class StatusDto extends MatchEventDetails {
         private MatchStatus targetStatus;
+        private SerializedTeamInfo teams;
+        private MatchResult result;
 
         public StatusDto() {}
-        public StatusDto(String minute, UUID competitionId, MatchStatus targetStatus) {
+        public StatusDto(
+                String minute,
+                UUID competitionId,
+                MatchStatus targetStatus,
+                SerializedTeamInfo teams,
+                MatchResult matchResult
+        ) {
             super(MatchEventType.STATUS, minute, competitionId);
+            this.teams = teams;
             this.targetStatus = targetStatus;
+            this.result = matchResult;
         }
 
         public MatchStatus getTargetStatus() {
@@ -105,6 +143,22 @@ public abstract class MatchEventDetails implements Serializable {
 
         public void setTargetStatus(MatchStatus targetStatus) {
             this.targetStatus = targetStatus;
+        }
+
+        public SerializedTeamInfo getTeams() {
+            return teams;
+        }
+
+        public void setTeams(SerializedTeamInfo teams) {
+            this.teams = teams;
+        }
+
+        public MatchResult getResult() {
+            return result;
+        }
+
+        public void setResult(MatchResult result) {
+            this.result = result;
         }
     }
 

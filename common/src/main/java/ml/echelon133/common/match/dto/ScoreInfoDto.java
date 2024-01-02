@@ -1,6 +1,8 @@
 package ml.echelon133.common.match.dto;
 
-public interface ScoreInfoDto {
+import java.io.Serializable;
+
+public interface ScoreInfoDto extends Serializable {
     Integer getHomeGoals();
     Integer getAwayGoals();
 
