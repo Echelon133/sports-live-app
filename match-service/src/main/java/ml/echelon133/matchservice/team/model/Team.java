@@ -15,11 +15,11 @@ public class Team extends BaseEntity {
     @Column(name = "crest_url", nullable = false)
     private String crestUrl;
 
-    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id", nullable = false)
     private Country country;
 
-    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "coach_id", nullable = false)
     private Coach coach;
 

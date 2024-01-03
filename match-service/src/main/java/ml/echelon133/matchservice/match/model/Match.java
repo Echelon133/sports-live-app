@@ -37,12 +37,12 @@ public class Match extends BaseEntity {
     @Column(name = "start_time_utc", nullable = false)
     private LocalDateTime startTimeUTC;
 
-    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "venue_id", nullable = false)
     private Venue venue;
 
     // this is optional, since at the time of creation of most of the matches, the referee is unknown
-    @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @ManyToOne(cascade = {CascadeType.MERGE, CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "referee_id")
     private Referee referee;
 
@@ -70,11 +70,11 @@ public class Match extends BaseEntity {
     @Column(nullable = false, length = 15)
     private MatchResult result;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "home_lineup_id", referencedColumnName = "id")
     private Lineup homeLineup;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "away_lineup_id", referencedColumnName = "id")
     private Lineup awayLineup;
 
