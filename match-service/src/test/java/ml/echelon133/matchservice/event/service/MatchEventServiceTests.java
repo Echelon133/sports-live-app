@@ -283,6 +283,14 @@ public class MatchEventServiceTests {
         assertMatchStatusCanOnlyChangeTo(testedMatchStatus, expectedValidStatusChanges);
     }
 
+    @Test
+    @DisplayName("processEvent of FINISHED match only processes valid STATUS changes")
+    public void processEvent_MatchStatusFinished_RejectsInvalidStatusChanges() throws ResourceNotFoundException {
+        var testedMatchStatus = MatchStatus.FINISHED;
+        List<MatchStatus> expectedValidStatusChanges = List.of();
+        assertMatchStatusCanOnlyChangeTo(testedMatchStatus, expectedValidStatusChanges);
+    }
+
     // helper which makes sure that a match with some initial MatchStatus cannot be moved into an invalid
     // status (i.e. a match that is already FINISHED cannot be marked as NOT_STARTED, etc.)
     private void assertMatchStatusCanOnlyChangeTo(

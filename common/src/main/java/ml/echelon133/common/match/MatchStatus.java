@@ -29,6 +29,7 @@ public enum MatchStatus {
             FIRST_HALF, List.of(HALF_TIME, ABANDONED),
             HALF_TIME, List.of(SECOND_HALF, ABANDONED),
             SECOND_HALF, List.of(FINISHED, EXTRA_TIME, ABANDONED),
+            FINISHED, List.of(),
             EXTRA_TIME, List.of(FINISHED, PENALTIES, ABANDONED),
             PENALTIES, List.of(FINISHED, ABANDONED),
             POSTPONED, List.of(),
