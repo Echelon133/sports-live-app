@@ -1,6 +1,10 @@
 server:
   port: 80
 
+socket-io:
+  host: "127.0.0.1"
+  port: 81
+
 spring:
   application:
     name: match-service
