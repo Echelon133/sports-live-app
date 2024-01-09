@@ -48,179 +48,14 @@ public class MatchEventService {
         this.matchEventWebsocketService = matchEventWebsocketService;
     }
 
+    /**
+     * Converts an entity to a dto class that's safe to serialize and display to users.
+     *
+     * @param event the entity to convert
+     * @return dto converted from an entity
+     */
     private static MatchEventDto convertEntityToDto(MatchEvent event) {
         return MatchEventDto.from(event.getId(), event.getEvent());
-    }
-
-    private void throwIfBallNotInPlay(Match match) throws MatchEventInvalidException {
-        if (!match.getStatus().isBallInPlay()) {
-            throw new MatchEventInvalidException("event cannot be processed when the ball is not in play");
-        }
-    }
-
-    private void throwIfPlayerNotInLineup(Match match, TeamPlayer teamPlayer) throws MatchEventInvalidException {
-        var teamPlayerTeam = teamPlayer.getTeam();
-        var homeTeam = match.getHomeTeam();
-        var awayTeam = match.getAwayTeam();
-
-        if (!(homeTeam.equals(teamPlayerTeam) || awayTeam.equals(teamPlayerTeam))) {
-            throw new MatchEventInvalidException(
-                String.format("the player %s does not play for either team", teamPlayer.getId())
-            );
-        }
-
-        var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(teamPlayerTeam) ? lineup.getHome() : lineup.getAway();
-
-        var playerInLineup = Stream.concat(
-                teamLineup.getStartingPlayers().stream(),
-                teamLineup.getSubstitutePlayers().stream()
-        ).anyMatch(tPlayer -> tPlayer.getId().equals(teamPlayer.getId()));
-
-        if (!playerInLineup) {
-            throw new MatchEventInvalidException(
-                String.format("the player %s is not placed in the lineup of this match", teamPlayer.getId())
-            );
-        }
-    }
-
-    private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
-            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
-            return e.getPlayerOut().getTeamPlayerId().equals(teamPlayerId);
-        } else {
-            return false;
-        }
-    }
-
-    private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
-            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
-            return e.getPlayerIn().getTeamPlayerId().equals(teamPlayerId);
-        } else {
-            return false;
-        }
-    }
-
-    private void throwIfPlayersPlayForDifferentTeams(TeamPlayer player1, TeamPlayer player2) throws MatchEventInvalidException {
-        if (!player1.getTeam().equals(player2.getTeam())) {
-            throw new MatchEventInvalidException("players do not play for the same team");
-        }
-    }
-
-    private void throwIfPlayerNotOnPitch(Match match, TeamPlayer player) throws MatchEventInvalidException {
-        var matchEvents = this.findAllByMatchId(match.getId());
-        var exception = new MatchEventInvalidException(
-                String.format("the player %s is not on the pitch", player.getId())
-        );
-
-        boolean sentOff = matchEvents.stream()
-                .filter(e -> isCardEventOfPlayer(e, player.getId()))
-                .anyMatch(
-                        e -> isCardEventOfCardType(
-                                e,
-                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                                MatchEventDetails.CardDto.CardType.DIRECT_RED
-                        )
-                );
-        if (sentOff) {
-            throw exception;
-        }
-
-        boolean substitutedOff = matchEvents.stream().anyMatch(
-            e -> isSubstitutionOffEventOfPlayer(e, player.getId())
-        );
-        if (substitutedOff) {
-            throw exception;
-        }
-
-        var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
-
-        boolean substitutedOn = matchEvents.stream().anyMatch(
-                e -> isSubstitutionOnEventOfPlayer(e, player.getId()));
-        boolean startingPlayer = teamLineup.getStartingPlayers().stream().anyMatch(
-                teamPlayer -> teamPlayer.getId().equals(player.getId()));
-
-        if (!(startingPlayer || substitutedOn)) {
-            throw exception;
-        }
-    }
-
-    private void throwIfPlayerCannotBeSubbedOn(Match match, TeamPlayer player) throws MatchEventInvalidException {
-        var matchEvents = this.findAllByMatchId(match.getId());
-        var exception = new MatchEventInvalidException(
-                String.format("the player %s cannot enter the pitch", player.getId())
-        );
-
-        var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
-
-        boolean substitutePlayer= teamLineup.getSubstitutePlayers().stream()
-                .anyMatch(teamPlayer -> teamPlayer.getId().equals(player.getId()));
-        // a player who started the game on the pitch cannot be subbed on in the game
-        if (!substitutePlayer) {
-            throw exception;
-        }
-
-        boolean sentOff = matchEvents.stream()
-                .filter(e -> isCardEventOfPlayer(e, player.getId()))
-                .anyMatch(
-                        e -> isCardEventOfCardType(
-                                e,
-                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                                MatchEventDetails.CardDto.CardType.DIRECT_RED
-                        )
-                );
-        // if the player got two yellows or a red while on the bench, they cannot be subbed on
-        if (sentOff) {
-            throw exception;
-        }
-
-        boolean substitutionOn = matchEvents.stream().anyMatch(
-            e -> isSubstitutionOnEventOfPlayer(e, player.getId())
-        );
-        // a player once subbed on cannot be subbed on again
-        if (substitutionOn) {
-            throw exception;
-        }
-    }
-
-    private void incrementMatchScoreline(Match match, boolean homeGoal, boolean penaltyShootout) {
-        if (penaltyShootout) {
-            var penaltyScore = match.getPenaltiesInfo();
-            if (homeGoal) {
-                penaltyScore.incrementHomeGoals();
-            } else {
-                penaltyScore.incrementAwayGoals();
-            }
-        } else {
-            var score = match.getScoreInfo();
-            if (homeGoal) {
-                score.incrementHomeGoals();
-            } else {
-                score.incrementAwayGoals();
-            }
-
-            // set the half-time score in case we are in the FIRST_HALF
-            if (match.getStatus().equals(FIRST_HALF)) {
-                match.setHalfTimeScoreInfo(score);
-            }
-        }
-    }
-
-    /**
-     * Saves the match event in the database and broadcasts the content of that event to all listeners
-     * who want to receive information about the events of a particular match over the websocket.
-     *
-     * @param matchEvent event which will be saved in the database and then broadcast over the websocket
-     */
-    private void saveAndBroadcast(MatchEvent matchEvent) {
-        matchEventRepository.save(matchEvent);
-        matchEventWebsocketService.sendMatchEvent(
-                matchEvent.getMatch().getId(),
-                convertEntityToDto(matchEvent)
-        );
     }
 
     /**
@@ -263,6 +98,20 @@ public class MatchEventService {
         }
 
         saveAndBroadcast(matchEvent);
+    }
+
+    /**
+     * Saves the match event in the database and broadcasts the content of that event to all listeners
+     * who want to receive information about the events of a particular match over the websocket.
+     *
+     * @param matchEvent event to be saved in the database and then broadcast over the websocket
+     */
+    private void saveAndBroadcast(MatchEvent matchEvent) {
+        matchEventRepository.save(matchEvent);
+        matchEventWebsocketService.sendMatchEvent(
+                matchEvent.getMatch().getId(),
+                convertEntityToDto(matchEvent)
+        );
     }
 
     /**
@@ -502,7 +351,7 @@ public class MatchEventService {
                 goalDto.isOwnGoal()
         );
 
-        incrementMatchScoreline(match, scoredByHomeTeam, false);
+        incrementMatchScoreline(match, scoredByHomeTeam);
         return new MatchEvent(match, eventDetails);
     }
 
@@ -592,7 +441,7 @@ public class MatchEventService {
 
         // update the scoreline only if the penalty is scored
         if (penaltyDto.isScored()) {
-            incrementMatchScoreline(match, scoredByHomeTeam, duringPenaltyShootout);
+            incrementMatchScoreline(match, scoredByHomeTeam);
         }
 
         var eventDetails = new MatchEventDetails.PenaltyDto(
@@ -609,5 +458,254 @@ public class MatchEventService {
         );
 
         return new MatchEvent(match, eventDetails);
+    }
+
+    /**
+     * Helper method which throws if the status of the match shows that the ball is not in play.
+     *
+     * This method is useful for preventing the acceptation of events such as goals when the ball in the match
+     * is not being played.
+     *
+     * @param match match whose status will be checked
+     * @throws MatchEventInvalidException the exception thrown when the conditions are not met
+     */
+    private void throwIfBallNotInPlay(Match match) throws MatchEventInvalidException {
+        if (!match.getStatus().isBallInPlay()) {
+            throw new MatchEventInvalidException("event cannot be processed when the ball is not in play");
+        }
+    }
+
+    /**
+     * Helper method which throws if the player is not in the lineup of a given match.
+     *
+     * This method is useful for preventing the acceptation of events such as cards when the player who was supposed
+     * to receive the card is not even in the lineup (i.e. does not start the game and is not on the bench).
+     *
+     * @param match match whose lineup will be checked
+     * @param teamPlayer player whose presence in the lineup will be checked
+     * @throws MatchEventInvalidException the exception thrown when the conditions are not met
+     */
+    private void throwIfPlayerNotInLineup(Match match, TeamPlayer teamPlayer) throws MatchEventInvalidException {
+        var teamPlayerTeam = teamPlayer.getTeam();
+        var homeTeam = match.getHomeTeam();
+        var awayTeam = match.getAwayTeam();
+
+        if (!(homeTeam.equals(teamPlayerTeam) || awayTeam.equals(teamPlayerTeam))) {
+            throw new MatchEventInvalidException(
+                    String.format("the player %s does not play for either team", teamPlayer.getId())
+            );
+        }
+
+        var lineup = matchService.findMatchLineup(match.getId());
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(teamPlayerTeam) ? lineup.getHome() : lineup.getAway();
+
+        var playerInLineup = Stream.concat(
+                teamLineup.getStartingPlayers().stream(),
+                teamLineup.getSubstitutePlayers().stream()
+        ).anyMatch(tPlayer -> tPlayer.getId().equals(teamPlayer.getId()));
+
+        if (!playerInLineup) {
+            throw new MatchEventInvalidException(
+                    String.format("the player %s is not placed in the lineup of this match", teamPlayer.getId())
+            );
+        }
+    }
+
+    /**
+     * Helper method which throws if two {@link TeamPlayer}s do not play for the same team.
+     *
+     * This method is useful for preventing the acceptation of events such as goals when the player scoring and player
+     * assisting are not from the same team.
+     *
+     * @param player1 first player in the comparison
+     * @param player2 second player in the comparison
+     * @throws MatchEventInvalidException the exception thrown when the conditions are not met
+     */
+    private void throwIfPlayersPlayForDifferentTeams(TeamPlayer player1, TeamPlayer player2) throws MatchEventInvalidException {
+        if (!player1.getTeam().equals(player2.getTeam())) {
+            throw new MatchEventInvalidException("players do not play for the same team");
+        }
+    }
+
+    /**
+     * Helper method which throws if the player is currently not on the pitch.
+     *
+     * This method is useful for preventing the acceptation of events such as goals when the player who was supposed
+     * to score the goal is currently not on the pitch.
+     *
+     * The player is considered to not be on the pitch if:
+     * <ul>
+     *     <li>They got sent off (two yellow cards or a red card)</li>
+     *     <li>They got substituted off</li>
+     *     <li>They either never got substituted on or were not in the starting lineup</li>
+     * </ul>
+     *
+     * @param match match which will be checked
+     * @param player player whose current presence on the pitch will be checked
+     * @throws MatchEventInvalidException the exception thrown when the conditions are not met
+     */
+    private void throwIfPlayerNotOnPitch(Match match, TeamPlayer player) throws MatchEventInvalidException {
+        var matchEvents = this.findAllByMatchId(match.getId());
+        var exception = new MatchEventInvalidException(
+                String.format("the player %s is not on the pitch", player.getId())
+        );
+
+        boolean sentOff = matchEvents.stream()
+                .filter(e -> isCardEventOfPlayer(e, player.getId()))
+                .anyMatch(
+                        e -> isCardEventOfCardType(
+                                e,
+                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                        )
+                );
+        if (sentOff) {
+            throw exception;
+        }
+
+        boolean substitutedOff = matchEvents.stream().anyMatch(
+                e -> isSubstitutionOffEventOfPlayer(e, player.getId())
+        );
+        if (substitutedOff) {
+            throw exception;
+        }
+
+        var lineup = matchService.findMatchLineup(match.getId());
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+
+        boolean substitutedOn = matchEvents.stream().anyMatch(
+                e -> isSubstitutionOnEventOfPlayer(e, player.getId()));
+        boolean startingPlayer = teamLineup.getStartingPlayers().stream().anyMatch(
+                teamPlayer -> teamPlayer.getId().equals(player.getId()));
+
+        if (!(startingPlayer || substitutedOn)) {
+            throw exception;
+        }
+    }
+
+    /**
+     * Helper method which throws if the player cannot be substituted on.
+     *
+     * This method is useful for preventing the acceptation of substitution events in which the player about to enter
+     * the pitch cannot do it because of the rules.
+     *
+     * The player is considered unable to enter the pitch if:
+     * <ul>
+     *     <li>They began the game on the pitch, therefore they might either already be on the pitch or are unable to enter again.</li>
+     *     <li>They got sent off (two yellow cards or a red card)</li>
+     *     <li>They have already been substituted on, therefore they cannot enter they pitch if they are already there.</li>
+     * </ul>
+     *
+     * @param match match which will be checked
+     * @param player player whose ability to enter the pitch will be checked
+     * @throws MatchEventInvalidException the exception thrown when the conditions are not met
+     */
+    private void throwIfPlayerCannotBeSubbedOn(Match match, TeamPlayer player) throws MatchEventInvalidException {
+        var matchEvents = this.findAllByMatchId(match.getId());
+        var exception = new MatchEventInvalidException(
+                String.format("the player %s cannot enter the pitch", player.getId())
+        );
+
+        var lineup = matchService.findMatchLineup(match.getId());
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+
+        boolean substitutePlayer= teamLineup.getSubstitutePlayers().stream()
+                .anyMatch(teamPlayer -> teamPlayer.getId().equals(player.getId()));
+        // a player who started the game on the pitch cannot be subbed on in the game
+        if (!substitutePlayer) {
+            throw exception;
+        }
+
+        boolean sentOff = matchEvents.stream()
+                .filter(e -> isCardEventOfPlayer(e, player.getId()))
+                .anyMatch(
+                        e -> isCardEventOfCardType(
+                                e,
+                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
+                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                        )
+                );
+        // if the player got two yellows or a red while on the bench, they cannot be subbed on
+        if (sentOff) {
+            throw exception;
+        }
+
+        boolean substitutionOn = matchEvents.stream().anyMatch(
+                e -> isSubstitutionOnEventOfPlayer(e, player.getId())
+        );
+        // a player once subbed on cannot be subbed on again
+        if (substitutionOn) {
+            throw exception;
+        }
+    }
+
+    /**
+     * Predicate that returns `true` if a {@link MatchEventDto} is a substitution event that signifies
+     * player with a particular id being substituted off in the match.
+     *
+     * @param event the event which is being checked
+     * @param teamPlayerId the id of the player who is being checked for being substituted off
+     * @return `true` if the described conditions are satisfied
+     */
+    private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
+        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
+            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
+            return e.getPlayerOut().getTeamPlayerId().equals(teamPlayerId);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Predicate that returns `true` if a {@link MatchEventDto} is a substitution event that signifies
+     * player with a particular id being substituted on in the match.
+     *
+     * @param event the event which is being checked
+     * @param teamPlayerId the id of the player who is being checked for being substituted on
+     * @return `true` if the described conditions are satisfied
+     */
+    private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
+        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
+            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
+            return e.getPlayerIn().getTeamPlayerId().equals(teamPlayerId);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Helper method which increments the scoreline in the match differently depending on multiple conditions.
+     *
+     * If the status of the match is:
+     * <ul>
+     *     <li>FIRST_HALF - increments both the main scoreline and the half-time scoreline</li>
+     *     <li>PENALTIES - increments only the penalty scoreline</li>
+     *     <li>any other status - increments only the main scoreline</li>
+     * </ul>
+     *
+     * @param match match whose scoreline needs updating
+     * @param homeGoal if `true`, increments the home side of the scoreline, otherwise increments the away side
+     */
+    private void incrementMatchScoreline(Match match, boolean homeGoal) {
+        if (match.getStatus().equals(PENALTIES)) {
+            var penaltyScore = match.getPenaltiesInfo();
+            if (homeGoal) {
+                penaltyScore.incrementHomeGoals();
+            } else {
+                penaltyScore.incrementAwayGoals();
+            }
+        } else {
+            var score = match.getScoreInfo();
+            if (homeGoal) {
+                score.incrementHomeGoals();
+            } else {
+                score.incrementAwayGoals();
+            }
+
+            // set the half-time score in case we are in the FIRST_HALF
+            if (match.getStatus().equals(FIRST_HALF)) {
+                match.setHalfTimeScoreInfo(score);
+            }
+        }
     }
 }
