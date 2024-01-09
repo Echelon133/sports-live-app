@@ -29,8 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -46,6 +45,9 @@ public class MatchEventServiceTests {
 
     @Mock
     private TeamPlayerService teamPlayerService;
+
+    @Mock
+    private MatchEventWebsocketService matchEventWebsocketService;
 
     @InjectMocks
     private MatchEventService matchEventService;
@@ -205,6 +207,51 @@ public class MatchEventServiceTests {
 
         // then
         assertEquals(String.format("match %s could not be found", matchId), message);
+    }
+
+    @Test
+    @DisplayName("processEvent sends every event type over the websocket after saving")
+    public void processEvent_AllMatchEventTypes_SentOverWebsocket() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().build();
+        var matchId = match.getId();
+
+        var teamPlayer1 = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayer1Id = teamPlayer1.getId();
+        var teamPlayer2 = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var teamPlayer2Id = teamPlayer2.getId();
+
+        var testEvents = List.of(
+                new InsertMatchEvent.StatusDto("1", MatchStatus.FIRST_HALF.name()),
+                new InsertMatchEvent.CommentaryDto("1", "Some message"),
+                new InsertMatchEvent.CardDto("1", teamPlayer1Id.toString(), false),
+                new InsertMatchEvent.SubstitutionDto("1", teamPlayer2Id.toString(), teamPlayer1Id.toString()),
+                new InsertMatchEvent.GoalDto("1", teamPlayer1Id.toString(), null, false),
+                new InsertMatchEvent.PenaltyDto("1", teamPlayer1Id.toString(), true)
+        );
+
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(teamPlayer1Id)
+                .homeSubstitutes(teamPlayer2Id)
+                .build();
+
+        // given
+        bindTeamPlayerIdsToTeamPlayers(Map.of(
+                teamPlayer1Id, Optional.of(teamPlayer1),
+                teamPlayer2Id, Optional.of(teamPlayer2)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        givenMatchReturnEvents(matchId, List.of());
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        for (InsertMatchEvent event: testEvents) {
+            matchEventService.processEvent(matchId, event);
+        }
+
+        // then
+        verify(matchEventWebsocketService, times(testEvents.size())).sendMatchEvent(
+                eq(matchId), any()
+        );
     }
 
     @Test

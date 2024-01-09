@@ -33,12 +33,19 @@ public class MatchEventService {
     private final MatchService matchService;
     private final TeamPlayerService teamPlayerService;
     private final MatchEventRepository matchEventRepository;
+    private final MatchEventWebsocketService matchEventWebsocketService;
 
     @Autowired
-    public MatchEventService(MatchService matchService, TeamPlayerService teamPlayerService, MatchEventRepository matchEventRepository) {
+    public MatchEventService(
+            MatchService matchService,
+            TeamPlayerService teamPlayerService,
+            MatchEventRepository matchEventRepository,
+            MatchEventWebsocketService matchEventWebsocketService
+    ) {
         this.matchService = matchService;
         this.teamPlayerService = teamPlayerService;
         this.matchEventRepository = matchEventRepository;
+        this.matchEventWebsocketService = matchEventWebsocketService;
     }
 
     private static MatchEventDto convertEntityToDto(MatchEvent event) {
@@ -131,10 +138,9 @@ public class MatchEventService {
         LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
 
         boolean substitutedOn = matchEvents.stream().anyMatch(
-                e -> isSubstitutionOnEventOfPlayer(e, player.getId())
-        );
-        boolean startingPlayer = teamLineup.getStartingPlayers().stream()
-                .anyMatch(teamPlayer -> teamPlayer.getId().equals(player.getId()));
+                e -> isSubstitutionOnEventOfPlayer(e, player.getId()));
+        boolean startingPlayer = teamLineup.getStartingPlayers().stream().anyMatch(
+                teamPlayer -> teamPlayer.getId().equals(player.getId()));
 
         if (!(startingPlayer || substitutedOn)) {
             throw exception;
@@ -204,6 +210,20 @@ public class MatchEventService {
     }
 
     /**
+     * Saves the match event in the database and broadcasts the content of that event to all listeners
+     * who want to receive information about the events of a particular match over the websocket.
+     *
+     * @param matchEvent event which will be saved in the database and then broadcast over the websocket
+     */
+    private void saveAndBroadcast(MatchEvent matchEvent) {
+        matchEventRepository.save(matchEvent);
+        matchEventWebsocketService.sendMatchEvent(
+                matchEvent.getMatch().getId(),
+                convertEntityToDto(matchEvent)
+        );
+    }
+
+    /**
      * Finds all events of the match with the specified id.
      *
      * @param matchId id of the match whose events will be fetched
@@ -224,34 +244,38 @@ public class MatchEventService {
     public void processEvent(UUID matchId, InsertMatchEvent eventDto)
             throws ResourceNotFoundException, MatchEventInvalidException {
         var match = matchService.findEntityById(matchId);
+        MatchEvent matchEvent;
 
         if (eventDto instanceof InsertMatchEvent.StatusDto) {
-            processStatusEvent(match, (InsertMatchEvent.StatusDto) eventDto);
+            matchEvent = processStatusEvent(match, (InsertMatchEvent.StatusDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.CommentaryDto) {
-            processCommentaryEvent(match, (InsertMatchEvent.CommentaryDto) eventDto);
+            matchEvent = processCommentaryEvent(match, (InsertMatchEvent.CommentaryDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.CardDto) {
-            processCardEvent(match, (InsertMatchEvent.CardDto) eventDto);
+            matchEvent = processCardEvent(match, (InsertMatchEvent.CardDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.GoalDto) {
-            processGoalEvent(match, (InsertMatchEvent.GoalDto) eventDto);
+            matchEvent = processGoalEvent(match, (InsertMatchEvent.GoalDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.SubstitutionDto) {
-            processSubstitutionEvent(match, (InsertMatchEvent.SubstitutionDto) eventDto);
+            matchEvent = processSubstitutionEvent(match, (InsertMatchEvent.SubstitutionDto) eventDto);
         } else if (eventDto instanceof InsertMatchEvent.PenaltyDto) {
-            processPenaltyEvent(match, (InsertMatchEvent.PenaltyDto) eventDto);
+            matchEvent = processPenaltyEvent(match, (InsertMatchEvent.PenaltyDto) eventDto);
         } else {
             throw new MatchEventInvalidException("handling of this event is not implemented");
         }
+
+        saveAndBroadcast(matchEvent);
     }
 
     /**
-     * Processes the status event and saves it.
+     * Processes the status event.
      *
      * Updates the status of the match, unless the target status change is invalid
      * (i.e. it's impossible to finish the match that had never even begun).
      *
      * @param match entity representing the match to which this event is related
      * @param statusDto dto containing information about the event
+     * @return match event that is ready to be saved
      */
-    private void processStatusEvent(Match match, InsertMatchEvent.StatusDto statusDto) throws MatchEventInvalidException {
+    private MatchEvent processStatusEvent(Match match, InsertMatchEvent.StatusDto statusDto) throws MatchEventInvalidException {
         // this `MatchStatus.valueOf` should never fail because the status value is pre-validated
         var targetStatus = MatchStatus.valueOf(statusDto.getTargetStatus());
         var validTargetStatuses = VALID_STATUS_CHANGES.get(match.getStatus());
@@ -298,22 +322,23 @@ public class MatchEventService {
         );
 
         match.setStatus(targetStatus);
-        matchEventRepository.save(new MatchEvent(match, eventDetails));
+        return new MatchEvent(match, eventDetails);
     }
 
     /**
-     * Processes the commentary event and saves it.
+     * Processes the commentary event.
      *
      * @param match entity representing the match to which this event is related
      * @param commentaryDto dto containing information about the event
+     * @return match event that is ready to be saved
      */
-    private void processCommentaryEvent(Match match, InsertMatchEvent.CommentaryDto commentaryDto) {
+    private MatchEvent processCommentaryEvent(Match match, InsertMatchEvent.CommentaryDto commentaryDto) {
         var eventDetails = new MatchEventDetails.CommentaryDto(
                 commentaryDto.getMinute(),
                 match.getCompetitionId(),
                 commentaryDto.getMessage()
         );
-        matchEventRepository.save(new MatchEvent(match, eventDetails));
+        return new MatchEvent(match, eventDetails);
     }
 
     private static boolean isCardEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
@@ -336,12 +361,13 @@ public class MatchEventService {
     }
 
     /**
-     * Processes the card event and saves it.
+     * Processes the card event.
      *
      * @param match entity representing the match to which this event is related
      * @param cardDto dto containing information about the event
+     * @return match event that is ready to be saved
      */
-    private void processCardEvent(Match match, InsertMatchEvent.CardDto cardDto)
+    private MatchEvent processCardEvent(Match match, InsertMatchEvent.CardDto cardDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
@@ -402,16 +428,17 @@ public class MatchEventService {
                     cardedTeamPlayer.getPlayer().getName()
                 )
         );
-        matchEventRepository.save(new MatchEvent(match, eventDetails));
+        return new MatchEvent(match, eventDetails);
     }
 
     /**
-     * Processes the goal event and saves it.
+     * Processes the goal event.
      *
      * @param match entity representing the match to which this event is related
      * @param goalDto dto containing information about the event
+     * @return match event that is ready to be saved
      */
-    private void processGoalEvent(Match match, InsertMatchEvent.GoalDto goalDto)
+    private MatchEvent processGoalEvent(Match match, InsertMatchEvent.GoalDto goalDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
@@ -476,16 +503,17 @@ public class MatchEventService {
         );
 
         incrementMatchScoreline(match, scoredByHomeTeam, false);
-        matchEventRepository.save(new MatchEvent(match, eventDetails));
+        return new MatchEvent(match, eventDetails);
     }
 
     /**
-     * Processes the substitution event and saves it.
+     * Processes the substitution event.
      *
      * @param match entity representing the match to which this event is related
      * @param substitutionDto dto containing information about the event
+     * @return match event that is ready to be saved
      */
-    private void processSubstitutionEvent(Match match, InsertMatchEvent.SubstitutionDto substitutionDto)
+    private MatchEvent processSubstitutionEvent(Match match, InsertMatchEvent.SubstitutionDto substitutionDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
@@ -535,16 +563,17 @@ public class MatchEventService {
                 playerOutInfo
         );
 
-        matchEventRepository.save(new MatchEvent(match, eventDetails));
+        return new MatchEvent(match, eventDetails);
     }
 
     /**
-     * Processes the penalty event and saves it.
+     * Processes the penalty event.
      *
      * @param match entity representing the match to which this event is related
      * @param penaltyDto dto containing information about the event
+     * @return match event that is ready to be saved
      */
-    private void processPenaltyEvent(Match match, InsertMatchEvent.PenaltyDto penaltyDto)
+    private MatchEvent processPenaltyEvent(Match match, InsertMatchEvent.PenaltyDto penaltyDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
@@ -579,6 +608,6 @@ public class MatchEventService {
                 penaltyDto.isScored()
         );
 
-        matchEventRepository.save(new MatchEvent(match, eventDetails));
+        return new MatchEvent(match, eventDetails);
     }
 }
