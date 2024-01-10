@@ -75,6 +75,7 @@ public class MatchEventService {
      * @param matchId id of the match to which this event belongs to
      * @param eventDto dto containing information about the event
      * @throws ResourceNotFoundException thrown when the match with the provided id does not exist or is marked as deleted
+     * @throws MatchEventInvalidException thrown when processing of the event is not possible for some reason
      */
     public void processEvent(UUID matchId, InsertMatchEvent eventDto)
             throws ResourceNotFoundException, MatchEventInvalidException {
@@ -261,11 +262,7 @@ public class MatchEventService {
                 match.getCompetitionId(),
                 cardedTeamPlayer.getTeam().getId(),
                 cardType,
-                new MatchEventDetails.SerializedPlayerInfo(
-                    cardedTeamPlayer.getId(),
-                    cardedTeamPlayer.getPlayer().getId(),
-                    cardedTeamPlayer.getPlayer().getName()
-                )
+                intoSerializedPlayerInfo(cardedTeamPlayer)
         );
         return new MatchEvent(match, eventDetails);
     }
@@ -315,21 +312,10 @@ public class MatchEventService {
         }
         var scoringTeam = scoredByHomeTeam ? match.getHomeTeam() : match.getAwayTeam();
 
-        MatchEventDetails.SerializedPlayerInfo scoringPlayerInfo =
-                new MatchEventDetails.SerializedPlayerInfo(
-                        scoringPlayer.getId(),
-                        scoringPlayer.getPlayer().getId(),
-                        scoringPlayer.getPlayer().getName()
-                );
-
+        MatchEventDetails.SerializedPlayerInfo scoringPlayerInfo = intoSerializedPlayerInfo(scoringPlayer);
         MatchEventDetails.SerializedPlayerInfo assistingPlayerInfo = null;
         if (assistingPlayer != null) {
-            assistingPlayerInfo =
-                new MatchEventDetails.SerializedPlayerInfo(
-                        assistingPlayer.getId(),
-                        assistingPlayer.getPlayer().getId(),
-                        assistingPlayer.getPlayer().getName()
-                );
+            assistingPlayerInfo = intoSerializedPlayerInfo(assistingPlayer);
         }
 
         var eventDetails = new MatchEventDetails.GoalDto(
@@ -381,18 +367,10 @@ public class MatchEventService {
         throwIfPlayerNotOnPitch(match, playerOut);
 
         MatchEventDetails.SerializedPlayerInfo playerInInfo =
-                new MatchEventDetails.SerializedPlayerInfo(
-                        playerIn.getId(),
-                        playerIn.getPlayer().getId(),
-                        playerIn.getPlayer().getName()
-                );
+                intoSerializedPlayerInfo(playerIn);
 
         MatchEventDetails.SerializedPlayerInfo playerOutInfo =
-                new MatchEventDetails.SerializedPlayerInfo(
-                        playerOut.getId(),
-                        playerOut.getPlayer().getId(),
-                        playerOut.getPlayer().getName()
-                );
+                intoSerializedPlayerInfo(playerOut);
 
         var eventDetails = new MatchEventDetails.SubstitutionDto(
                 substitutionDto.getMinute(),
@@ -438,11 +416,7 @@ public class MatchEventService {
                 penaltyDto.getMinute(),
                 match.getCompetitionId(),
                 shootingPlayer.getTeam().getId(),
-                new MatchEventDetails.SerializedPlayerInfo(
-                        shootingPlayer.getId(),
-                        shootingPlayer.getPlayer().getId(),
-                        shootingPlayer.getPlayer().getName()
-                ),
+                intoSerializedPlayerInfo(shootingPlayer),
                 !duringPenaltyShootout,
                 penaltyDto.isScored()
         );
@@ -697,5 +671,20 @@ public class MatchEventService {
                 match.setHalfTimeScoreInfo(score);
             }
         }
+    }
+
+    /**
+     * Helper method which takes an entity {@link TeamPlayer} and converts it into a simpler object which is
+     * ready to be serialized.
+     *
+     * @param teamPlayer an entity to convert
+     * @return converted entity
+     */
+    private MatchEventDetails.SerializedPlayerInfo intoSerializedPlayerInfo(TeamPlayer teamPlayer) {
+        return new MatchEventDetails.SerializedPlayerInfo(
+            teamPlayer.getId(),
+            teamPlayer.getPlayer().getId(),
+            teamPlayer.getPlayer().getName()
+        );
     }
 }
