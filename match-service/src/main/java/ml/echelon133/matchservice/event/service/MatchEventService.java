@@ -97,16 +97,6 @@ public class MatchEventService {
             throw new MatchEventInvalidException("handling of this event is not implemented");
         }
 
-        saveAndBroadcast(matchEvent);
-    }
-
-    /**
-     * Saves the match event in the database and broadcasts the content of that event to all listeners
-     * who want to receive information about the events of a particular match over the websocket.
-     *
-     * @param matchEvent event to be saved in the database and then broadcast over the websocket
-     */
-    private void saveAndBroadcast(MatchEvent matchEvent) {
         matchEventRepository.save(matchEvent);
         matchEventWebsocketService.sendMatchEvent(
                 matchEvent.getMatch().getId(),
