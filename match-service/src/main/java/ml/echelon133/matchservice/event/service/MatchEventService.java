@@ -70,7 +70,8 @@ public class MatchEventService {
     }
 
     /**
-     * Processes a match event and saves it.
+     * Processes match events. If the processing is successful, events are saved in the database and broadcast
+     * over the websocket of a particular match.
      *
      * @param matchId id of the match to which this event belongs to
      * @param eventDto dto containing information about the event
@@ -106,14 +107,32 @@ public class MatchEventService {
     }
 
     /**
-     * Processes the status event.
+     * Processes status events.
      *
-     * Updates the status of the match, unless the target status change is invalid
-     * (i.e. it's impossible to finish the match that had never even begun).
+     * Valid {@link MatchStatus} changes:
+     * <ul>
+     *     <li>NOT_STARTED -> [FIRST_HALF, ABANDONED, POSTPONED]</li>
+     *     <li>FIRST_HALF -> [HALF_TIME, ABANDONED]</li>
+     *     <li>HALF_TIME -> [SECOND_HALF, ABANDONED]</li>
+     *     <li>SECOND_HALF -> [FINISHED, EXTRA_TIME, ABANDONED]</li>
+     *     <li>FINISHED -> []</li>
+     *     <li>EXTRA_TIME -> [FINISHED, PENALTIES, ABANDONED]</li>
+     *     <li>PENALTIES -> [FINISHED, ABANDONED]</li>
+     *     <li>POSTPONED -> []</li>
+     *     <li>ABANDONED -> []</li>
+     * </ul>
+     *
+     * Additionally, if the target status of the match is <i>FINISHED</i> but one of the following is true:
+     * <ul>
+     *     <li>the match is in EXTRA_TIME but the score is a draw</li>
+     *     <li>the match is in PENALTIES but the penalty score is a draw</li>
+     * </ul>
+     * the match cannot be finished and the entire event is rejected.
      *
      * @param match entity representing the match to which this event is related
      * @param statusDto dto containing information about the event
      * @return match event that is ready to be saved
+     * @throws MatchEventInvalidException thrown when the status of the match cannot be changed
      */
     private MatchEvent processStatusEvent(Match match, InsertMatchEvent.StatusDto statusDto) throws MatchEventInvalidException {
         // this `MatchStatus.valueOf` should never fail because the status value is pre-validated
@@ -166,7 +185,10 @@ public class MatchEventService {
     }
 
     /**
-     * Processes the commentary event.
+     * Processes commentary events.
+     *
+     * Commentary events can be sent and accepted during any phase of the match and there is no logic checking
+     * their validity.
      *
      * @param match entity representing the match to which this event is related
      * @param commentaryDto dto containing information about the event
@@ -181,6 +203,14 @@ public class MatchEventService {
         return new MatchEvent(match, eventDetails);
     }
 
+    /**
+     * Predicate that returns `true` if a {@link MatchEventDto} is a card event that belongs to a player with
+     * a particular id.
+     *
+     * @param event the event which is being checked
+     * @param teamPlayerId id of the player who is being checked for having been carded
+     * @return `true` if the described conditions are satisfied
+     */
     private static boolean isCardEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
         if (event.getEvent() instanceof MatchEventDetails.CardDto) {
             var e = (MatchEventDetails.CardDto) event.getEvent();
@@ -190,6 +220,14 @@ public class MatchEventService {
         }
     }
 
+    /**
+     * Predicate that returns `true` if a {@link MatchEventDto} is a card event holding a card of one of the types
+     * that's listed in the arguments.
+     *
+     * @param event the event which is being checked
+     * @param cardTypes one or more card types which we want to filter by
+     * @return `true` if the described conditions are satisfied
+     */
     private static boolean isCardEventOfCardType(MatchEventDto event, MatchEventDetails.CardDto.CardType... cardTypes) {
         if (event.getEvent() instanceof MatchEventDetails.CardDto) {
             MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) event.getEvent();
@@ -201,11 +239,25 @@ public class MatchEventService {
     }
 
     /**
-     * Processes the card event.
+     * Processes card events.
+     *
+     * A card can be given to a player only if that player is placed in the lineup of the match.
+     *
+     * Legal cards can only be given if:
+     * <ul>
+     *     <li>the ball is in play</li>
+     *     <li>a player with zero cards receives his first yellow card</li>
+     *     <li>a player with a single yellow card receives his second yellow card or a direct red card</li>
+     *     <li>a player with zero cards receives a direct red card</li>
+     * </ul>
+     * Any other attempt (e.g. giving some player a third yellow card) will end with rejection of the entire event.
      *
      * @param match entity representing the match to which this event is related
      * @param cardDto dto containing information about the event
      * @return match event that is ready to be saved
+     * @throws MatchEventInvalidException thrown when the card cannot be given to a particular player
+     * @throws ResourceNotFoundException thrown when the player involved in the card event cannot be found in the database
+     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processCardEvent(Match match, InsertMatchEvent.CardDto cardDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
@@ -268,11 +320,22 @@ public class MatchEventService {
     }
 
     /**
-     * Processes the goal event.
+     * Processes goal events.
+     *
+     * Valid goal events:
+     * <ul>
+     *     <li>happen when the ball is in play (i.e. the game cannot be paused or finished)</li>
+     *     <li>have both the player scoring and (optional) player assisting on the pitch at the time of the goal</li>
+     *     <li>have both players (in case there was an assist) play for the same team</li>
+     *     <li>have no assisting player in case of an own goal</li>
+     * </ul>
      *
      * @param match entity representing the match to which this event is related
      * @param goalDto dto containing information about the event
      * @return match event that is ready to be saved
+     * @throws MatchEventInvalidException thrown when the goal cannot be accepted
+     * @throws ResourceNotFoundException thrown when any player involved in the goal cannot be found in the database
+     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processGoalEvent(Match match, InsertMatchEvent.GoalDto goalDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
@@ -332,11 +395,23 @@ public class MatchEventService {
     }
 
     /**
-     * Processes the substitution event.
+     * Processes substitution events.
+     *
+     * A substitution is accepted only if:
+     * <ul>
+     *     <li>the ball is in play</li>
+     *     <li>both players involved in the substitution are in the lineup of the match</li>
+     *     <li>both players involved in the substitution play for the same team</li>
+     *     <li>player being substituted on is currently not on the pitch, and hasn't been on the pitch in that game before</li>
+     *     <li>player being substituted off is currently on the pitch</li>
+     * </ul>
      *
      * @param match entity representing the match to which this event is related
      * @param substitutionDto dto containing information about the event
      * @return match event that is ready to be saved
+     * @throws MatchEventInvalidException thrown when the substitution cannot be completed
+     * @throws ResourceNotFoundException thrown when any player involved in the substitution cannot be found in the database
+     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processSubstitutionEvent(Match match, InsertMatchEvent.SubstitutionDto substitutionDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
@@ -384,11 +459,32 @@ public class MatchEventService {
     }
 
     /**
-     * Processes the penalty event.
+     * Processes penalty events.
+     *
+     * Describes both penalties that can normally happen during the match (i.e. are given by the referee as a result
+     * of some violation by the defending side) and penalties that happen during the penalty shootout.
+     *
+     * Valid penalty events:
+     * <ul>
+     *     <li>happen when the ball is in play</li>
+     *     <li>have the player scoring the penalty on the pitch at the time of penalty happening</li>
+     * </ul>
+     *
+     * If the status of the match is <i>PENALTIES</i>:
+     * <ul>
+     *     <li>scored penalties only affect the penalties scoreline</li>
+     *     <li>scored penalties do not count as actual goals of players</li>
+     * </ul>
+     * If the status of the match is different, scored penalties count as actual goals of players.
+     *
+     * Penalties marked as missed are still recorded as an event, but they do not change the scoreline.
      *
      * @param match entity representing the match to which this event is related
      * @param penaltyDto dto containing information about the event
      * @return match event that is ready to be saved
+     * @throws MatchEventInvalidException thrown when the penalty cannot be accepted
+     * @throws ResourceNotFoundException thrown when the player involved in the penalty cannot be found in the database
+     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processPenaltyEvent(Match match, InsertMatchEvent.PenaltyDto penaltyDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
