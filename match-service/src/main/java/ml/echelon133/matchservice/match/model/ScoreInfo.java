@@ -1,38 +1,66 @@
 package ml.echelon133.matchservice.match.model;
 
-import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 @Embeddable
 public class ScoreInfo {
 
-    @Column()
-    private Byte homeGoals;
-    private Byte awayGoals;
+    private Integer homeGoals;
+    private Integer awayGoals;
 
     public ScoreInfo() {
         this.homeGoals = 0;
         this.awayGoals = 0;
     }
 
-    public ScoreInfo(Byte homeGoals, Byte awayGoals) {
+    public ScoreInfo(Integer homeGoals, Integer awayGoals) {
         this.homeGoals = homeGoals;
         this.awayGoals = awayGoals;
     }
 
-    public Byte getHomeGoals() {
+    public Integer getHomeGoals() {
         return homeGoals;
     }
 
-    public void setHomeGoals(Byte homeGoals) {
+    public void setHomeGoals(Integer homeGoals) {
         this.homeGoals = homeGoals;
     }
 
-    public Byte getAwayGoals() {
+    public Integer getAwayGoals() {
         return awayGoals;
     }
 
-    public void setAwayGoals(Byte awayGoals) {
+    public void setAwayGoals(Integer awayGoals) {
         this.awayGoals = awayGoals;
+    }
+
+    public void incrementHomeGoals() {
+        ++this.homeGoals;
+    }
+
+    public void incrementAwayGoals() {
+        ++this.awayGoals;
+    }
+
+    public static ScoreInfo of(Integer homeGoals, Integer awayGoals) {
+        return new ScoreInfo(homeGoals, awayGoals);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ScoreInfo scoreInfo = (ScoreInfo) o;
+
+        if (!homeGoals.equals(scoreInfo.homeGoals)) return false;
+        return awayGoals.equals(scoreInfo.awayGoals);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = homeGoals.hashCode();
+        result = 31 * result + awayGoals.hashCode();
+        return result;
     }
 }

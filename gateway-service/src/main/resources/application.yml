@@ -21,8 +21,13 @@ spring:
                     /api/coaches*, /api/coaches/**,
                     /api/countries*, /api/countries/**,
                     /api/players*, /api/players/**,
-                    /api/teams*, /api/teams/**, 
+                    /api/teams*, /api/teams/**,
                     /api/matches*, /api/matches/**
+        - id: match-service-socket-io
+          uri: http://match-service:81
+          predicates:
+            - Path= /socket.io*, /socket.io/**,
+                    /api/ws/match-events*, /api/ws/match-events/**
 
 management:
   endpoint:

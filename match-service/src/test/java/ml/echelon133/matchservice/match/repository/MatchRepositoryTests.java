@@ -75,8 +75,8 @@ public class MatchRepositoryTests {
     public void findMatchById_MatchExists_IsPresent() {
         var match = TestMatch
                 .builder()
-                .halfTimeScoreInfo(new ScoreInfo((byte)1, (byte)2))
-                .scoreInfo(new ScoreInfo((byte)3, (byte)3))
+                .halfTimeScoreInfo(new ScoreInfo(1, 2))
+                .scoreInfo(new ScoreInfo(3, 3))
                 .result(MatchResult.DRAW)
                 .status(MatchStatus.FINISHED)
                 .build();
