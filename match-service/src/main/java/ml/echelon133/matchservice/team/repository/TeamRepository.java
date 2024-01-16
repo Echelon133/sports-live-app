@@ -1,6 +1,7 @@
 package ml.echelon133.matchservice.team.repository;
 
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.common.team.dto.TeamFormDetailsDto;
 import ml.echelon133.matchservice.team.model.Team;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,4 +61,31 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
             nativeQuery = true
     )
     Page<TeamDto> findAllByNameContaining(String phrase, Pageable pageable);
+
+
+    /**
+     * Finds at most 5 of the most recent finished matches of a particular team in a particular competition.
+     * This is useful for evaluating the current form of the team.
+     *
+     * @param teamId id of the team whose form is getting evaluated
+     * @param competitionId id of the competition in which the evaluation takes place
+     * @return at most 5 most recently finished matches of a team in a particular competition
+     */
+    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
+    @Query(
+            value = "SELECT CAST(m.id as varchar) as id, m.result as result, m.start_time_utc as startTimeUTC, " +
+                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
+                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
+                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
+                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
+                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted " +
+                    "FROM match m " +
+                    "JOIN team ht ON m.home_team_id = ht.id " +
+                    "JOIN team at ON m.away_team_id = at.id " +
+                    "WHERE m.deleted = false AND m.competition_id = :competitionId " +
+                    "AND m.status = 'FINISHED' AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) " +
+                    "ORDER BY m.start_time_utc DESC LIMIT 5 ",
+            nativeQuery = true
+    )
+    List<TeamFormDetailsDto> findFormEvaluationMatches(UUID teamId, UUID competitionId);
 }
