@@ -1,7 +1,10 @@
 package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.common.team.dto.TeamFormDetailsDto;
+import ml.echelon133.common.team.dto.TeamFormDto;
 import ml.echelon133.matchservice.coach.service.CoachService;
 import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.team.model.Team;
@@ -13,7 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -131,5 +136,47 @@ public class TeamService {
      */
     public Integer markTeamAsDeleted(UUID id)  {
         return teamRepository.markTeamAsDeleted(id);
+    }
+
+    /**
+     * Evaluates the form of a team in a particular competition based on the last 5 matches of that team.
+     *
+     * @param teamId id of the team whose form is being evaluated
+     * @param competitionId id of the competition from which the last 5 matches will be taken
+     * @return a list of at most 5 matches (each one of them evaluated by team's form)
+     */
+    public List<TeamFormDto> evaluateForm(UUID teamId, UUID competitionId) {
+        return teamRepository.findFormEvaluationMatches(teamId, competitionId).stream()
+                .map(matchDetails ->
+                        new TeamFormDto(interpretResultAsSymbol(teamId, matchDetails), matchDetails)
+                ).collect(Collectors.toList());
+    }
+
+    /**
+     * Helper method which interprets the result of the match from the perspective of a particular team.
+     *
+     * @param teamId id of the team from whose perspective to interpret the result
+     * @param matchDetails details describing a finished match and its results
+     * @return a single character ('W', 'L', 'D', '?')
+     */
+    private static char interpretResultAsSymbol(UUID teamId, TeamFormDetailsDto matchDetails) {
+        var matchResult = matchDetails.getResult();
+        char symbol;
+
+        if (matchResult.equals(MatchResult.NONE)) {
+            symbol = '?';
+        } else if (matchResult.equals(MatchResult.DRAW)) {
+            symbol = 'D';
+        } else {
+            // either HOME_WIN or AWAY_WIN
+            var homeWin = matchResult.equals(MatchResult.HOME_WIN) && matchDetails.getHomeTeam().getId().equals(teamId);
+            var awayWin = matchResult.equals(MatchResult.AWAY_WIN) && matchDetails.getAwayTeam().getId().equals(teamId);
+            if (homeWin || awayWin) {
+                symbol = 'W';
+            } else {
+                symbol = 'L';
+            }
+        }
+        return symbol;
     }
 }

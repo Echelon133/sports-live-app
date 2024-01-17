@@ -1,7 +1,11 @@
 package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.match.dto.ScoreInfoDto;
+import ml.echelon133.common.match.dto.ShortTeamDto;
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.common.team.dto.TeamFormDetailsDto;
+import ml.echelon133.common.team.dto.TeamFormDto;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.coach.service.CoachService;
 import ml.echelon133.matchservice.country.model.Country;
@@ -20,9 +24,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -378,5 +384,54 @@ public class TeamServiceTests {
         assertEquals(expectedTeam.getCountry().getId(), teamDto.getCountry().getId());
         assertEquals(expectedTeam.getCoach().getId(), teamDto.getCoach().getId());
         assertEquals(expectedTeam.getCrestUrl(), teamDto.getCrestUrl());
+    }
+
+    private TeamFormDetailsDto createTestMatch(ShortTeamDto home, ShortTeamDto away, ScoreInfoDto score) {
+        return TeamFormDetailsDto.from(UUID.randomUUID(), LocalDateTime.now(), home, away, score);
+    }
+
+    @Test
+    @DisplayName("evaluateForm correctly evaluates the form from the perspective of a team")
+    public void evaluateForm_MultipleVariedMatchResults_ReturnsExpectedForm() {
+        var competitionId = UUID.randomUUID();
+
+        // teamA
+        var teamAEntity = TestTeam.builder().build();
+        var teamAId = teamAEntity.getId();
+        var teamA = ShortTeamDto.from(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
+
+        // teamB
+        var teamBEntity = TestTeam.builder().build();
+        var teamBId = teamBEntity.getId();
+        var teamB = ShortTeamDto.from(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
+
+        List<TeamFormDetailsDto> formEval = List.of(
+                //      * teamA vs teamB (3:2 - teamA wins)
+                createTestMatch(teamA, teamB, ScoreInfoDto.from(3, 2)),
+                //      * teamA vs teamB (2:2 - draw)
+                createTestMatch(teamA, teamB, ScoreInfoDto.from(2, 2)),
+                //      * teamB vs teamA (4:4 - draw)
+                createTestMatch(teamB, teamA, ScoreInfoDto.from(4, 4)),
+                //      * teamA vs teamB (1:4 - teamB wins)
+                createTestMatch(teamA, teamB, ScoreInfoDto.from(1, 4)),
+                //      * teamB vs teamA (2:0 - teamB wins)
+                createTestMatch(teamB, teamA, ScoreInfoDto.from(2, 0))
+        );
+
+        // given
+        given(teamRepository.findFormEvaluationMatches(teamAId, competitionId)).willReturn(formEval);
+        given(teamRepository.findFormEvaluationMatches(teamBId, competitionId)).willReturn(formEval);
+
+        // when
+        var formOfTeamA = teamService.evaluateForm(teamAId, competitionId)
+                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+        var formOfTeamB = teamService.evaluateForm(teamBId, competitionId)
+                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+
+        // then
+        // from the teamA's perspective, their form is WDDLL
+        assertEquals(List.of('W', 'D', 'D', 'L', 'L'), formOfTeamA);
+        // from the teamB's perspective, their form is LDDWW
+        assertEquals(List.of('L', 'D', 'D', 'W', 'W'), formOfTeamB);
     }
 }
