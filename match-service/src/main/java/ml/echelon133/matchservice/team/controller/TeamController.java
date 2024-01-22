@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.team.controller;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
+import ml.echelon133.common.team.dto.TeamFormDto;
 import ml.echelon133.common.team.dto.TeamDto;
 import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
@@ -116,5 +117,10 @@ public class TeamController {
     @DeleteMapping("/{teamId}")
     public Map<String, Integer> deleteTeam(@PathVariable UUID teamId) {
         return Map.of("deleted", teamService.markTeamAsDeleted(teamId));
+    }
+
+    @GetMapping("/{teamId}/form")
+    public List<TeamFormDto> getTeamForm(@PathVariable UUID teamId, @RequestParam UUID competitionId) {
+        return teamService.evaluateForm(teamId, competitionId);
     }
 }

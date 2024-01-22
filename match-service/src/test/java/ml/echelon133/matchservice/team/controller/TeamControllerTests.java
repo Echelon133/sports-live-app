@@ -1,7 +1,11 @@
 package ml.echelon133.matchservice.team.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.common.match.dto.ScoreInfoDto;
+import ml.echelon133.common.match.dto.ShortTeamDto;
 import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.common.team.dto.TeamFormDetailsDto;
+import ml.echelon133.common.team.dto.TeamFormDto;
 import ml.echelon133.common.team.dto.TeamPlayerDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
@@ -37,6 +41,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import javax.validation.ConstraintValidator;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -86,6 +91,8 @@ public class TeamControllerTests {
     private JacksonTester<List<TeamPlayerDto>> jsonTeamPlayerDtos;
 
     private JacksonTester<UpsertTeamPlayerDto> jsonUpsertTeamPlayerDto;
+
+    private JacksonTester<List<TeamFormDto>> jsonTeamFormDtos;
 
     @BeforeEach
     public void beforeEach() {
@@ -1473,5 +1480,52 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(content().string(expectedJson));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:id/form?competitionId= returns 400 when `competitionId` is not provided")
+    public void getTeamForm_CompetitionIdNotProvided_StatusBadRequest() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        mvc.perform(
+                        get("/api/teams/" + teamId + "/form")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages[0]", is("query parameter 'competitionId' not provided")));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:id/form?competitionId= returns 200 when 'competitionId' is provided and the service contains the form")
+    public void getTeamForm_CompetitionIdProvided_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+        var competitionId = UUID.randomUUID();
+
+        var formEntry = new TeamFormDto(
+                'W',
+                TeamFormDetailsDto.from(
+                        UUID.randomUUID(),
+                        LocalDateTime.now(),
+                        ShortTeamDto.from(teamId, "Some team", ""),
+                        ShortTeamDto.from(UUID.randomUUID(), "Some other team", ""),
+                        ScoreInfoDto.from(3, 2)
+                )
+        );
+        var expectedJson = jsonTeamFormDtos.write(List.of(formEntry)).getJson();
+
+        // given
+        given(teamService.evaluateForm(teamId, competitionId)).willReturn(List.of(formEntry));
+
+        // when
+        mvc.perform(
+                        get("/api/teams/" + teamId + "/form")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("competitionId", competitionId.toString())
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
+
     }
 }
