@@ -50,8 +50,18 @@ public interface TestMatch {
             return this;
         }
 
+        public MatchBuilder homeTeam(Team homeTeam) {
+            this.homeTeam = homeTeam;
+            return this;
+        }
+
         public MatchBuilder awayTeam(TestTeam.TeamBuilder awayTeamBuilder) {
             this.awayTeam = awayTeamBuilder.build();
+            return this;
+        }
+
+        public MatchBuilder awayTeam(Team awayTeam) {
+            this.awayTeam = awayTeam;
             return this;
         }
 
