@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: competition-service-pv-volume
+  namespace: sports-live-app
+  labels:
+    type: local
+    app: competition-service-postgres
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/competition-service"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: competition-service-pv-claim
+  namespace: sports-live-app
+  labels:
+    app: competition-service-postgres
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany  # Sets read and write access
+  resources:
+    requests:
+      storage: 1Gi  # Sets volume size
