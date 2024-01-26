@@ -49,6 +49,18 @@ pipeline {
             }
         }
 
+        stage("Build docker image of competition-service and push it to dockerhub") {
+            steps {
+                script {
+                    withMaven {
+                        env.COMPETITION_SERVICE_VERSION = sh(returnStdout: true, script: 'mvn -f competition-service/pom.xml help:evaluate -Dexpression=project.version -q -DforceStdout').trim()
+                    }
+                }
+                sh "docker build --tag=echelon133/competition-service:$COMPETITION_SERVICE_VERSION ./competition-service"
+                sh "docker push echelon133/competition-service:$COMPETITION_SERVICE_VERSION"
+            }
+        }
+
         stage("Configure namespaces and permissions of the cluster") {
             steps {
                 withKubeConfig([credentialsId: "${KUBERNETES_USER_CRED}", serverUrl: "${KUBERNETES_SERVER_URL}"]) {
@@ -71,6 +83,15 @@ pipeline {
                             '''
                         )
                     }
+                    withCredentials([file(credentialsId: 'competition-service-postgres-secret', variable: 'POSTGRES_SECRET')]) {
+                        sh(returnStatus: true, script:
+                            '''
+                                kubectl create secret generic competition-service-postgres-secret \
+                                    --from-env-file=$POSTGRES_SECRET \
+                                    -n $KUBERNETES_APP_NAMESPACE
+                            '''
+                        )
+                    }
                 }
             }
         }
@@ -80,6 +101,7 @@ pipeline {
                 withKubeConfig([credentialsId: "${KUBERNETES_USER_CRED}", serverUrl: "${KUBERNETES_SERVER_URL}"]) {
                     sh(returnStatus: true, script: 'kubectl apply -f k8s/gateway-service/')
                     sh(returnStatus: true, script: 'kubectl apply -f k8s/match-service/')
+                    sh(returnStatus: true, script: 'kubectl apply -f k8s/competition-service/')
                 }
             }
         }
