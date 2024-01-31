@@ -8,13 +8,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,5 +77,26 @@ public class CompetitionServiceTests {
 
         // then
         assertEquals(1, countDeleted);
+    }
+
+    @Test
+    @DisplayName("findCompetitionsByName correctly calls the repository method")
+    public void findCompetitionsByName_CustomPhraseAndPageable_CorrectlyCallsRepository() {
+        var phrase = "test";
+        var pageable = Pageable.ofSize(7).withPage(4);
+        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
+        var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
+
+        // given
+        given(competitionRepository.findAllByNameContaining(
+                eq(phrase),
+                argThat(p -> p.getPageSize() == 7 && p.getPageNumber() == 4)
+        )).willReturn(expectedPage);
+
+        // when
+        var result = competitionService.findCompetitionsByName(phrase, pageable);
+
+        // then
+        assertEquals(1, result.getNumberOfElements());
     }
 }

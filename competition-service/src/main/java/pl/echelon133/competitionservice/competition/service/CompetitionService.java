@@ -3,6 +3,8 @@ package pl.echelon133.competitionservice.competition.service;
 import ml.echelon133.common.competition.dto.CompetitionDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import pl.echelon133.competitionservice.competition.model.Competition;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
@@ -40,5 +42,16 @@ public class CompetitionService {
      */
     public Integer markCompetitionAsDeleted(UUID id)  {
         return competitionRepository.markCompetitionAsDeleted(id);
+    }
+
+    /**
+     * Finds all competitions whose names contain the specified phrase.
+     *
+     * @param phrase phrase which needs to appear in the name of the competition
+     * @param pageable information about the wanted page
+     * @return a page of competitions which match the filter
+     */
+    public Page<CompetitionDto> findCompetitionsByName(String phrase, Pageable pageable) {
+        return competitionRepository.findAllByNameContaining(phrase, pageable);
     }
 }
