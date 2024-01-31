@@ -3,6 +3,8 @@ package pl.echelon133.competitionservice.competition.controller;
 import ml.echelon133.common.competition.dto.CompetitionDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
@@ -28,5 +30,10 @@ public class CompetitionController {
     @DeleteMapping("/{competitionId}")
     public Map<String, Integer> deleteCompetition(@PathVariable UUID competitionId) {
         return Map.of("deleted", competitionService.markCompetitionAsDeleted(competitionId));
+    }
+
+    @GetMapping
+    public Page<CompetitionDto> getCompetitionsByName(Pageable pageable, @RequestParam String name) {
+        return competitionService.findCompetitionsByName(name, pageable);
     }
 }

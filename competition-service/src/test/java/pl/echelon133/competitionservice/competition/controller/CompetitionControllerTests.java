@@ -11,15 +11,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.json.JacksonTester;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import pl.echelon133.competitionservice.competition.model.Competition;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -49,6 +56,10 @@ public class CompetitionControllerTests {
         mvc = MockMvcBuilders
                 .standaloneSetup(competitionController)
                 .setControllerAdvice(competitionExceptionHandler)
+                .setCustomArgumentResolvers(
+                        // required while testing controller methods which use Pageable
+                        new PageableHandlerMethodArgumentResolver()
+                )
                 .build();
     }
 
@@ -111,5 +122,72 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(content().string("{\"deleted\":1}"));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions?name= returns 400 when `name` is not provided")
+    public void getCompetitionsByName_NameNotProvided_StatusBadRequest() throws Exception {
+        mvc.perform(
+                        get("/api/competitions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages[0]", is("query parameter 'name' not provided")));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions?name returns 200 when `name` is provided and pageable is default")
+    public void getCompetitionsByName_NameProvidedWithDefaultPageable_StatusOk() throws Exception {
+        var pValue = "test";
+        var defaultPageNumber = 0;
+        var defaultPageSize = 20;
+
+        Page<CompetitionDto> expectedPage = Page.empty();
+
+        //given
+        given(competitionService.findCompetitionsByName(
+                eq(pValue),
+                argThat(p -> p.getPageSize() == defaultPageSize && p.getPageNumber() == defaultPageNumber)
+        )).willReturn(expectedPage);
+
+        mvc.perform(
+                        get("/api/competitions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("name", pValue)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions?name returns 200 when `name` is provided and pageable values are custom")
+    public void getCompetitionsByName_NameProvidedWithCustomPageParameters_StatusOk() throws Exception {
+        var pValue = "test";
+        var testPageSize = 7;
+        var testPageNumber = 4;
+        var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
+        var expectedContent = List.of(CompetitionDto.from(UUID.randomUUID(), pValue, "test2", "test3"));
+
+        Page<CompetitionDto> expectedPage = new PageImpl<>(expectedContent, expectedPageable, 1);
+
+        //given
+        given(competitionService.findCompetitionsByName(
+                eq(pValue),
+                argThat(p -> p.getPageNumber() == testPageNumber && p.getPageSize() == testPageSize)
+        )).willReturn(expectedPage);
+
+        mvc.perform(
+                        get("/api/competitions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("name", pValue)
+                                .param("page", String.valueOf(testPageNumber))
+                                .param("size", String.valueOf(testPageSize))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(1)))
+                .andExpect(jsonPath("$.content[0].name", is(pValue)));
     }
 }
