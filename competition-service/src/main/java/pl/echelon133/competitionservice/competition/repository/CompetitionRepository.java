@@ -1,6 +1,8 @@
 package pl.echelon133.competitionservice.competition.repository;
 
 import ml.echelon133.common.competition.dto.CompetitionDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -35,4 +37,21 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     @Modifying
     @Query(value = "UPDATE competition SET deleted = true WHERE id = :competitionId AND deleted = false", nativeQuery = true)
     Integer markCompetitionAsDeleted(UUID competitionId);
+
+    /**
+     * Finds all competitions whose names contain a certain phrase.
+     *
+     * @param phrase phrase (case-insensitive) which has to appear in the name
+     * @param pageable information about the wanted page
+     * @return a page containing all competitions whose names contain the phrase
+     */
+    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
+    @Query(
+            value = "SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl " +
+                    "FROM competition c " +
+                    "WHERE LOWER(c.name) LIKE '%' || LOWER(:phrase) || '%' AND c.deleted = false",
+            countQuery = "SELECT COUNT(*) FROM competition WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
+            nativeQuery = true
+    )
+    Page<CompetitionDto> findAllByNameContaining(String phrase, Pageable pageable);
 }
