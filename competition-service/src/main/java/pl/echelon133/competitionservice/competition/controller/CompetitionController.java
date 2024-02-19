@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
@@ -43,11 +44,14 @@ public class CompetitionController {
     }
 
     @PostMapping
-    public void createCompetition(@Valid @RequestBody UpsertCompetitionDto competitionDto, BindingResult result)
-            throws RequestBodyContentInvalidException {
+    public Map<String, UUID> createCompetition(
+            @Valid @RequestBody UpsertCompetitionDto competitionDto, BindingResult result
+    ) throws RequestBodyContentInvalidException, CompetitionInvalidException {
 
         if (result.hasErrors()) {
             throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
+
+        return Map.of("id", competitionService.createCompetition(competitionDto));
     }
 }
