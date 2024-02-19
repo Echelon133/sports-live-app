@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import pl.echelon133.competitionservice.competition.TestUpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
 import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.Competition;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
@@ -34,8 +35,7 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -267,9 +267,14 @@ public class CompetitionControllerTests {
                 "a".repeat(50)
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (String correctName : correctNameLengths) {
             var contentDto = TestUpsertCompetitionDto.builder().name(correctName).build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -334,9 +339,14 @@ public class CompetitionControllerTests {
                 "a".repeat(30)
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (String correctSeason : correctSeasonLengths) {
             var contentDto = TestUpsertCompetitionDto.builder().season(correctSeason).build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -412,7 +422,7 @@ public class CompetitionControllerTests {
 
     @Test
     @DisplayName("POST /api/competitions returns 200 when logoUrl length is correct")
-    public void createCompetition_LogoUrlLengthCorrect_StatusUnprocessableEntity() throws Exception {
+    public void createCompetition_LogoUrlLengthCorrect_StatusOk() throws Exception {
         var correctLogoUrlLengths = List.of(
                 // min 15
                 "http://aaaaa.eu",
@@ -420,10 +430,14 @@ public class CompetitionControllerTests {
                 "http://aaaaa.eu" + "a".repeat(485)
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (String correctLogoUrl : correctLogoUrlLengths) {
             var contentDto = TestUpsertCompetitionDto.builder().logoUrl(correctLogoUrl).build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -471,10 +485,14 @@ public class CompetitionControllerTests {
                 generateGroups(10)
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (List<UpsertCompetitionDto.UpsertGroupDto> groups : incorrectGroupSizes) {
             var contentDto = TestUpsertCompetitionDto.builder().groups(groups).build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -522,6 +540,10 @@ public class CompetitionControllerTests {
         var contentDto = TestUpsertCompetitionDto.builder().groups(groups).build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
+        // when
         mvc.perform(
                         post("/api/competitions")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -584,6 +606,10 @@ public class CompetitionControllerTests {
                 .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
+        // when
         mvc.perform(
                         post("/api/competitions")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -631,11 +657,16 @@ public class CompetitionControllerTests {
                 generateTeamIds(24)
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (List<String> teams : correctGroupTeamSizes) {
             var contentDto = TestUpsertCompetitionDto.builder()
                     .groups(List.of(TestUpsertGroupDto.builder().teams(teams).build()))
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -712,11 +743,16 @@ public class CompetitionControllerTests {
                         .collect(Collectors.toList())
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (List<UpsertCompetitionDto.UpsertLegendDto> legend : correctLegendSize) {
             var contentDto = TestUpsertCompetitionDto.builder()
                     .legend(legend)
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -795,11 +831,16 @@ public class CompetitionControllerTests {
                 List.of(TestUpsertLegendDto.builder().positions(Set.of(2, 3, 4, 5, 6, 7)).build())
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (List<UpsertCompetitionDto.UpsertLegendDto> legend : correctPositionSize) {
             var contentDto = TestUpsertCompetitionDto.builder()
                     .legend(legend)
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -869,12 +910,16 @@ public class CompetitionControllerTests {
                 "a".repeat(200)
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (String context : correctContextLengths) {
             var contentDto = TestUpsertCompetitionDto.builder()
                     .legend(List.of(TestUpsertLegendDto.builder().context(context).build()))
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -940,12 +985,16 @@ public class CompetitionControllerTests {
                 "POSitive_A", "positive_B", "POSITIVE_c", "posITive_D", "negATIVE_A", "NEGATIVE_B" // mixed
         );
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (String sentiment : correctSentiments) {
             var contentDto = TestUpsertCompetitionDto.builder()
                     .legend(List.of(TestUpsertLegendDto.builder().sentiment(sentiment).build()))
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -999,12 +1048,16 @@ public class CompetitionControllerTests {
                         .mapToObj(i -> TestUpsertLegendDto.builder().positions(Set.of(i)).build())
                         .collect(Collectors.toList());
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (UpsertCompetitionDto.UpsertLegendDto legend : correctPositionReferences) {
             var contentDto = TestUpsertCompetitionDto.builder()
                     .legend(List.of(legend))
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -1067,6 +1120,9 @@ public class CompetitionControllerTests {
                         .mapToObj(i -> TestUpsertLegendDto.builder().positions(Set.of(i)).build())
                         .collect(Collectors.toList());
 
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
         for (UpsertCompetitionDto.UpsertLegendDto legend : correctPositionReferences) {
             var contentDto = TestUpsertCompetitionDto.builder()
                     .groups(groups)
@@ -1074,6 +1130,7 @@ public class CompetitionControllerTests {
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
+            // when
             mvc.perform(
                             post("/api/competitions")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -1082,5 +1139,56 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isOk());
         }
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions returns 422 when the service method throws")
+    public void createCompetition_ServiceThrows_StatusUnprocessableEntity() throws Exception {
+        var contentDto = TestUpsertCompetitionDto.builder().build();
+        var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+        var teamIdToFail = UUID.fromString(contentDto.getGroups().get(0).getTeams().get(0));
+
+        // given
+        given(competitionService.createCompetition(
+                argThat(c -> c.getGroups().get(0).getTeams().contains(teamIdToFail.toString()))
+        )).willThrow(new CompetitionInvalidException("failed to fetch resource with id " + teamIdToFail));
+
+        // then
+        mvc.perform(
+                        post("/api/competitions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages[0]", is("failed to fetch resource with id " + teamIdToFail))
+                );
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions returns 200 when all data in the body is correct and service saves the entity")
+    public void createCompetition_ServiceSaves_StatusOk() throws Exception {
+        var contentDto = TestUpsertCompetitionDto.builder().build();
+        var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionService.createCompetition(argThat(c -> c.getName().equals(contentDto.getName()))))
+                .willReturn(competitionId);
+
+        var expectedJson = String.format("{\"id\":\"%s\"}", competitionId);
+
+        // then
+        mvc.perform(
+                        post("/api/competitions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
     }
 }
