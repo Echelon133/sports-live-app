@@ -6,19 +6,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import pl.echelon133.competitionservice.competition.model.Competition;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
+import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 @Service
 public class CompetitionService {
 
     private final CompetitionRepository competitionRepository;
+    private final AsyncMatchServiceClient matchServiceClient;
 
     @Autowired
-    public CompetitionService(CompetitionRepository competitionRepository) {
+    public CompetitionService(CompetitionRepository competitionRepository, AsyncMatchServiceClient matchServiceClient) {
         this.competitionRepository = competitionRepository;
+        this.matchServiceClient = matchServiceClient;
     }
 
     /**
@@ -53,5 +61,67 @@ public class CompetitionService {
      */
     public Page<CompetitionDto> findCompetitionsByName(String phrase, Pageable pageable) {
         return competitionRepository.findAllByNameContaining(phrase, pageable);
+    }
+
+    /**
+     * Creates a competition's entry in the database.
+     *
+     * The values in {@link UpsertCompetitionDto} have to be pre-validated before being used here,
+     * otherwise incorrect data will be placed into the database.
+     *
+     * @param competitionDto dto representing the information about a competition that will be saved in the database
+     * @return id of the created competition
+     * @throws CompetitionInvalidException thrown when a competition could not be created based on given data
+     */
+    public UUID createCompetition(UpsertCompetitionDto competitionDto) throws CompetitionInvalidException {
+        List<Group> groups = new ArrayList<>(competitionDto.getGroups().size());
+
+        // none of `UUID.fromString` calls should fail because all ids are pre-validated
+        List<UUID> teamIds = competitionDto
+                .getGroups().stream()
+                .flatMap(g -> g.getTeams().stream())
+                .map(UUID::fromString)
+                .collect(Collectors.toList());
+
+        Map<UUID, List<TeamDetailsDto>> fetchedTeamDetails;
+        try {
+             fetchedTeamDetails = matchServiceClient.getAllTeams(teamIds);
+        } catch (CompletionException ex) {
+            throw new CompetitionInvalidException(ex.getMessage());
+        }
+
+        for (var groupDto : competitionDto.getGroups()) {
+            // none of `UUID.fromString` calls during `map` should fail because all ids are pre-validated
+            var teams = groupDto.getTeams().stream().map(UUID::fromString).map(
+                    tId -> {
+                        // if `getAllTeams` hasn't thrown, `get` is guaranteed to always have a value,
+                        // additionally, each value is a list of one element, so we can unpack the value from the list
+                        // right away
+                        var teamDetail = fetchedTeamDetails.get(tId).get(0);
+                        return new TeamStats(teamDetail.getId(), teamDetail.getName(), teamDetail.getCrestUrl());
+                    }).collect(Collectors.toList());
+
+            var group = new Group(groupDto.getName(), teams);
+            groups.add(group);
+        }
+
+        var legend = competitionDto.getLegend().stream().map(
+                l ->
+                        new Legend(
+                                l.getPositions(),
+                                l.getContext(),
+                                // this `valueOfCaseIgnore` should never fail because the sentiment value is pre-validated
+                                Legend.LegendSentiment.valueOfCaseIgnore(l.getSentiment())
+                        )
+                ).collect(Collectors.toList());
+
+        var competition = new Competition(
+                competitionDto.getName(),
+                competitionDto.getSeason(),
+                competitionDto.getLogoUrl(),
+                groups,
+                legend
+        );
+        return competitionRepository.save(competition).getId();
     }
 }

@@ -16,8 +16,9 @@ public class Group extends BaseEntity {
     private List<TeamStats> teams;
 
     public Group() {}
-    public Group(String name) {
+    public Group(String name, List<TeamStats> teams) {
         this.name = name;
+        this.teams = teams;
     }
 
     public String getName() {
