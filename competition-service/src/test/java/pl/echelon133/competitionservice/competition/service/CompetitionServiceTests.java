@@ -10,9 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import pl.echelon133.competitionservice.competition.TestUpsertCompetitionDto;
-import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
-import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
+import pl.echelon133.competitionservice.competition.*;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
@@ -210,5 +208,78 @@ public class CompetitionServiceTests {
             return basicDataCorrect && groupDataCorrect && legendDataCorrect;
         }));
         assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("findStandings throws when entity not found")
+    public void findStandings_CompetitionNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionRepository.findById(competitionId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            competitionService.findStandings(competitionId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("competition %s could not be found", competitionId), message);
+    }
+
+    @Test
+    @DisplayName("findStandings returns expected dto when competition is found")
+    public void findStandings_CompetitionFound_ReturnsDto() throws ResourceNotFoundException {
+        var team = new TeamStats(UUID.randomUUID(), "Test Team", "http://some-test-url.com/crest.png");
+        team.setMatchesPlayed(10);
+        team.setWins(7);
+        team.setDraws(2);
+        team.setLosses(1);
+        team.setGoalsScored(30);
+        team.setGoalsConceded(14);
+        team.setPoints(23);
+
+        var group = new Group("Group A", List.of(team));
+        var legend = new Legend(Set.of(1, 2), "Promotion to League A", Legend.LegendSentiment.POSITIVE_A);
+        var competition = TestCompetition.builder()
+                .groups(List.of(group))
+                .legend(List.of(legend))
+                .build();
+        var competitionId = competition.getId();
+
+        // given
+        given(competitionRepository.findById(competitionId)).willReturn(Optional.of(competition));
+
+        // when
+        StandingsDto result = competitionService.findStandings(competitionId);
+
+        // then
+        var groupsDto = result.getGroups();
+        assertEquals(1, groupsDto.size());
+
+        var groupDto = groupsDto.get(0);
+        var teamsDto = groupDto.getTeams();
+        assertEquals(group.getName(), groupDto.getName());
+        assertEquals(1, teamsDto.size());
+
+        var teamDto = teamsDto.get(0);
+        assertEquals(team.getTeamId(), teamDto.getTeamId());
+        assertEquals(team.getTeamName(), teamDto.getTeamName());
+        assertEquals(team.getCrestUrl(), teamDto.getCrestUrl());
+        assertEquals(team.getMatchesPlayed(), teamDto.getMatchesPlayed());
+        assertEquals(team.getWins(), teamDto.getWins());
+        assertEquals(team.getDraws(), teamDto.getDraws());
+        assertEquals(team.getLosses(), teamDto.getLosses());
+        assertEquals(team.getGoalsScored(), teamDto.getGoalsScored());
+        assertEquals(team.getGoalsConceded(), teamDto.getGoalsConceded());
+        assertEquals(team.getPoints(), teamDto.getPoints());
+
+        var legendsDto = result.getLegend();
+        assertEquals(1, legendsDto.size());
+
+        var legendDto = legendsDto.get(0);
+        assertEquals(legend.getPositions(), legendDto.getPositions());
+        assertEquals(legend.getContext(), legendDto.getContext());
+        assertEquals(legend.getSentiment().toString(), legendDto.getSentiment());
     }
 }

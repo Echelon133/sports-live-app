@@ -124,4 +124,32 @@ public class CompetitionService {
         );
         return competitionRepository.save(competition).getId();
     }
+
+    /**
+     * Returns the information about the standings in competition with specified id.
+     * @param competitionId id of the competition
+     * @return a dto representing the standings in that competition
+     * @throws ResourceNotFoundException thrown when the competition does not exist in the database
+     */
+    public StandingsDto findStandings(UUID competitionId) throws ResourceNotFoundException {
+        var competition = competitionRepository.findById(competitionId)
+                .orElseThrow(() -> new ResourceNotFoundException(Competition.class, competitionId));
+        return convertCompetitionEntityToStandingsDto(competition);
+    }
+
+    private static StandingsDto convertCompetitionEntityToStandingsDto(Competition entity) {
+        // convert groups
+        List<StandingsDto.GroupDto> groupDtos = entity.getGroups().stream().parallel().map(groupEntity -> {
+            List<StandingsDto.TeamStatsDto> teamDtos = groupEntity.getTeams().stream()
+                    .map(StandingsDto.TeamStatsDto::new).collect(Collectors.toList());
+            return new StandingsDto.GroupDto(groupEntity.getName(), teamDtos);
+        }).collect(Collectors.toList());
+
+        // convert legend
+        List<StandingsDto.LegendDto> legendDtos = entity.getLegend().stream().parallel()
+                .map(StandingsDto.LegendDto::new)
+                .collect(Collectors.toList());
+
+        return new StandingsDto(groupDtos, legendDtos);
+    }
 }
