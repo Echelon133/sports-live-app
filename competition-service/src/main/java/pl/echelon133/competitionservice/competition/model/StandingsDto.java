@@ -48,10 +48,13 @@ public class StandingsDto {
         private String sentiment;
 
         public LegendDto() {}
+        public LegendDto(Set<Integer> positions, String context, String sentiment) {
+            this.positions = positions;
+            this.context = context;
+            this.sentiment = sentiment;
+        }
         public LegendDto(Legend legend) {
-            this.positions = legend.getPositions();
-            this.context = legend.getContext();
-            this.sentiment = legend.getSentiment().toString();
+            this(legend.getPositions(), legend.getContext(), legend.getSentiment().toString());
         }
 
         public Set<Integer> getPositions() {
@@ -80,10 +83,13 @@ public class StandingsDto {
         private int points;
 
         public TeamStatsDto() {}
+        public TeamStatsDto(UUID teamId, String teamName, String crestUrl) {
+            this.teamId = teamId;
+            this.teamName = teamName;
+            this.crestUrl = crestUrl;
+        }
         public TeamStatsDto(TeamStats stats) {
-            this.teamId = stats.getTeamId();
-            this.teamName = stats.getTeamName();
-            this.crestUrl = stats.getCrestUrl();
+            this(stats.getTeamId(), stats.getTeamName(), stats.getCrestUrl());
             this.matchesPlayed = stats.getMatchesPlayed();
             this.wins = stats.getWins();
             this.draws = stats.getDraws();

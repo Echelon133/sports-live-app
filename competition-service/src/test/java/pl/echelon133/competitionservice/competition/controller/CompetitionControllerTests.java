@@ -23,6 +23,7 @@ import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
 import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.Competition;
+import pl.echelon133.competitionservice.competition.model.StandingsDto;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
@@ -57,6 +58,8 @@ public class CompetitionControllerTests {
     private JacksonTester<CompetitionDto> jsonCompetitionDto;
 
     private JacksonTester<UpsertCompetitionDto> jsonUpsertCompetitionDto;
+
+    private JacksonTester<StandingsDto> jsonStandingsDto;
 
     @BeforeEach
     public void beforeEach() {
@@ -1187,6 +1190,53 @@ public class CompetitionControllerTests {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .content(json)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/standings returns 404 when competition is not found")
+    public void getStandings_CompetitionNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionService.findStandings(competitionId)).willThrow(
+                new ResourceNotFoundException(Competition.class, competitionId)
+        );
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/standings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("competition %s could not be found", competitionId)
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/standings returns 200 when competition is found")
+    public void getStandings_CompetitionFound_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        var teamDto = new StandingsDto.TeamStatsDto(UUID.randomUUID(), "Test Team", "test-url");
+        var groupDto = new StandingsDto.GroupDto("Group A", List.of(teamDto));
+        var legendDto = new StandingsDto.LegendDto(Set.of(1), "Promotion", "POSITIVE_A");
+        var standingsDto = new StandingsDto(List.of(groupDto), List.of(legendDto));
+
+        var expectedJson = jsonStandingsDto.write(standingsDto).getJson();
+
+        // given
+        given(competitionService.findStandings(competitionId)).willReturn(standingsDto);
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/standings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isOk())
                 .andExpect(content().string(expectedJson));

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
+import pl.echelon133.competitionservice.competition.model.StandingsDto;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
@@ -53,5 +54,10 @@ public class CompetitionController {
         }
 
         return Map.of("id", competitionService.createCompetition(competitionDto));
+    }
+
+    @GetMapping("/{competitionId}/standings")
+    public StandingsDto getStandings(@PathVariable UUID competitionId) throws ResourceNotFoundException {
+        return competitionService.findStandings(competitionId);
     }
 }
