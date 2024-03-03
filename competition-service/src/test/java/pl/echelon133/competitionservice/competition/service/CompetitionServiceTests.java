@@ -282,4 +282,25 @@ public class CompetitionServiceTests {
         assertEquals(legend.getContext(), legendDto.getContext());
         assertEquals(legend.getSentiment().toString(), legendDto.getSentiment());
     }
+
+    @Test
+    @DisplayName("findPlayerStatsByCompetition correctly calls the repository method")
+    public void findPlayerStatsByCompetition_CompetitionIdAndPageable_CorrectlyCallsRepository() {
+        var competitionId = UUID.randomUUID();
+        var pageable = Pageable.ofSize(7).withPage(4);
+        var expectedDto = PlayerStatsDto.from(UUID.randomUUID(), UUID.randomUUID(), "Player");
+        var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
+
+        // given
+        given(competitionRepository.findPlayerStats(
+                eq(competitionId),
+                argThat(p -> p.getPageSize() == 7 && p.getPageNumber() == 4)
+        )).willReturn(expectedPage);
+
+        // when
+        var result = competitionService.findPlayerStatsByCompetition(competitionId, pageable);
+
+        // then
+        assertEquals(1, result.getNumberOfElements());
+    }
 }

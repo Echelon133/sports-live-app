@@ -152,4 +152,15 @@ public class CompetitionService {
 
         return new StandingsDto(groupDtos, legendDtos);
     }
+
+    /**
+     * Finds all competition-specific statistics of players who play in the specified competition.
+     *
+     * @param competitionId id of the competition of which the statistics will be fetched
+     * @param pageable information about the wanted page
+     * @return a page containing player statistics
+     */
+    public Page<PlayerStatsDto> findPlayerStatsByCompetition(UUID competitionId, Pageable pageable) {
+        return competitionRepository.findPlayerStats(competitionId, pageable);
+    }
 }
