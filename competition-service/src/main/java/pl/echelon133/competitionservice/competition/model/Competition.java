@@ -6,6 +6,7 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -26,6 +27,9 @@ public class Competition extends BaseEntity {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Legend> legend;
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PlayerStats> playerStats;
+
     public Competition() {}
     public Competition(String name, String season, String logoUrl) {
         this.name = name;
@@ -36,6 +40,7 @@ public class Competition extends BaseEntity {
         this(name, season, logoUrl);
         this.groups = groups;
         this.legend = legend;
+        this.playerStats = new ArrayList<>();
     }
 
     public String getName() {
@@ -76,5 +81,13 @@ public class Competition extends BaseEntity {
 
     public void setLegend(List<Legend> legend) {
         this.legend = legend;
+    }
+
+    public List<PlayerStats> getPlayerStats() {
+        return playerStats;
+    }
+
+    public void setPlayerStats(List<PlayerStats> playerStats) {
+        this.playerStats = playerStats;
     }
 }

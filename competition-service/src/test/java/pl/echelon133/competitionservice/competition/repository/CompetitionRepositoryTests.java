@@ -11,7 +11,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.TestPropertySource;
 import pl.echelon133.competitionservice.competition.TestCompetition;
 import pl.echelon133.competitionservice.competition.model.Competition;
+import pl.echelon133.competitionservice.competition.model.PlayerStats;
+import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -172,5 +175,101 @@ public class CompetitionRepositoryTests {
         var receivedPageable = result.getPageable();
         assertEquals(6, receivedPageable.getPageSize());
         assertEquals(5, receivedPageable.getPageNumber());
+    }
+
+    @Test
+    @DisplayName("findPlayerStats native query finds zero player stats when the competition does not exist")
+    public void findPlayerStats_CompetitionNotFound_ContentIsEmpty() {
+        var competitionId = UUID.randomUUID();
+
+        // when
+        var page = competitionRepository.findPlayerStats(competitionId, Pageable.unpaged());
+
+        // then
+        assertEquals(0, page.getNumberOfElements());
+    }
+
+    @Test
+    @DisplayName("findPlayerStats native query only fetches players stats belonging to a particular competition")
+    public void findPlayerStats_MultipleCompetitionsExist_OnlyFindsExpectedPlayerStats() {
+        var competitionAPlayer = createPlayerStats("Player A", 10, 2, 1, 0);
+        var competitionBPlayer = createPlayerStats("Player B", 8, 5, 3, 1);
+        var competitionCPlayer = createPlayerStats("Player C", 3, 1, 0, 1);
+
+        // setup competitionA
+        var competitionA = TestCompetition.builder()
+                .name("Competition A")
+                .playerStats(List.of(competitionAPlayer))
+                .build();
+
+        // setup competitionB
+        var competitionB = TestCompetition.builder()
+                .name("Competition B")
+                .playerStats(List.of(competitionBPlayer))
+                .build();
+
+        // setup competitionC
+        var competitionC = TestCompetition.builder()
+                .name("Competition C")
+                .playerStats(List.of(competitionCPlayer))
+                .build();
+
+        competitionRepository.saveAll(List.of(competitionA, competitionB, competitionC));
+
+        // when
+        var page = competitionRepository.findPlayerStats(competitionA.getId(), Pageable.unpaged());
+
+        // then
+        assertEquals(1, page.getNumberOfElements());
+        var receivedStats = page.getContent().get(0);
+        assertEntityAndDtoEqual(competitionAPlayer, receivedStats);
+    }
+
+    @Test
+    @DisplayName("findPlayerStats native query sorts player statistics by goals, then assists")
+    public void findPlayerStats_MultiplePlayerStats_ResultsSortedByGoalsAndAssists() {
+        var playerA = createPlayerStats("Player A", 10, 2, 1, 0);
+        var playerB = createPlayerStats("Player B", 10, 3, 3, 1);
+        var playerC = createPlayerStats("Player C", 10, 4, 0, 1);
+        var playerD = createPlayerStats("Player D", 9, 0, 0, 1);
+        var playerE = createPlayerStats("Player E", 9, 1, 0, 1);
+        var playerF = createPlayerStats("Player F", 11, 0, 0, 1);
+        var playerG = createPlayerStats("Player G", 10, 1, 0, 1);
+
+        var expectedOrder = List.of(playerF, playerC, playerB, playerA, playerG, playerE, playerD);
+
+        var competition = TestCompetition.builder()
+                .playerStats(List.of(playerA, playerB, playerC, playerD, playerE, playerF, playerG))
+                .build();
+        competitionRepository.save(competition);
+
+        // when
+        var page = competitionRepository.findPlayerStats(competition.getId(), Pageable.unpaged());
+
+        // then
+        assertEquals(7, page.getNumberOfElements());
+        var receivedStats = page.getContent();
+        for (int i = 0; i < receivedStats.size(); i++) {
+            assertEntityAndDtoEqual(expectedOrder.get(i), receivedStats.get(i));
+        }
+    }
+
+    private static PlayerStats createPlayerStats(String name, int goals, int assists, int yellowCards, int redCards) {
+        var playerStats = new PlayerStats(UUID.randomUUID(), UUID.randomUUID(), name);
+        playerStats.setGoals(goals);
+        playerStats.setAssists(assists);
+        playerStats.setYellowCards(yellowCards);
+        playerStats.setRedCards(redCards);
+        return playerStats;
+    }
+
+    private static void assertEntityAndDtoEqual(PlayerStats entity, PlayerStatsDto dto) {
+        assertEquals(entity.getPlayerId(), dto.getPlayerId());
+        assertEquals(entity.getTeamId(), dto.getTeamId());
+        assertEquals(entity.getName(), dto.getName());
+        assertEquals(entity.getGoals(), dto.getGoals());
+        assertEquals(entity.getAssists(), dto.getAssists());
+        assertEquals(entity.getYellowCards(), dto.getYellowCards());
+        assertEquals(entity.getRedCards(), dto.getRedCards());
     }
 }

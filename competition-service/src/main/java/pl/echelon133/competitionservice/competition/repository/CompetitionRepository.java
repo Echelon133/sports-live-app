@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import pl.echelon133.competitionservice.competition.model.Competition;
+import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -54,4 +55,26 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
             nativeQuery = true
     )
     Page<CompetitionDto> findAllByNameContaining(String phrase, Pageable pageable);
+
+    /**
+     * Finds all competition-specific statistics of players who play in the specified competition.
+     * Orders statistics by goals, then assists of players.
+     *
+     * @param competitionId id of the competition of which the statistics will be fetched
+     * @param pageable information about the wanted page
+     * @return a page containing player statistics
+     */
+    @Query(
+            value = "SELECT CAST(ps.player_id as varchar) as playerId, CAST(ps.team_id as varchar) as teamId, " +
+                    "ps.name as name, ps.goals as goals, ps.assists as assists, ps.yellow_cards as yellowCards, ps.red_cards as redCards " +
+                    "FROM player_stats ps JOIN competition_player_stats cps ON cps.player_stats_id = ps.id " +
+                    "WHERE cps.competition_id = :competitionId " +
+                    "ORDER BY ps.goals DESC, ps.assists DESC",
+            countQuery =
+                    "SELECT (*) " +
+                    "FROM player_stats ps JOIN competition_player_stats cps ON cps.player_stats_id = ps.id " +
+                    "WHERE cps.competition_id = :competitionId ",
+            nativeQuery = true
+    )
+    Page<PlayerStatsDto> findPlayerStats(UUID competitionId, Pageable pageable);
 }
