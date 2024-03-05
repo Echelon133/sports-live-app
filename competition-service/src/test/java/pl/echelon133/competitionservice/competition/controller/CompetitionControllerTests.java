@@ -23,6 +23,7 @@ import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
 import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.Competition;
+import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 import pl.echelon133.competitionservice.competition.model.StandingsDto;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
@@ -1240,5 +1241,63 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(content().string(expectedJson));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/player-stats returns 200 when competitionId is provided and pageable is default")
+    public void getPlayerStats_CompetitionIdProvidedWithDefaultPageable_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var defaultPageNumber = 0;
+        var defaultPageSize = 25;
+
+        Page<PlayerStatsDto> expectedPage = Page.empty();
+
+        // given
+        given(competitionService.findPlayerStatsByCompetition(
+                eq(competitionId),
+                argThat(p -> p.getPageSize() == defaultPageSize && p.getPageNumber() == defaultPageNumber)
+        )).willReturn(expectedPage);
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/player-stats")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/player-stats returns 200 when competitionId is provided and pageable is custom")
+    public void getPlayerStats_CompetitionIdProvidedWithCustomPageParameters_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var testPlayerName = "Test Name";
+        var testPageNumber = 3;
+        var testPageSize = 9;
+        var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
+        var expectedContent = List.of(
+                PlayerStatsDto.from(UUID.randomUUID(), UUID.randomUUID(), testPlayerName)
+        );
+
+        Page<PlayerStatsDto> expectedPage = new PageImpl<>(expectedContent, expectedPageable, 1);
+
+        // given
+        given(competitionService.findPlayerStatsByCompetition(
+                eq(competitionId),
+                argThat(p -> p.getPageSize() == testPageSize && p.getPageNumber() == testPageNumber)
+        )).willReturn(expectedPage);
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/player-stats")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("page", String.valueOf(testPageNumber))
+                                .param("size", String.valueOf(testPageSize))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(1)))
+                .andExpect(jsonPath("$.content[0].name", is(testPlayerName)));
     }
 }

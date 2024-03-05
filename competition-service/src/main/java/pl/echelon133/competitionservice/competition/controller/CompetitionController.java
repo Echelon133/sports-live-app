@@ -7,9 +7,11 @@ import ml.echelon133.common.exception.ValidationResultMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
+import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 import pl.echelon133.competitionservice.competition.model.StandingsDto;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
@@ -59,5 +61,10 @@ public class CompetitionController {
     @GetMapping("/{competitionId}/standings")
     public StandingsDto getStandings(@PathVariable UUID competitionId) throws ResourceNotFoundException {
         return competitionService.findStandings(competitionId);
+    }
+
+    @GetMapping("/{competitionId}/player-stats")
+    public Page<PlayerStatsDto> getPlayerStats(@PageableDefault(size = 25) Pageable pageable, @PathVariable UUID competitionId) {
+        return competitionService.findPlayerStatsByCompetition(competitionId, pageable);
     }
 }
