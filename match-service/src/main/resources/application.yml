@@ -6,6 +6,8 @@ socket-io:
   port: 81
 
 spring:
+  kafka:
+    bootstrap-servers: http://kafka-service:9092
   application:
     name: match-service
   cloud:
