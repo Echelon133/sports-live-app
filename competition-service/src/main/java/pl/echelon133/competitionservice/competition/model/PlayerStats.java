@@ -2,8 +2,7 @@ package pl.echelon133.competitionservice.competition.model;
 
 import ml.echelon133.common.entity.BaseEntity;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
+import javax.persistence.*;
 import java.util.UUID;
 
 @Entity
@@ -17,6 +16,9 @@ public class PlayerStats extends BaseEntity {
 
     @Column(nullable = false, length = 200)
     private String name;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Competition competition;
 
     private int goals;
     private int assists;
@@ -84,5 +86,13 @@ public class PlayerStats extends BaseEntity {
 
     public void setRedCards(int redCards) {
         this.redCards = redCards;
+    }
+
+    public Competition getCompetition() {
+        return competition;
+    }
+
+    public void setCompetition(Competition competition) {
+        this.competition = competition;
     }
 }

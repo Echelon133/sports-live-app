@@ -90,4 +90,9 @@ public class Competition extends BaseEntity {
     public void setPlayerStats(List<PlayerStats> playerStats) {
         this.playerStats = playerStats;
     }
+
+    public void addPlayerStats(PlayerStats stat) {
+        playerStats.add(stat);
+        stat.setCompetition(this);
+    }
 }
