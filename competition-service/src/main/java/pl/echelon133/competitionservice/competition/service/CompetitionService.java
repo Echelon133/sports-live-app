@@ -74,6 +74,12 @@ public class CompetitionService {
      * @throws CompetitionInvalidException thrown when a competition could not be created based on given data
      */
     public UUID createCompetition(UpsertCompetitionDto competitionDto) throws CompetitionInvalidException {
+        var competition = new Competition(
+                competitionDto.getName(),
+                competitionDto.getSeason(),
+                competitionDto.getLogoUrl()
+        );
+
         List<Group> groups = new ArrayList<>(competitionDto.getGroups().size());
 
         // none of `UUID.fromString` calls should fail because all ids are pre-validated
@@ -102,6 +108,10 @@ public class CompetitionService {
                     }).collect(Collectors.toList());
 
             var group = new Group(groupDto.getName(), teams);
+            // bidirectionally link teams with their groups
+            teams.forEach(t -> t.setGroup(group));
+            // bidirectionally link groups with their competition
+            group.setCompetition(competition);
             groups.add(group);
         }
 
@@ -115,13 +125,8 @@ public class CompetitionService {
                         )
                 ).collect(Collectors.toList());
 
-        var competition = new Competition(
-                competitionDto.getName(),
-                competitionDto.getSeason(),
-                competitionDto.getLogoUrl(),
-                groups,
-                legend
-        );
+        competition.setGroups(groups);
+        competition.setLegend(legend);
         return competitionRepository.save(competition).getId();
     }
 

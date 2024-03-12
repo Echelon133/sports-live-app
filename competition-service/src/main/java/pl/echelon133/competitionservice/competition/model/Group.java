@@ -15,6 +15,9 @@ public class Group extends BaseEntity {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TeamStats> teams;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Competition competition;
+
     public Group() {}
     public Group(String name, List<TeamStats> teams) {
         this.name = name;
@@ -35,5 +38,13 @@ public class Group extends BaseEntity {
 
     public void setTeams(List<TeamStats> teams) {
         this.teams = teams;
+    }
+
+    public Competition getCompetition() {
+        return competition;
+    }
+
+    public void setCompetition(Competition competition) {
+        this.competition = competition;
     }
 }
