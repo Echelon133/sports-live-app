@@ -88,6 +88,33 @@ public abstract class MatchEventDetails implements Serializable {
         }
     }
 
+    public static class SerializedScoreInfo implements Serializable {
+        private int homeGoals;
+        private int awayGoals;
+
+        public SerializedScoreInfo() {}
+        public SerializedScoreInfo(int homeGoals, int awayGoals) {
+            this.homeGoals = homeGoals;
+            this.awayGoals = awayGoals;
+        }
+
+        public int getHomeGoals() {
+            return homeGoals;
+        }
+
+        public void setHomeGoals(int homeGoals) {
+            this.homeGoals = homeGoals;
+        }
+
+        public int getAwayGoals() {
+            return awayGoals;
+        }
+
+        public void setAwayGoals(int awayGoals) {
+            this.awayGoals = awayGoals;
+        }
+    }
+
     public static class SerializedTeamInfo implements Serializable {
         private UUID homeTeamId;
         private UUID awayTeamId;
@@ -122,6 +149,7 @@ public abstract class MatchEventDetails implements Serializable {
         private MatchStatus targetStatus;
         private SerializedTeamInfo teams;
         private MatchResult result;
+        private SerializedScoreInfo mainScore;
 
         public StatusDto() {}
         public StatusDto(
@@ -129,12 +157,14 @@ public abstract class MatchEventDetails implements Serializable {
                 UUID competitionId,
                 MatchStatus targetStatus,
                 SerializedTeamInfo teams,
-                MatchResult matchResult
+                MatchResult matchResult,
+                SerializedScoreInfo mainScore
         ) {
             super(MatchEventType.STATUS, minute, competitionId);
             this.teams = teams;
             this.targetStatus = targetStatus;
             this.result = matchResult;
+            this.mainScore = mainScore;
         }
 
         public MatchStatus getTargetStatus() {
@@ -159,6 +189,14 @@ public abstract class MatchEventDetails implements Serializable {
 
         public void setResult(MatchResult result) {
             this.result = result;
+        }
+
+        public SerializedScoreInfo getMainScore() {
+            return mainScore;
+        }
+
+        public void setMainScore(SerializedScoreInfo mainScore) {
+            this.mainScore = mainScore;
         }
     }
 

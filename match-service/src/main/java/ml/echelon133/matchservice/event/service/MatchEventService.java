@@ -177,7 +177,8 @@ public class MatchEventService {
                 match.getCompetitionId(),
                 targetStatus,
                 new MatchEventDetails.SerializedTeamInfo(match.getHomeTeam().getId(), match.getAwayTeam().getId()),
-                match.getResult()
+                match.getResult(),
+                new MatchEventDetails.SerializedScoreInfo(mainScore.getHomeGoals(), mainScore.getAwayGoals())
         );
 
         match.setStatus(targetStatus);

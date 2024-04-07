@@ -170,7 +170,7 @@ public class MatchEventServiceTests {
         var matchId = match.getId();
         var targetStatus = MatchStatus.FIRST_HALF;
         var statusEvent = new MatchEvent(
-                match, new MatchEventDetails.StatusDto("1", match.getCompetitionId(), targetStatus, null, null)
+                match, new MatchEventDetails.StatusDto("1", match.getCompetitionId(), targetStatus, null, null, null)
         );
 
         // given
