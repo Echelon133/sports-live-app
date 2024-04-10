@@ -121,4 +121,32 @@ public class TeamStats extends BaseEntity {
     public void setGroup(Group group) {
         this.group = group;
     }
+
+    public void incrementMatchesPlayed() {
+        this.matchesPlayed += 1;
+    }
+
+    public void incrementWins() {
+        this.wins += 1;
+    }
+
+    public void incrementDraws() {
+        this.draws += 1;
+    }
+
+    public void incrementLosses() {
+        this.losses += 1;
+    }
+
+    public void incrementGoalsScoredBy(int scored) {
+        this.goalsScored += scored;
+    }
+
+    public void incrementGoalsConcededBy(int conceded) {
+        this.goalsConceded += conceded;
+    }
+
+    public void incrementPointsBy(int pts) {
+        this.points += pts;
+    }
 }

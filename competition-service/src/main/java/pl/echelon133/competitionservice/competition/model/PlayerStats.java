@@ -95,4 +95,20 @@ public class PlayerStats extends BaseEntity {
     public void setCompetition(Competition competition) {
         this.competition = competition;
     }
+
+    public void incrementGoals() {
+        this.goals += 1;
+    }
+
+    public void incrementAssists() {
+        this.assists += 1;
+    }
+
+    public void incrementYellowCards() {
+        this.yellowCards += 1;
+    }
+
+    public void incrementRedCards() {
+        this.redCards += 1;
+    }
 }
