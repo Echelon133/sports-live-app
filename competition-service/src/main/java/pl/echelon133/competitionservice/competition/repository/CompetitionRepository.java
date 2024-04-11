@@ -67,13 +67,13 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     @Query(
             value = "SELECT CAST(ps.player_id as varchar) as playerId, CAST(ps.team_id as varchar) as teamId, " +
                     "ps.name as name, ps.goals as goals, ps.assists as assists, ps.yellow_cards as yellowCards, ps.red_cards as redCards " +
-                    "FROM player_stats ps JOIN competition_player_stats cps ON cps.player_stats_id = ps.id " +
-                    "WHERE cps.competition_id = :competitionId " +
+                    "FROM player_stats ps " +
+                    "WHERE ps.competition_id = :competitionId " +
                     "ORDER BY ps.goals DESC, ps.assists DESC",
             countQuery =
                     "SELECT (*) " +
-                    "FROM player_stats ps JOIN competition_player_stats cps ON cps.player_stats_id = ps.id " +
-                    "WHERE cps.competition_id = :competitionId ",
+                    "FROM player_stats ps " +
+                    "WHERE ps.competition_id = :competitionId ",
             nativeQuery = true
     )
     Page<PlayerStatsDto> findPlayerStats(UUID competitionId, Pageable pageable);

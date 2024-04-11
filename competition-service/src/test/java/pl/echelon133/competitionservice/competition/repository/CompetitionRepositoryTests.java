@@ -26,10 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class CompetitionRepositoryTests {
 
     private final CompetitionRepository competitionRepository;
+    private final PlayerStatsRepository playerStatsRepository;
 
     @Autowired
-    public CompetitionRepositoryTests(CompetitionRepository competitionRepository) {
+    public CompetitionRepositoryTests(CompetitionRepository competitionRepository, PlayerStatsRepository playerStatsRepository) {
         this.competitionRepository = competitionRepository;
+        this.playerStatsRepository = playerStatsRepository;
     }
 
     private static void assertEntityAndDtoEqual(Competition entity, CompetitionDto dto) {
@@ -192,29 +194,27 @@ public class CompetitionRepositoryTests {
     @Test
     @DisplayName("findPlayerStats native query only fetches players stats belonging to a particular competition")
     public void findPlayerStats_MultipleCompetitionsExist_OnlyFindsExpectedPlayerStats() {
-        var competitionAPlayer = createPlayerStats("Player A", 10, 2, 1, 0);
-        var competitionBPlayer = createPlayerStats("Player B", 8, 5, 3, 1);
-        var competitionCPlayer = createPlayerStats("Player C", 3, 1, 0, 1);
-
         // setup competitionA
         var competitionA = TestCompetition.builder()
                 .name("Competition A")
-                .playerStats(List.of(competitionAPlayer))
                 .build();
 
         // setup competitionB
         var competitionB = TestCompetition.builder()
                 .name("Competition B")
-                .playerStats(List.of(competitionBPlayer))
                 .build();
 
         // setup competitionC
         var competitionC = TestCompetition.builder()
                 .name("Competition C")
-                .playerStats(List.of(competitionCPlayer))
                 .build();
 
         competitionRepository.saveAll(List.of(competitionA, competitionB, competitionC));
+
+        var competitionAPlayer = createPlayerStats("Player A", 10, 2, 1, 0, competitionA);
+        var competitionBPlayer = createPlayerStats("Player B", 8, 5, 3, 1, competitionB);
+        var competitionCPlayer = createPlayerStats("Player C", 3, 1, 0, 1, competitionC);
+        playerStatsRepository.saveAll(List.of(competitionAPlayer, competitionBPlayer, competitionCPlayer));
 
         // when
         var page = competitionRepository.findPlayerStats(competitionA.getId(), Pageable.unpaged());
@@ -228,20 +228,19 @@ public class CompetitionRepositoryTests {
     @Test
     @DisplayName("findPlayerStats native query sorts player statistics by goals, then assists")
     public void findPlayerStats_MultiplePlayerStats_ResultsSortedByGoalsAndAssists() {
-        var playerA = createPlayerStats("Player A", 10, 2, 1, 0);
-        var playerB = createPlayerStats("Player B", 10, 3, 3, 1);
-        var playerC = createPlayerStats("Player C", 10, 4, 0, 1);
-        var playerD = createPlayerStats("Player D", 9, 0, 0, 1);
-        var playerE = createPlayerStats("Player E", 9, 1, 0, 1);
-        var playerF = createPlayerStats("Player F", 11, 0, 0, 1);
-        var playerG = createPlayerStats("Player G", 10, 1, 0, 1);
+        var competition = TestCompetition.builder().build();
+        competitionRepository.save(competition);
+
+        var playerA = createPlayerStats("Player A", 10, 2, 1, 0, competition);
+        var playerB = createPlayerStats("Player B", 10, 3, 3, 1, competition);
+        var playerC = createPlayerStats("Player C", 10, 4, 0, 1, competition);
+        var playerD = createPlayerStats("Player D", 9, 0, 0, 1, competition);
+        var playerE = createPlayerStats("Player E", 9, 1, 0, 1, competition);
+        var playerF = createPlayerStats("Player F", 11, 0, 0, 1, competition);
+        var playerG = createPlayerStats("Player G", 10, 1, 0, 1, competition);
+        playerStatsRepository.saveAll(List.of(playerA, playerB, playerC, playerD, playerE, playerF, playerG));
 
         var expectedOrder = List.of(playerF, playerC, playerB, playerA, playerG, playerE, playerD);
-
-        var competition = TestCompetition.builder()
-                .playerStats(List.of(playerA, playerB, playerC, playerD, playerE, playerF, playerG))
-                .build();
-        competitionRepository.save(competition);
 
         // when
         var page = competitionRepository.findPlayerStats(competition.getId(), Pageable.unpaged());
@@ -254,12 +253,13 @@ public class CompetitionRepositoryTests {
         }
     }
 
-    private static PlayerStats createPlayerStats(String name, int goals, int assists, int yellowCards, int redCards) {
+    private static PlayerStats createPlayerStats(String name, int goals, int assists, int yellowCards, int redCards, Competition competition) {
         var playerStats = new PlayerStats(UUID.randomUUID(), UUID.randomUUID(), name);
         playerStats.setGoals(goals);
         playerStats.setAssists(assists);
         playerStats.setYellowCards(yellowCards);
         playerStats.setRedCards(redCards);
+        playerStats.setCompetition(competition);
         return playerStats;
     }
 

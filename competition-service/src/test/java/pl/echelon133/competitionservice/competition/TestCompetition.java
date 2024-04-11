@@ -1,8 +1,8 @@
 package pl.echelon133.competitionservice.competition;
+
 import pl.echelon133.competitionservice.competition.model.Competition;
 import pl.echelon133.competitionservice.competition.model.Group;
 import pl.echelon133.competitionservice.competition.model.Legend;
-import pl.echelon133.competitionservice.competition.model.PlayerStats;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +20,6 @@ public interface TestCompetition {
         private String logoUrl = "http://test-logo.com/image.png";
         private List<Group> groups = List.of();
         private List<Legend> legend = List.of();
-        private List<PlayerStats> playerStats = List.of();
         private boolean deleted = false;
 
         private CompetitionBuilder() {}
@@ -55,11 +54,6 @@ public interface TestCompetition {
             return this;
         }
 
-        public CompetitionBuilder playerStats(List<PlayerStats> playerStats) {
-            this.playerStats = playerStats;
-            return this;
-        }
-
         public CompetitionBuilder deleted(boolean deleted) {
             this.deleted = deleted;
             return this;
@@ -69,7 +63,6 @@ public interface TestCompetition {
             var competition = new Competition(name, season, logoUrl, groups, legend);
             competition.setId(id);
             competition.setDeleted(deleted);
-            competition.setPlayerStats(playerStats);
             return competition;
         }
     }

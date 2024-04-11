@@ -17,7 +17,8 @@ public class PlayerStats extends BaseEntity {
     @Column(nullable = false, length = 200)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "competition_id")
     private Competition competition;
 
     private int goals;
