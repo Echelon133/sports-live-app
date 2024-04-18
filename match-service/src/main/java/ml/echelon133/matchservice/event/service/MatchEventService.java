@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.event.service;
 
+import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.event.dto.MatchEventDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
@@ -14,6 +15,8 @@ import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,18 +37,21 @@ public class MatchEventService {
     private final TeamPlayerService teamPlayerService;
     private final MatchEventRepository matchEventRepository;
     private final MatchEventWebsocketService matchEventWebsocketService;
+    private final KafkaProducer<UUID, MatchEventDetails> matchEventDetailsProducer;
 
     @Autowired
     public MatchEventService(
             MatchService matchService,
             TeamPlayerService teamPlayerService,
             MatchEventRepository matchEventRepository,
-            MatchEventWebsocketService matchEventWebsocketService
+            MatchEventWebsocketService matchEventWebsocketService,
+            KafkaProducer<UUID, MatchEventDetails> matchEventDetailsProducer
     ) {
         this.matchService = matchService;
         this.teamPlayerService = teamPlayerService;
         this.matchEventRepository = matchEventRepository;
         this.matchEventWebsocketService = matchEventWebsocketService;
+        this.matchEventDetailsProducer = matchEventDetailsProducer;
     }
 
     /**
@@ -103,6 +109,9 @@ public class MatchEventService {
         matchEventWebsocketService.sendMatchEvent(
                 matchEvent.getMatch().getId(),
                 convertEntityToDto(matchEvent)
+        );
+        matchEventDetailsProducer.send(
+                new ProducerRecord<>(KafkaTopicNames.MATCH_EVENTS, matchEvent.getId(), matchEvent.getEvent())
         );
     }
 

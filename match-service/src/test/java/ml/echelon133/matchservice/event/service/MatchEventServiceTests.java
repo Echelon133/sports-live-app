@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.event.service;
 
+import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
@@ -18,6 +19,7 @@ import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +50,9 @@ public class MatchEventServiceTests {
 
     @Mock
     private MatchEventWebsocketService matchEventWebsocketService;
+
+    @Mock
+    private KafkaProducer<UUID, MatchEventDetails> matchEventDetailsProducer;
 
     @InjectMocks
     private MatchEventService matchEventService;
@@ -210,8 +215,8 @@ public class MatchEventServiceTests {
     }
 
     @Test
-    @DisplayName("processEvent sends every event type over the websocket after saving")
-    public void processEvent_AllMatchEventTypes_SentOverWebsocket() throws ResourceNotFoundException, MatchEventInvalidException {
+    @DisplayName("processEvent sends every event type over the websocket and kafka after saving")
+    public void processEvent_AllMatchEventTypes_SentOverWebsocketAndKafka() throws ResourceNotFoundException, MatchEventInvalidException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
 
@@ -251,6 +256,9 @@ public class MatchEventServiceTests {
         // then
         verify(matchEventWebsocketService, times(testEvents.size())).sendMatchEvent(
                 eq(matchId), any()
+        );
+        verify(matchEventDetailsProducer, times(testEvents.size())).send(
+                argThat(a -> a.topic().equals(KafkaTopicNames.MATCH_EVENTS))
         );
     }
 
