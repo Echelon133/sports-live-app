@@ -14,9 +14,9 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.KafkaMessageListenerContainer;
-import pl.echelon133.competitionservice.competition.repository.TeamStatsRepository;
 import pl.echelon133.competitionservice.competition.service.MatchEventDetailsMessageListener;
 import pl.echelon133.competitionservice.competition.service.PlayerStatsService;
+import pl.echelon133.competitionservice.competition.service.TeamStatsService;
 
 import java.util.Map;
 import java.util.UUID;
@@ -31,13 +31,13 @@ public class KafkaConfig {
     @Autowired
     private PlayerStatsService playerStatsService; // required by the MatchEventDetailsMessageListener
     @Autowired
-    private TeamStatsRepository teamStatsRepository;     // required by the MatchEventDetailsMessageListener
+    private TeamStatsService teamStatsService;     // required by the MatchEventDetailsMessageListener
 
     @Bean
     KafkaMessageListenerContainer<UUID, MatchEventDetails> matchEventDetailsListenerContainer() {
         ContainerProperties containerProps = new ContainerProperties(KafkaTopicNames.MATCH_EVENTS);
         containerProps.setMessageListener(
-                new MatchEventDetailsMessageListener(playerStatsService, teamStatsRepository)
+                new MatchEventDetailsMessageListener(playerStatsService, teamStatsService)
         );
 
         ConsumerFactory<UUID, MatchEventDetails> consumerFactory = matchEventDetailsConsumerFactory();
