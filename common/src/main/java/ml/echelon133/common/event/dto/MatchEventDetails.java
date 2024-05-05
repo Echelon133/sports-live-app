@@ -334,7 +334,7 @@ public abstract class MatchEventDetails implements Serializable {
                 String minute, UUID competitionId, UUID teamId,
                 SerializedPlayerInfo playerIn, SerializedPlayerInfo playerOut
         ) {
-            super(MatchEventType.GOAL, minute, competitionId);
+            super(MatchEventType.SUBSTITUTION, minute, competitionId);
             this.teamId = teamId;
             this.playerIn = playerIn;
             this.playerOut = playerOut;
