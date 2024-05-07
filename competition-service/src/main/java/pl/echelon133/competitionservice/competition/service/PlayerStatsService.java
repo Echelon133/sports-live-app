@@ -48,16 +48,16 @@ public class PlayerStatsService {
         var stats = playerStatsRepository.findByPlayerIdAndCompetition_Id(playerId, competitionId);
 
         if (stats.isPresent()) {
-            logger.info("Found stats of player {} in competition {}", playerId, competitionId);
+            logger.debug("Found stats of player {} in competition {}", playerId, competitionId);
             return stats.get();
         } else {
-            logger.info(
+            logger.debug(
                     "Creating new stats of player {} in competition {} with name {} and teamId {}",
                     playerId, competitionId, defaultName, defaultTeamId
             );
 
             var competition = competitionRepository.findById(competitionId).orElseThrow(() -> {
-                        logger.info("Could not find competition {} to create stats for player {}", competitionId, playerId);
+                        logger.warn("Could not find competition {} to create stats for player {}", competitionId, playerId);
                         return new ResourceNotFoundException(Competition.class, competitionId);
             });
 
