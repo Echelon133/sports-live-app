@@ -13,6 +13,10 @@ spring:
         locator:
           enabled: true
       routes:
+        - id: competition-service
+          uri: http://competition-service:80
+          predicates:
+            - Path= /api/competitions*, /api/competitions/**
         - id: match-service
           uri: http://match-service:80
           predicates:
