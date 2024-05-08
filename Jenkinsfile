@@ -71,6 +71,15 @@ pipeline {
             }
         }
 
+        stage("Configure kafka and zookeeper in the cluster") {
+            steps {
+                withKubeConfig([credentialsId: "${KUBERNETES_USER_CRED}", serverUrl: "${KUBERNETES_SERVER_URL}"]) {
+                    sh 'kubectl apply -f k8s/kafka/zookeeper-deployment.yml'
+                    sh 'kubectl apply -f k8s/kafka/kafka-deployment.yml'
+                }
+            }
+        }
+
         stage("Configure secrets used in the k8s cluster") {
             steps {
                 withKubeConfig([credentialsId: "${KUBERNETES_USER_CRED}", serverUrl: "${KUBERNETES_SERVER_URL}"]) {
