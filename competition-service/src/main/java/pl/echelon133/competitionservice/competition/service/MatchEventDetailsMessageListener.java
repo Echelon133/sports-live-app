@@ -11,9 +11,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.listener.MessageListener;
 import pl.echelon133.competitionservice.competition.model.PlayerStats;
 
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+@Transactional
 public class MatchEventDetailsMessageListener implements MessageListener<UUID, MatchEventDetails> {
 
     private final Logger logger = LoggerFactory.getLogger(MatchEventDetailsMessageListener.class);
