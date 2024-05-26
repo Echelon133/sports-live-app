@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: competition-service
+  namespace: sports-live-app
+  labels:
+    app: competition-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: competition-service
+  template:
+    metadata:
+      labels:
+        app: competition-service
+    spec:
+      containers:
+        - name: competition-service
+          image: competition-service:0.1.0-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              port: 80
+              path: /actuator/health/readiness
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              port: 80
+              path: /actuator/health/liveness
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          env:
+            - name: SECRET_POSTGRES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: competition-service-postgres-secret
+                  key: POSTGRES_USER
+            - name: SECRET_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: competition-service-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: SECRET_POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: competition-service-postgres-secret
+                  key: POSTGRES_DB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: competition-service
+  namespace: sports-live-app
+  labels:
+    app: competition-service
+    spring-boot: "true"
+spec:
+  ports:
+    - name: http
+      protocol: "TCP"
+      port: 80
+  selector:
+    app: competition-service
+  type: NodePort

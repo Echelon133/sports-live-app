@@ -17,6 +17,7 @@
         <module>match-service</module>
         <module>gateway-service</module>
         <module>common</module>
+        <module>competition-service</module>
     </modules>
 
     <packaging>pom</packaging>

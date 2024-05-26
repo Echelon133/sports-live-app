@@ -1,15 +1,11 @@
 server:
   port: 80
 
-socket-io:
-  host: "0.0.0.0"
-  port: 81
-
 spring:
   kafka:
     bootstrap-servers: http://kafka-service:9092
   application:
-    name: match-service
+    name: competition-service
   cloud:
     loadbalancer:
       ribbon:
@@ -25,10 +21,9 @@ spring:
       ddl-auto: update
     show-sql: false
   datasource:
-    url: jdbc:postgresql://match-service-postgres:5432/${SECRET_POSTGRES_DB}
+    url: jdbc:postgresql://competition-service-postgres:5432/${SECRET_POSTGRES_DB}
     username: ${SECRET_POSTGRES_USERNAME}
     password: ${SECRET_POSTGRES_PASSWORD}
-
 
 management:
   endpoint:

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: competition-service-postgres
+  namespace: sports-live-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: competition-service-postgres
+  template:
+    metadata:
+      labels:
+        app: competition-service-postgres
+    spec:
+      containers:
+        - name: competition-service-postgres
+          image: postgres:14-bullseye
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: competition-service-postgres-secret
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: competition-service-postgres
+      volumes:
+        - name: competition-service-postgres
+          persistentVolumeClaim:
+            claimName: competition-service-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: competition-service-postgres
+  namespace: sports-live-app
+  labels:
+    app: competition-service-postgres
+spec:
+  ports:
+    - protocol: "TCP"
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: competition-service-postgres
+  type: NodePort

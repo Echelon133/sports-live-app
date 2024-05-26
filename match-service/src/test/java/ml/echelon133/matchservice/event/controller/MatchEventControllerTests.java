@@ -105,7 +105,7 @@ public class MatchEventControllerTests {
         var matchEvents = List.of(
                 MatchEventDto.from(
                         UUID.randomUUID(),
-                        new MatchEventDetails.StatusDto("1", UUID.randomUUID(), MatchStatus.FIRST_HALF, null, null)
+                        new MatchEventDetails.StatusDto("1", UUID.randomUUID(), MatchStatus.FIRST_HALF, null, null, null)
                 )
         );
         var expectedJson = jsonMatchEventDtos.write(matchEvents).getJson();
