@@ -1,4 +1,4 @@
-package ml.echelon133.common.match.dto;
+package ml.echelon133.matchservice.match.model;
 
 import java.io.Serializable;
 

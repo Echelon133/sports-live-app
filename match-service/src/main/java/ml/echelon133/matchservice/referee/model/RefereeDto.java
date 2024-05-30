@@ -1,4 +1,4 @@
-package ml.echelon133.common.referee.dto;
+package ml.echelon133.matchservice.referee.model;
 
 import java.util.UUID;
 

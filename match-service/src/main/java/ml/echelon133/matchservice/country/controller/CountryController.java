@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.country.controller;
 
-import ml.echelon133.common.country.dto.CountryDto;
+import ml.echelon133.matchservice.country.model.CountryDto;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;

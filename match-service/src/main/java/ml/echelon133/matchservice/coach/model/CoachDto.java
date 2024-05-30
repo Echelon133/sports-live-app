@@ -1,4 +1,4 @@
-package ml.echelon133.common.coach.dto;
+package ml.echelon133.matchservice.coach.model;
 
 import java.util.UUID;
 

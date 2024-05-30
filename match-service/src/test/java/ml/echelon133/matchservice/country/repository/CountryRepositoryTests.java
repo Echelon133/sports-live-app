@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.country.repository;
 
-import ml.echelon133.common.country.dto.CountryDto;
+import ml.echelon133.matchservice.country.model.CountryDto;
 import ml.echelon133.matchservice.country.model.Country;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

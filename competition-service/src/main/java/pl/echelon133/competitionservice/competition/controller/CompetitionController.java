@@ -1,6 +1,6 @@
 package pl.echelon133.competitionservice.competition.controller;
 
-import ml.echelon133.common.competition.dto.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;

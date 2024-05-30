@@ -1,8 +1,8 @@
 package ml.echelon133.matchservice.player.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.player.dto.PlayerDto;
-import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.matchservice.player.model.PlayerDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
 import ml.echelon133.matchservice.country.constraints.CountryExists;

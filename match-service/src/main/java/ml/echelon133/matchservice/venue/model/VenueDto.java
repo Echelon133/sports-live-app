@@ -1,4 +1,4 @@
-package ml.echelon133.common.venue.dto;
+package ml.echelon133.matchservice.venue.model;
 
 import java.util.UUID;
 

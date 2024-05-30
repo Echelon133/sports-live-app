@@ -2,7 +2,7 @@ package ml.echelon133.matchservice.referee.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.referee.dto.RefereeDto;
+import ml.echelon133.matchservice.referee.model.RefereeDto;
 import ml.echelon133.matchservice.referee.model.UpsertRefereeDto;
 import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.referee.model.Referee;

@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.player.repository;
 
-import ml.echelon133.common.player.dto.PlayerDto;
+import ml.echelon133.matchservice.player.model.PlayerDto;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;

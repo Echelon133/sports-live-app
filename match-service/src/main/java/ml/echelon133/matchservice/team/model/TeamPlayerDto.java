@@ -1,4 +1,4 @@
-package ml.echelon133.common.team.dto;
+package ml.echelon133.matchservice.team.model;
 
 import org.springframework.beans.factory.annotation.Value;
 
@@ -14,7 +14,7 @@ public interface TeamPlayerDto {
     @Value("#{target.countryDeleted ? null : (target.countryCode)}")
     String getCountryCode();
 
-    @Value("#{T(ml.echelon133.common.team.dto.TeamPlayerDto.PlayerShortInfoDto).from(target.playerId, target.name, target.dateOfBirth)}")
+    @Value("#{T(ml.echelon133.matchservice.team.model.TeamPlayerDto.PlayerShortInfoDto).from(target.playerId, target.name, target.dateOfBirth)}")
     PlayerShortInfoDto getPlayer();
 
     static TeamPlayerDto from(UUID id, PlayerShortInfoDto playerShortInfoDto, String position, Integer number, String countryCode) {

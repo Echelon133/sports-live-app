@@ -1,8 +1,8 @@
 package ml.echelon133.matchservice.match.repository;
 
-import ml.echelon133.common.match.dto.CompactMatchDto;
-import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.model.MatchDto;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.match.model.Match;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

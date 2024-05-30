@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.referee.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.referee.dto.RefereeDto;
+import ml.echelon133.matchservice.referee.model.RefereeDto;
 import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.referee.model.UpsertRefereeDto;
 import ml.echelon133.matchservice.referee.repository.RefereeRepository;

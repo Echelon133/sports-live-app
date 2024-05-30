@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.referee.repository;
 
-import ml.echelon133.common.referee.dto.RefereeDto;
+import ml.echelon133.matchservice.referee.model.RefereeDto;
 import ml.echelon133.matchservice.referee.model.Referee;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

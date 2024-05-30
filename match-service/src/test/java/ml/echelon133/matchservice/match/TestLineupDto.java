@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.match;
 
-import ml.echelon133.common.match.dto.LineupDto;
-import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.match.model.LineupDto;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 
 import java.util.Arrays;

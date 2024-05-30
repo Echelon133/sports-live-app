@@ -2,7 +2,7 @@ package ml.echelon133.matchservice.venue.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.venue.dto.VenueDto;
+import ml.echelon133.matchservice.venue.model.VenueDto;
 import ml.echelon133.matchservice.venue.model.UpsertVenueDto;
 import ml.echelon133.matchservice.venue.model.Venue;
 import ml.echelon133.matchservice.venue.service.VenueService;

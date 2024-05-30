@@ -1,9 +1,9 @@
 package ml.echelon133.matchservice.match.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.match.dto.CompactMatchDto;
-import ml.echelon133.common.match.dto.LineupDto;
-import ml.echelon133.common.match.dto.MatchDto;
+import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.model.LineupDto;
+import ml.echelon133.matchservice.match.model.MatchDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
 import ml.echelon133.matchservice.match.TestMatchDto;

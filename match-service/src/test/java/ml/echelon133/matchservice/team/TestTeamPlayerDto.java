@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.team;
 
-import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 
 import java.time.LocalDate;
 import java.util.UUID;

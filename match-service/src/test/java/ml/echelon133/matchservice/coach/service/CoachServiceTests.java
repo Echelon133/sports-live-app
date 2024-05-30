@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.coach.service;
 
-import ml.echelon133.common.coach.dto.CoachDto;
+import ml.echelon133.matchservice.coach.model.CoachDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.coach.model.UpsertCoachDto;
