@@ -1,7 +1,7 @@
 package pl.echelon133.competitionservice.competition.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ml.echelon133.common.competition.dto.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.team.repository;
 
-import ml.echelon133.common.team.dto.TeamDto;
-import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

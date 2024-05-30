@@ -1,6 +1,6 @@
 package pl.echelon133.competitionservice.competition.service;
 
-import ml.echelon133.common.competition.dto.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

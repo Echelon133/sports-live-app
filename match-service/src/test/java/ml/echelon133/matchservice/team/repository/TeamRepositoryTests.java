@@ -2,7 +2,7 @@ package ml.echelon133.matchservice.team.repository;
 
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.match.TestMatch;

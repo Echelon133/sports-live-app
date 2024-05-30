@@ -1,8 +1,8 @@
 package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.team.dto.TeamDto;
-import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.service.PlayerService;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;

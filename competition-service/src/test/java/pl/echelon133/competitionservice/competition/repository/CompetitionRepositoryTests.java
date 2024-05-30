@@ -1,6 +1,6 @@
 package pl.echelon133.competitionservice.competition.repository;
 
-import ml.echelon133.common.competition.dto.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

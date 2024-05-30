@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.player.repository;
 
-import ml.echelon133.common.player.dto.PlayerDto;
+import ml.echelon133.matchservice.player.model.PlayerDto;
 import ml.echelon133.matchservice.player.model.Player;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

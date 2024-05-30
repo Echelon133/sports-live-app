@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.country.service;
 
-import ml.echelon133.common.country.dto.CountryDto;
+import ml.echelon133.matchservice.country.model.CountryDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.country.model.UpsertCountryDto;

@@ -1,8 +1,8 @@
 package ml.echelon133.matchservice.team;
 
-import ml.echelon133.common.coach.dto.CoachDto;
-import ml.echelon133.common.country.dto.CountryDto;
-import ml.echelon133.common.team.dto.TeamDto;
+import ml.echelon133.matchservice.coach.model.CoachDto;
+import ml.echelon133.matchservice.country.model.CountryDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
 
 import java.util.UUID;
 

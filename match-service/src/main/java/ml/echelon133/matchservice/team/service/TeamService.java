@@ -2,9 +2,9 @@ package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
-import ml.echelon133.common.team.dto.TeamDto;
-import ml.echelon133.common.team.dto.TeamFormDetailsDto;
-import ml.echelon133.common.team.dto.TeamFormDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
+import ml.echelon133.matchservice.team.model.TeamFormDetailsDto;
+import ml.echelon133.matchservice.team.model.TeamFormDto;
 import ml.echelon133.matchservice.coach.service.CoachService;
 import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.team.model.Team;

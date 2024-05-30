@@ -3,7 +3,7 @@ package ml.echelon133.matchservice.venue.controller;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
-import ml.echelon133.common.venue.dto.VenueDto;
+import ml.echelon133.matchservice.venue.model.VenueDto;
 import ml.echelon133.matchservice.venue.model.UpsertVenueDto;
 import ml.echelon133.matchservice.venue.service.VenueService;
 import org.springframework.beans.factory.annotation.Autowired;

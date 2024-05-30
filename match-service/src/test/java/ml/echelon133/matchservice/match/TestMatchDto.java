@@ -2,11 +2,11 @@ package ml.echelon133.matchservice.match;
 
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.common.match.dto.MatchDto;
-import ml.echelon133.common.match.dto.ScoreInfoDto;
-import ml.echelon133.common.match.dto.ShortTeamDto;
-import ml.echelon133.common.referee.dto.RefereeDto;
-import ml.echelon133.common.venue.dto.VenueDto;
+import ml.echelon133.matchservice.match.model.MatchDto;
+import ml.echelon133.matchservice.match.model.ScoreInfoDto;
+import ml.echelon133.matchservice.match.model.ShortTeamDto;
+import ml.echelon133.matchservice.referee.model.RefereeDto;
+import ml.echelon133.matchservice.venue.model.VenueDto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

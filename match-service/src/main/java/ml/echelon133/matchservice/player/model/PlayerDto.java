@@ -1,6 +1,6 @@
-package ml.echelon133.common.player.dto;
+package ml.echelon133.matchservice.player.model;
 
-import ml.echelon133.common.country.dto.CountryDto;
+import ml.echelon133.matchservice.country.model.CountryDto;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDate;
@@ -13,7 +13,7 @@ public interface PlayerDto {
     LocalDate getDateOfBirth();
 
     // if country is deleted, set this value to null to prevent any leakage of data (seems to be the simplest solution while using native queries)
-    @Value("#{target.countryDeleted ? null : (T(ml.echelon133.common.country.dto.CountryDto).from(target.countryId, target.countryName, target.countryCode))}")
+    @Value("#{target.countryDeleted ? null : (T(ml.echelon133.matchservice.country.model.CountryDto).from(target.countryId, target.countryName, target.countryCode))}")
     CountryDto getCountry();
 
     static PlayerDto from(UUID id, String name, String position, LocalDate dateOfBirth, CountryDto countryDto) {

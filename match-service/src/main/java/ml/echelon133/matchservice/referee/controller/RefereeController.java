@@ -3,7 +3,7 @@ package ml.echelon133.matchservice.referee.controller;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
-import ml.echelon133.common.referee.dto.RefereeDto;
+import ml.echelon133.matchservice.referee.model.RefereeDto;
 import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.referee.model.UpsertRefereeDto;
 import org.springframework.beans.factory.annotation.Autowired;

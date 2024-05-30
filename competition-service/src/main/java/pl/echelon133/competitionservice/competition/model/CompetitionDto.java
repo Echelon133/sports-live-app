@@ -1,4 +1,4 @@
-package ml.echelon133.common.competition.dto;
+package pl.echelon133.competitionservice.competition.model;
 
 import java.util.UUID;
 

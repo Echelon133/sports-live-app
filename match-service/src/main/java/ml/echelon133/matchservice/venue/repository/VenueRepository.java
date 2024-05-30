@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.venue.repository;
 
-import ml.echelon133.common.venue.dto.VenueDto;
+import ml.echelon133.matchservice.venue.model.VenueDto;
 import ml.echelon133.matchservice.venue.model.Venue;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

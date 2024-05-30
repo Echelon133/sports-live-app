@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.team.service;
 
-import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 
 public class TeamPlayerMapper {

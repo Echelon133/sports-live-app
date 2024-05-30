@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.team.repository;
 
-import ml.echelon133.common.team.dto.TeamDto;
-import ml.echelon133.common.team.dto.TeamFormDetailsDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
+import ml.echelon133.matchservice.team.model.TeamFormDetailsDto;
 import ml.echelon133.matchservice.team.model.Team;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

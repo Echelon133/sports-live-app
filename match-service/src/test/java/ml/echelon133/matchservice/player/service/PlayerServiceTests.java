@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.player.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.common.player.dto.PlayerDto;
+import ml.echelon133.matchservice.player.model.PlayerDto;
 import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.player.TestPlayerDto;

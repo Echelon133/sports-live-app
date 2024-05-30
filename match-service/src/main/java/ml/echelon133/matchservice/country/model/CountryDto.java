@@ -1,4 +1,4 @@
-package ml.echelon133.common.country.dto;
+package ml.echelon133.matchservice.country.model;
 
 import java.util.UUID;
 

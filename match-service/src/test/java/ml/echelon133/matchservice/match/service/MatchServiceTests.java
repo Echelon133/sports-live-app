@@ -2,8 +2,8 @@ package ml.echelon133.matchservice.match.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.common.match.dto.CompactMatchDto;
-import ml.echelon133.common.team.dto.TeamPlayerDto;
+import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;

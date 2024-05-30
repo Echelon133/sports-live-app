@@ -1,6 +1,6 @@
 package pl.echelon133.competitionservice.competition.repository;
 
-import ml.echelon133.common.competition.dto.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

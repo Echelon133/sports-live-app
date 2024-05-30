@@ -6,7 +6,7 @@ import ml.echelon133.common.event.dto.MatchEventDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.common.match.dto.LineupDto;
+import ml.echelon133.matchservice.match.model.LineupDto;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
 import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;

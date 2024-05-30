@@ -1,4 +1,4 @@
-package ml.echelon133.common.team.dto;
+package ml.echelon133.matchservice.team.model;
 
 public class TeamFormDto {
 
