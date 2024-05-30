@@ -37,9 +37,8 @@ public interface CoachRepository extends JpaRepository<Coach, UUID> {
     @Query(value = "UPDATE coach SET deleted = true WHERE id = :id AND deleted = false", nativeQuery = true)
     Integer markCoachAsDeleted(UUID id);
 
-    // TODO: fix this typo
     /**
-     * Finds all coachs which contain a certain phrase in their name.
+     * Finds all coaches which contain a certain phrase in their name.
      *
      * @param phrase phrase (case-insensitive) which has to appear in the name
      * @param pageable information about the wanted page
