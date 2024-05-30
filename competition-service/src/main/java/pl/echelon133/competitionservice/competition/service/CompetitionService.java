@@ -10,6 +10,7 @@ import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvali
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
 
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class CompetitionService {
 
     private final CompetitionRepository competitionRepository;
