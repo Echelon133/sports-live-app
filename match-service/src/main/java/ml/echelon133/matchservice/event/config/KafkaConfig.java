@@ -25,8 +25,8 @@ public class KafkaConfig {
     public NewTopic matchEventTopic() {
         return TopicBuilder
                 .name(KafkaTopicNames.MATCH_EVENTS)
-                .partitions(3)
-                .replicas(2)
+                .partitions(2)
+                .replicas(1)
                 .build();
     }
 
