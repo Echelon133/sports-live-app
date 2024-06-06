@@ -9,6 +9,8 @@ import ml.echelon133.matchservice.team.model.Team;
 
 public class TeamMapper {
 
+    private TeamMapper() {}
+
     public static TeamDto entityToDto(Team team) {
         return TeamDto.from(
                 team.getId(),

@@ -8,6 +8,8 @@ import ml.echelon133.matchservice.player.model.Position;
 
 public class PlayerMapper {
 
+    private PlayerMapper() {}
+
     public static PlayerDto entityToDto(Player player) {
         return PlayerDto.from(
                 player.getId(),

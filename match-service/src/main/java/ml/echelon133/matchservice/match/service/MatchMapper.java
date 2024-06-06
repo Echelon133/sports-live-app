@@ -9,6 +9,8 @@ import ml.echelon133.matchservice.match.model.Match;
 
 public class MatchMapper {
 
+    private MatchMapper() {}
+
     public static MatchDto entityToDto(Match match) {
         var homeTeam = match.getHomeTeam();
         var awayTeam = match.getAwayTeam();

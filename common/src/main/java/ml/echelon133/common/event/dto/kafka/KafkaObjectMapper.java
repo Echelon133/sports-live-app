@@ -10,6 +10,8 @@ import ml.echelon133.common.event.dto.MatchEventDetails;
  */
 public class KafkaObjectMapper {
 
+    private KafkaObjectMapper() {}
+
     private static class Loader {
         static final ObjectMapper INSTANCE;
 

@@ -11,6 +11,8 @@ import java.util.Map;
 
 public class ValidationResultMapper {
 
+    private ValidationResultMapper() {}
+
     /**
      * Takes all errors from a {@link BindingResult} and creates a map in which:
      * <ul>
