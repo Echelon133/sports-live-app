@@ -34,6 +34,14 @@ import java.util.Map;
  *     A standalone {@link MockMvc} configuration can use such a factory by setting it with the `setValidator` method.
  * </p>
  */
+// SAFETY: this class needs to hold a map
+//      *   where the keys are `Class<? extends ConstraintValidator<? extends Annotation, String>>`
+//      *   where the values are `? extends ConstraintValidator<? extends Annotation, String>`
+//  This type is too verbose and difficult to read, that's why the ConstraintValidator is instead used as a raw type
+//  with suppressed warnings. This class is exclusively used for setting up test environments for controllers,
+//  which means that any `ClassCastException` problems caused by this class can only impact the test environment,
+//  therefore there is no large risk caused by these warnings being suppressed.
+@SuppressWarnings("unchecked")
 public class TestValidatorFactory {
 
     /**
