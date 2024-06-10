@@ -15,6 +15,15 @@ import java.util.UUID;
  */
 public abstract class MatchEventDetails implements Serializable {
 
+    /**
+     * This field stores information needed to determine which subtype of `MatchEventDetails` is being
+     * serialized/deserialized by an {@link com.fasterxml.jackson.databind.ObjectMapper}.
+     * Every mapper which needs to work with subtypes of this class has to register
+     * {@link ml.echelon133.common.event.MatchEventDetailsMixIn} as its mixin.
+     *
+     * This field is <b>NOT</b> a class tag. Only {@link com.fasterxml.jackson.databind.ObjectMapper}
+     * should ever read its contents.
+     */
     private MatchEventType type;
     private String minute;
     private UUID competitionId;
