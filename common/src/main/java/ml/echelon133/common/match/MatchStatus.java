@@ -64,7 +64,7 @@ public enum MatchStatus {
      * @return the enum constant with the specified name (case-insensitive)
      * @throws IllegalArgumentException thrown when there is no constant associated with that name
      */
-    public static MatchStatus valueOfCaseIgnore(String status) {
+    public static MatchStatus valueOfIgnoreCase(String status) {
         return MatchStatus.valueOf(status.toUpperCase());
     }
 

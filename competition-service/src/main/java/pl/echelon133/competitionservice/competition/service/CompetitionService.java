@@ -122,8 +122,8 @@ public class CompetitionService {
                         new Legend(
                                 l.getPositions(),
                                 l.getContext(),
-                                // this `valueOfCaseIgnore` should never fail because the sentiment value is pre-validated
-                                Legend.LegendSentiment.valueOfCaseIgnore(l.getSentiment())
+                                // this `valueOfIgnoreCase` should never fail because the sentiment value is pre-validated
+                                Legend.LegendSentiment.valueOfIgnoreCase(l.getSentiment())
                         )
                 ).collect(Collectors.toList());
 

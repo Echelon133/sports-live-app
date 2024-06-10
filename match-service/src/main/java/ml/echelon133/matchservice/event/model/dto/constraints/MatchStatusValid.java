@@ -27,7 +27,7 @@ public @interface MatchStatusValid {
                 return true;
             }
             try {
-                MatchStatus.valueOfCaseIgnore(s);
+                MatchStatus.valueOfIgnoreCase(s);
                 return true;
             } catch (IllegalArgumentException ignore) {
                 return false;
