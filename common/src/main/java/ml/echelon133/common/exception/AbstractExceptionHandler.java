@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHandler {
 
-    private static class BaseErrorMessage<T> {
+    private static abstract class BaseErrorMessage<T> {
         protected Date timestamp;
         protected HttpStatus status;
         protected String path;
@@ -50,6 +50,8 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
         public T getMessages() {
             return messages;
         }
+
+        public abstract ResponseEntity<? extends BaseErrorMessage<T>> asResponseEntity();
     }
 
     public static final class ErrorMessage extends BaseErrorMessage<List<String>> {
@@ -61,6 +63,7 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
             this(status, request, Arrays.asList(messages));
         }
 
+        @Override
         public ResponseEntity<ErrorMessage> asResponseEntity() {
             return new ResponseEntity<>(this, status);
         }
@@ -71,6 +74,7 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
             super(status, request, messages);
         }
 
+        @Override
         public ResponseEntity<MapErrorMessage> asResponseEntity() {
             return new ResponseEntity<>(this, status);
         }
