@@ -80,7 +80,7 @@ public class Legend extends BaseEntity {
          * @return the enum constant with the specified name (case-insensitive)
          * @throws IllegalArgumentException thrown when there is no constant associated with that name
          */
-        public static LegendSentiment valueOfCaseIgnore(String sentiment) {
+        public static LegendSentiment valueOfIgnoreCase(String sentiment) {
             return LegendSentiment.valueOf(sentiment.toUpperCase());
         }
     }

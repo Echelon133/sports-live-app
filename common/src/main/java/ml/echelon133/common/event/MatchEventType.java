@@ -1,9 +1,5 @@
 package ml.echelon133.common.event;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Types of match events.
  *
@@ -23,20 +19,4 @@ public enum MatchEventType {
     SUBSTITUTION,
     COMMENTARY,
     PENALTY;
-
-    /**
-     * All match event types (represented as a list of strings).
-     */
-    public final static List<String> ALL_EVENT_TYPES =
-            Arrays.stream(MatchEventType.values()).map(Enum::name).collect(Collectors.toList());
-
-    /**
-     * Returns the enum constant of this type with the specified name (case-insensitive).
-     *
-     * @param type case-insensitive string representing the enum constant
-     * @return the enum constant with the specified name (case-insensitive)
-     */
-    public static MatchEventType valueOfIgnoreCase(String type) {
-        return MatchEventType.valueOf(type.toUpperCase());
-    }
 }

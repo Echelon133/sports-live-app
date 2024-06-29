@@ -28,10 +28,14 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    private final PlayerStatsService playerStatsService; // required by the MatchEventDetailsMessageListener
+    private final TeamStatsService teamStatsService;     // required by the MatchEventDetailsMessageListener
+
     @Autowired
-    private PlayerStatsService playerStatsService; // required by the MatchEventDetailsMessageListener
-    @Autowired
-    private TeamStatsService teamStatsService;     // required by the MatchEventDetailsMessageListener
+    public KafkaConfig(PlayerStatsService playerStatsService, TeamStatsService teamStatsService) {
+        this.playerStatsService = playerStatsService;
+        this.teamStatsService = teamStatsService;
+    }
 
     @Bean
     KafkaMessageListenerContainer<UUID, MatchEventDetails> matchEventDetailsListenerContainer() {
