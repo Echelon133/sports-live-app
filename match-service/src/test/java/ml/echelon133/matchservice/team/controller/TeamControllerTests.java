@@ -1,27 +1,23 @@
 package ml.echelon133.matchservice.team.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.match.model.ScoreInfoDto;
-import ml.echelon133.matchservice.match.model.ShortTeamDto;
-import ml.echelon133.matchservice.team.model.TeamDto;
-import ml.echelon133.matchservice.team.model.TeamFormDetailsDto;
-import ml.echelon133.matchservice.team.model.TeamFormDto;
-import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
 import ml.echelon133.matchservice.coach.constraints.CoachExists;
 import ml.echelon133.matchservice.coach.repository.CoachRepository;
 import ml.echelon133.matchservice.country.constraints.CountryExists;
 import ml.echelon133.matchservice.country.repository.CountryRepository;
+import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.model.ScoreInfoDto;
+import ml.echelon133.matchservice.match.model.ShortTeamDto;
+import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.player.constraints.PlayerExists;
 import ml.echelon133.matchservice.player.repository.PlayerRepository;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.TestUpsertTeamDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
-import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.team.model.UpsertTeamDto;
-import ml.echelon133.matchservice.team.model.UpsertTeamPlayerDto;
+import ml.echelon133.matchservice.team.model.*;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,10 +42,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -75,6 +73,9 @@ public class TeamControllerTests {
 
     @Mock
     private TeamPlayerService teamPlayerService;
+
+    @Mock
+    private MatchService matchService;
 
     @InjectMocks
     private TeamExceptionHandler teamExceptionHandler;
@@ -1527,5 +1528,122 @@ public class TeamControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(expectedJson));
 
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:teamId/matches returns 400 when 'type' not provided")
+    public void getTeamMatches_TypeNotProvided_StatusBadRequest() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        mvc.perform(
+                get("/api/teams/" + teamId + "/matches")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON)
+                ).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages", hasItems(
+                        "query parameter 'type' not provided"
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:teamId/matches returns 400 when 'type' value is incorrect")
+    public void getTeamMatches_TypeIncorrect_StatusBadRequest() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        var incorrectTypes = List.of("asdf", "test", "fixture", "result");
+
+        for (var incorrectType: incorrectTypes) {
+            mvc.perform(
+                            get("/api/teams/" + teamId + "/matches")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .param("type", incorrectType)
+                    ).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.messages", hasItems(
+                            "query parameter 'type' should be either 'fixtures' or 'results'"
+                    )));
+        }
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:teamId/matches returns 200 when 'type' value is 'fixtures' (case insensitive)")
+    public void getTeamMatches_TypeFixturesCaseInsensitive_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        // given
+        var correctTypes = List.of("FIXTURES", "fixtures", "fixTURES");
+        given(matchService.findMatchesByTeam(
+                eq(teamId),
+                eq(false),
+                eq(Pageable.ofSize(20).withPage(0))
+        )).willReturn(List.of(CompactMatchDto.builder().build()));
+
+        // when
+        for (var correctType: correctTypes) {
+            mvc.perform(
+                            get("/api/teams/" + teamId + "/matches")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .param("type", correctType)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)));
+        }
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:teamId/matches returns 200 when 'type' value is 'results' (case insensitive)")
+    public void getTeamMatches_TypeResultsCaseInsensitive_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        // given
+        var correctTypes = List.of("RESULTS", "results", "resULTS");
+        given(matchService.findMatchesByTeam(
+                eq(teamId),
+                eq(true),
+                eq(Pageable.ofSize(20).withPage(0))
+        )).willReturn(List.of(CompactMatchDto.builder().build()));
+
+        // when
+        for (var correctType: correctTypes) {
+            mvc.perform(
+                    get("/api/teams/" + teamId + "/matches")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .param("type", correctType)
+            )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)));
+        }
+    }
+
+    @Test
+    @DisplayName("GET /api/teams/:teamId/matches returns 200 when custom 'page' and 'size' are provided alongside 'type'")
+    public void getTeamMatches_TypeProvidedAndCustomPageAndSize_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+        var expectedPageSize = 27;
+        var expectedPage = 3;
+
+        // given
+        var correctTypes = List.of("results", "fixtures");
+
+        // when
+        for (var correctType: correctTypes) {
+            mvc.perform(
+                            get("/api/teams/" + teamId + "/matches")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .param("type", correctType)
+                                    .param("page", String.valueOf(expectedPage))
+                                    .param("size", String.valueOf(expectedPageSize))
+                    )
+                    .andExpect(status().isOk());
+        }
+
+        verify(matchService, times(2)).findMatchesByTeam(
+                eq(teamId),
+                anyBoolean(),
+                eq(Pageable.ofSize(expectedPageSize).withPage(expectedPage))
+        );
     }
 }
