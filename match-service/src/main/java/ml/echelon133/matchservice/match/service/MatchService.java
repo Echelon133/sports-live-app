@@ -239,6 +239,26 @@ public class MatchService {
     }
 
     /**
+     * Finds all matches of a certain team and filters them by their status.
+     *
+     * @param teamId id of the team whose matches we want to fetch
+     * @param matchFinished if `true`, only returns matches that are finished and have a final result
+     * @param pageable information about the wanted page
+     * @return lists of matches of a particular team that are filtered based on the status of the match
+     */
+    public List<CompactMatchDto> findMatchesByTeam(UUID teamId, boolean matchFinished, Pageable pageable) {
+        List<String> acceptedStatuses;
+        if (matchFinished) {
+            // only fetch matches that are finished
+            acceptedStatuses = MatchStatus.RESULT_TYPE_STATUSES;
+        } else {
+            // only fetch matches that are not finished
+            acceptedStatuses = MatchStatus.FIXTURE_TYPE_STATUSES;
+        }
+        return matchRepository.findAllByTeamIdAndStatuses(teamId, acceptedStatuses, pageable);
+    }
+
+    /**
      * Finds the lineup of the match with the specified id.
      * @param matchId id of the match whose lineup will be fetched
      * @return the lineup of the match

@@ -855,6 +855,42 @@ public class MatchServiceTests {
     }
 
     @Test
+    @DisplayName("findMatchesByTeam fetches finished matches when matchFinished is true")
+    public void findMatchesByTeam_MatchFinishedTrue_FetchesFinishedMatches() {
+        var teamId = UUID.randomUUID();
+        var matchFinished = true;
+        var pageable = Pageable.ofSize(3).withPage(6);
+
+        // when
+        matchService.findMatchesByTeam(teamId, matchFinished, pageable);
+
+        // then
+        verify(matchRepository).findAllByTeamIdAndStatuses(
+                eq(teamId),
+                eq(MatchStatus.RESULT_TYPE_STATUSES),
+                eq(pageable)
+        );
+    }
+
+    @Test
+    @DisplayName("findMatchesByTeam fetches unfinished matches when matchFinished is false")
+    public void findMatchesByTeam_MatchFinishedFalse_FetchesUnfinishedMatches() {
+        var teamId = UUID.randomUUID();
+        var matchFinished = false;
+        var pageable = Pageable.ofSize(3).withPage(6);
+
+        // when
+        matchService.findMatchesByTeam(teamId, matchFinished, pageable);
+
+        // then
+        verify(matchRepository).findAllByTeamIdAndStatuses(
+                eq(teamId),
+                eq(MatchStatus.FIXTURE_TYPE_STATUSES),
+                eq(pageable)
+        );
+    }
+
+    @Test
     @DisplayName("findMatchLineup correctly fetches match lineups")
     public void findMatchLineup_MatchLineupsExist_CorrectlyFetchesLineups() {
         var matchId = UUID.randomUUID();
