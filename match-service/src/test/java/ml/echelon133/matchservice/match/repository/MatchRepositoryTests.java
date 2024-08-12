@@ -595,6 +595,258 @@ public class MatchRepositoryTests {
         );
     }
 
+    @Test
+    @DisplayName("findAllByTeamIdAndStatuses native query does not fetch matches marked as deleted")
+    public void findAllByTeamIdAndStatuses_MatchMarkedAsDeleted_SizeIsZero() {
+        var homeTeamId = UUID.randomUUID();
+        var awayTeamId = UUID.randomUUID();
+
+        var matchToDelete = TestMatch.builder()
+                .homeTeam(TestTeam.builder().id(homeTeamId).build())
+                .awayTeam(TestTeam.builder().id(awayTeamId).build())
+                .status(MatchStatus.NOT_STARTED)
+                .deleted(true)
+                .build();
+        matchRepository.save(matchToDelete);
+
+        // when
+        var homeTeamResult = matchRepository.findAllByTeamIdAndStatuses(
+                homeTeamId, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+        var awayTeamResult = matchRepository.findAllByTeamIdAndStatuses(
+                awayTeamId, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+
+        // then
+        assertEquals(0, homeTeamResult.size());
+        assertEquals(0, awayTeamResult.size());
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIdAndStatuses native query only fetches matches of specified team")
+    public void findAllByTeamIdAndStatuses_MultipleTeams_OnlyFetchesSpecificTeamMatches() {
+        var team0Id = UUID.randomUUID();
+        var team0 = TestTeam.builder().id(team0Id).build();
+        // create two matches for the first test team - one home, one away
+        var match0 = TestMatch.builder().homeTeam(team0).build();
+        var match1 = TestMatch.builder().awayTeam(team0).build();
+
+        var team1Id = UUID.randomUUID();
+        var team1 = TestTeam.builder().id(team1Id).build();
+        // create matches for the second test team - one home, one away
+        var match2 = TestMatch.builder().homeTeam(team1).build();
+        var match3 = TestMatch.builder().awayTeam(team1).build();
+
+        // create one match which does not involve the two test teams
+        var match4 = TestMatch.builder().build();
+
+        matchRepository.saveAll(List.of(match0, match1, match2, match3, match4));
+
+        // when
+        var team0Result = matchRepository.findAllByTeamIdAndStatuses(
+                team0Id, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+        var team1Result = matchRepository.findAllByTeamIdAndStatuses(
+                team1Id, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+
+        // then
+        assertEquals(
+                2,
+                team0Result.stream().filter(m ->
+                        m.getHomeTeam().getId().equals(team0Id) ||
+                                m.getAwayTeam().getId().equals(team0Id)
+                ).count()
+        );
+        assertEquals(
+                2,
+                team1Result.stream().filter(m ->
+                        m.getHomeTeam().getId().equals(team1Id) ||
+                                m.getAwayTeam().getId().equals(team1Id)
+                ).count()
+        );
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIdAndStatuses native query does not leak deleted home team of a found match")
+    public void findAllByTeamIdAndStatuses_HomeTeamDeleted_DoesNotLeakDeletedEntity() {
+        var teamId = UUID.randomUUID();
+        var match = TestMatch.builder()
+                .homeTeam(TestTeam.builder().id(teamId).deleted(true))
+                .build();
+        matchRepository.save(match);
+
+        // when
+        var result = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+
+        // then
+        assertEquals(1, result.size());
+        var compactMatchDtoValue = result.get(0);
+        assertEntityAndDtoEqual(match, compactMatchDtoValue);
+        // make sure that the home team is definitely null
+        assertNull(compactMatchDtoValue.getHomeTeam());
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIdAndStatuses native query does not leak deleted away team of a found match")
+    public void findAllByTeamIdAndStatuses_AwayTeamDeleted_DoesNotLeakDeletedEntity() {
+        var teamId = UUID.randomUUID();
+        var match = TestMatch.builder()
+                .awayTeam(TestTeam.builder().id(teamId).deleted(true))
+                .build();
+        matchRepository.save(match);
+
+        // when
+        var result = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+
+        // then
+        assertEquals(1, result.size());
+        var compactMatchDtoValue = result.get(0);
+        assertEntityAndDtoEqual(match, compactMatchDtoValue);
+        // make sure that the away team is definitely null
+        assertNull(compactMatchDtoValue.getAwayTeam());
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIdAndStatuses native query filters match by their status")
+    public void findAllByTeamIdAndStatuses_MultipleMatchesWithDifferentStatuses_FiltersMatchesByStatus() {
+        var teamId = UUID.randomUUID();
+        var team = TestTeam.builder().id(teamId).build();
+
+        // create one home, one away match for every match status
+        for (MatchStatus status : MatchStatus.values()) {
+            matchRepository.save(
+                    TestMatch.builder().homeTeam(team).status(status).build()
+            );
+            matchRepository.save(
+                    TestMatch.builder().awayTeam(team).status(status).build()
+            );
+        }
+
+        // when
+        // all matches (should contain 18 matches)
+        var allMatches = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+        // finished matches (should contain 4 matches)
+        var finishedMatches = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.RESULT_TYPE_STATUSES, Pageable.unpaged()
+        );
+        // unfinished matches (should contain 14 matches)
+        var unfinishedMatches= matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.FIXTURE_TYPE_STATUSES, Pageable.unpaged()
+        );
+
+        // then
+        assertEquals(18, allMatches.size());
+        assertEquals(4, finishedMatches.size());
+        assertEquals(14, unfinishedMatches.size());
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIdAndStatuses native query takes pageable into account")
+    public void findAllByTeamIdAndStatuses_CustomPageable_ResultsPaged() {
+        var teamId = UUID.randomUUID();
+        var team = TestTeam.builder().id(teamId).build();
+
+        // create four random test matches
+        IntStream.range(0, 4)
+                .mapToObj(i -> TestMatch.builder().homeTeam(team).build())
+                .forEach(matchRepository::save);
+
+        // when
+        var pageable = Pageable.ofSize(1);
+        // first page should return 1 match
+        var result0 = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.ALL_STATUSES, pageable
+        );
+        // fourth page should return 1 match
+        var result1 = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.ALL_STATUSES, pageable.withPage(3)
+        );
+        // fifth page should be empty
+        var result2 = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.ALL_STATUSES, pageable.withPage(4)
+        );
+
+        // then
+        assertEquals(1, result0.size());
+        assertEquals(1, result1.size());
+        assertEquals(0, result2.size());
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIdAndStatuses native query sorts by date descending and time ascending")
+    public void findAllByTeamIdAndStatuses_MultipleMatches_SortDateDescendingTimeAscending() {
+        var teamId = UUID.randomUUID();
+        var team = TestTeam.builder().id(teamId).build();
+
+        var day0 = LocalDate.of(2022, 1, 1);
+        var day1 = LocalDate.of(2023, 1, 10);
+        var day2 = LocalDate.of(2024, 12, 31);
+
+        // create two matches on day2
+        Stream.of(10, 22).forEach(hour -> matchRepository.save(TestMatch.builder()
+                .startTimeUTC(LocalDateTime.of(day2, LocalTime.of(hour, 0)))
+                .homeTeam(team)
+                .build()
+        ));
+        // create two matches on day0
+        Stream.of(7, 9).forEach(hour -> matchRepository.save(TestMatch.builder()
+                .startTimeUTC(LocalDateTime.of(day0, LocalTime.of(hour, 0)))
+                .awayTeam(team)
+                .build()
+        ));
+        // create two matches on day1
+        Stream.of(15, 19).forEach(hour -> matchRepository.save(TestMatch.builder()
+                .startTimeUTC(LocalDateTime.of(day1, LocalTime.of(hour, 0)))
+                .homeTeam(team)
+                .build()
+        ));
+
+        // when
+        var results = matchRepository.findAllByTeamIdAndStatuses(
+                teamId, MatchStatus.ALL_STATUSES, Pageable.unpaged()
+        );
+
+        // then
+        // expected order:
+        //  0  day2 10:00AM
+        //  1  day2 10:00PM
+        //  2  day1 03:00PM
+        //  3  day1 07:00PM
+        //  4  day0 07:00AM
+        //  5  day0 09:00AM
+        assertEquals(
+                LocalDateTime.of(day2, LocalTime.of(10, 0)),
+                results.get(0).getStartTimeUTC()
+        );
+        assertEquals(
+                LocalDateTime.of(day2, LocalTime.of(22, 0)),
+                results.get(1).getStartTimeUTC()
+        );
+        assertEquals(
+                LocalDateTime.of(day1, LocalTime.of(15, 0)),
+                results.get(2).getStartTimeUTC()
+        );
+        assertEquals(
+                LocalDateTime.of(day1, LocalTime.of(19, 0)),
+                results.get(3).getStartTimeUTC()
+        );
+        assertEquals(
+                LocalDateTime.of(day0, LocalTime.of(7, 0)),
+                results.get(4).getStartTimeUTC()
+        );
+        assertEquals(
+                LocalDateTime.of(day0, LocalTime.of(9, 0)),
+                results.get(5).getStartTimeUTC()
+        );
+    }
+
     private static void assertEntityAndDtoEqual(Match entity, MatchDto dto) {
         // simple fields equal
         assertTrue(
