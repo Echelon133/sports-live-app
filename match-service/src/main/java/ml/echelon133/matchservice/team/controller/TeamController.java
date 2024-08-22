@@ -1,8 +1,11 @@
 package ml.echelon133.matchservice.team.controller;
 
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
+import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
+import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.team.model.TeamFormDto;
 import ml.echelon133.matchservice.team.model.TeamDto;
 import ml.echelon133.matchservice.team.model.TeamPlayerDto;
@@ -27,12 +30,18 @@ import java.util.UUID;
 public class TeamController {
 
     private final TeamService teamService;
+    private final MatchService matchService;
     private final TeamPlayerService teamPlayerService;
 
     @Autowired
-    public TeamController(TeamService teamService, TeamPlayerService teamPlayerService) {
+    public TeamController(
+            TeamService teamService,
+            TeamPlayerService teamPlayerService,
+            MatchService matchService
+    ) {
         this.teamService = teamService;
         this.teamPlayerService = teamPlayerService;
+        this.matchService = matchService;
     }
 
     @GetMapping("/{teamId}")
@@ -122,5 +131,18 @@ public class TeamController {
     @GetMapping("/{teamId}/form")
     public List<TeamFormDto> getTeamForm(@PathVariable UUID teamId, @RequestParam UUID competitionId) {
         return teamService.evaluateForm(teamId, competitionId);
+    }
+
+    @GetMapping("/{teamId}/matches")
+    public List<CompactMatchDto> getTeamMatches(
+            @PathVariable UUID teamId,
+            @RequestParam String type,
+            Pageable pageable
+    ) throws RequestParamsInvalidException {
+        if (!(type.equalsIgnoreCase("results") || type.equalsIgnoreCase("fixtures"))) {
+            throw new RequestParamsInvalidException(Map.of("type", "should be either 'fixtures' or 'results'"));
+        }
+        boolean matchFinished = type.equalsIgnoreCase("results");
+        return matchService.findMatchesByTeam(teamId, matchFinished, pageable);
     }
 }
