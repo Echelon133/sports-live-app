@@ -434,4 +434,47 @@ public class TeamServiceTests {
         // from the teamB's perspective, their form is LDDWW
         assertEquals(List.of('L', 'D', 'D', 'W', 'W'), formOfTeamB);
     }
+
+    @Test
+    @DisplayName("evaluateGeneralForm correctly evaluates the form from the perspective of a team")
+    public void evaluateGeneralForm_MultipleVariedMatchResults_ReturnsExpectedForm() {
+        // teamA
+        var teamAEntity = TestTeam.builder().build();
+        var teamAId = teamAEntity.getId();
+        var teamA = ShortTeamDto.from(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
+
+        // teamB
+        var teamBEntity = TestTeam.builder().build();
+        var teamBId = teamBEntity.getId();
+        var teamB = ShortTeamDto.from(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
+
+        List<TeamFormDetailsDto> formEval = List.of(
+                //      * teamA vs teamB (3:2 - teamA wins)
+                createTestMatch(teamA, teamB, ScoreInfoDto.from(3, 2)),
+                //      * teamA vs teamB (2:2 - draw)
+                createTestMatch(teamA, teamB, ScoreInfoDto.from(2, 2)),
+                //      * teamB vs teamA (4:4 - draw)
+                createTestMatch(teamB, teamA, ScoreInfoDto.from(4, 4)),
+                //      * teamA vs teamB (1:4 - teamB wins)
+                createTestMatch(teamA, teamB, ScoreInfoDto.from(1, 4)),
+                //      * teamB vs teamA (2:0 - teamB wins)
+                createTestMatch(teamB, teamA, ScoreInfoDto.from(2, 0))
+        );
+
+        // given
+        given(teamRepository.findGeneralFormEvaluationMatches(teamAId)).willReturn(formEval);
+        given(teamRepository.findGeneralFormEvaluationMatches(teamBId)).willReturn(formEval);
+
+        // when
+        var formOfTeamA = teamService.evaluateGeneralForm(teamAId)
+                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+        var formOfTeamB = teamService.evaluateGeneralForm(teamBId)
+                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+
+        // then
+        // from the teamA's perspective, their form is WDDLL
+        assertEquals(List.of('W', 'D', 'D', 'L', 'L'), formOfTeamA);
+        // from the teamB's perspective, their form is LDDWW
+        assertEquals(List.of('L', 'D', 'D', 'W', 'W'), formOfTeamB);
+    }
 }
