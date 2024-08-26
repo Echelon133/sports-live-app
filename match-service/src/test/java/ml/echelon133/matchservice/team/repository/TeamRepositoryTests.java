@@ -559,4 +559,253 @@ public class TeamRepositoryTests {
 
         assertEquals(MatchResult.HOME_WIN, matchDetails.getResult());
     }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query does not fetch matches marked as deleted")
+    public void findGeneralFormEvaluationMatches_MatchMarkedAsDeleted_SizeIsZero() {
+        var teamId = UUID.randomUUID();
+        var matchToDelete = TestMatch.builder()
+                .status(MatchStatus.FINISHED)
+                .homeTeam(TestTeam.builder().id(teamId))
+                .deleted(true)
+                .build();
+        matchRepository.save(matchToDelete);
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamId);
+
+        // then
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query fetches team's home and away matches")
+    public void findGeneralFormEvaluationMatches_BothHomeAndAway_FindsAll() {
+        var teamId = UUID.randomUUID();
+        var teamBuilder = TestTeam.builder().id(teamId);
+        // re-use the same instance across all matches to avoid integrity exceptions
+        var savedTeam = teamRepository.save(teamBuilder.build());
+
+        // home match of team
+        var match0 = TestMatch.builder()
+                .homeTeam(savedTeam)
+                .status(MatchStatus.FINISHED).build();
+        // away match of team
+        var match1 = TestMatch.builder()
+                .awayTeam(savedTeam)
+                .status(MatchStatus.FINISHED).build();
+        matchRepository.saveAll(List.of(match0, match1));
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamId);
+
+        // then
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query fetches only finished matches")
+    public void findGeneralFormEvaluationMatches_MixedFinishedAndUnfinished_FindsOnlyFinished() {
+        var teamId = UUID.randomUUID();
+        var teamBuilder = TestTeam.builder().id(teamId);
+        // re-use the same instance across all matches to avoid integrity exceptions
+        var savedTeam = teamRepository.save(teamBuilder.build());
+
+        // only one match of team that is FINISHED
+        var match0 = TestMatch.builder()
+                .homeTeam(savedTeam)
+                .status(MatchStatus.FINISHED).build();
+        var finishedMatches = List.of(match0);
+
+        // multiple matches of team with all possible statuses (except for FINISHED)
+        var unfinishedStatuses = Arrays.stream(MatchStatus.values()).filter(
+                s -> !s.equals(MatchStatus.FINISHED) // remove FINISHED from the list of statuses
+        );
+        var unfinishedMatches = unfinishedStatuses.map(unfinishedStatus ->
+                TestMatch.builder().homeTeam(savedTeam).status(unfinishedStatus).build()
+        ).collect(Collectors.toList());
+
+        var allMatches = Stream
+                .of(finishedMatches, unfinishedMatches).flatMap(List::stream).collect(Collectors.toList());
+        matchRepository.saveAll(allMatches);
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamId);
+
+        // then
+        assertEquals(1, result.size());
+        var matchDetails = result.get(0);
+        // the only finished match is match0
+        assertEquals(match0.getId(), matchDetails.getId());
+        assertEquals(teamId, matchDetails.getHomeTeam().getId());
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query fetches matches of the specified team no matter the competition")
+    public void findGeneralFormEvaluationMatches_MultipleCompetitions_FetchesFormAcrossCompetitions() {
+        var team0Id = UUID.randomUUID();
+        var team0Name = "Team 0";
+        var team0 = TestTeam.builder().id(team0Id).name(team0Name).build();
+
+        var competition0Id = UUID.randomUUID();
+        var competition1Id = UUID.randomUUID();
+        var competition2Id = UUID.randomUUID();
+
+        // match in which team0 plays in competition0
+        var match0 = TestMatch.builder()
+                .competitionId(competition0Id)
+                .homeTeam(team0)
+                .status(MatchStatus.FINISHED).build();
+        // match in which team0 plays in competition1
+        var match1 = TestMatch.builder()
+                .competitionId(competition1Id)
+                .homeTeam(team0)
+                .status(MatchStatus.FINISHED).build();
+        // match in which team0 plays in competition2
+        var match2 = TestMatch.builder()
+                .competitionId(competition2Id)
+                .homeTeam(team0)
+                .status(MatchStatus.FINISHED).build();
+        matchRepository.saveAll(List.of(match0, match1, match2));
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(team0Id);
+
+        // then
+        assertEquals(3, result.size());
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query does not leak deleted home team of a found match")
+    public void findGeneralFormEvaluationMatches_HomeTeamDeleted_DoesNotLeakDeletedEntity() {
+        var teamId = UUID.randomUUID();
+        var teamBuilder = TestTeam.builder().id(teamId).deleted(true);
+        var match = TestMatch.builder()
+                .homeTeam(teamBuilder)
+                .status(MatchStatus.FINISHED)
+                .build();
+        matchRepository.save(match);
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamId);
+
+        // then
+        assertEquals(1, result.size());
+        // make sure that the home team is definitely null
+        assertNull(result.get(0).getHomeTeam());
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query does not leak deleted away team of a found match")
+    public void findGeneralFormEvaluationMatches_AwayTeamDeleted_DoesNotLeakDeletedEntity() {
+        var teamId = UUID.randomUUID();
+        var teamBuilder = TestTeam.builder().id(teamId).deleted(true);
+        var match = TestMatch.builder()
+                .awayTeam(teamBuilder)
+                .status(MatchStatus.FINISHED)
+                .build();
+        matchRepository.save(match);
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamId);
+
+        // then
+        assertEquals(1, result.size());
+        // make sure that the away team is definitely null
+        assertNull(result.get(0).getAwayTeam());
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query does not fetch more than 5 matches")
+    public void findGeneralFormEvaluationMatches_MoreThanFiveMatches_FetchesOnlyFive() {
+        var teamId = UUID.randomUUID();
+        var teamBuilder = TestTeam.builder().id(teamId);
+        // re-use the same instance across all matches to avoid integrity exceptions
+        var savedTeam = teamRepository.save(teamBuilder.build());
+
+        // create 10 finished matches played by team
+        var matches = IntStream.range(0, 10).mapToObj(i ->
+                TestMatch.builder().homeTeam(savedTeam).status(MatchStatus.FINISHED).build()
+        ).collect(Collectors.toList());
+        matchRepository.saveAll(matches);
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamId);
+
+        // then
+        assertEquals(5, result.size());
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query sorts matches by their start time descending")
+    public void findGeneralFormEvaluationMatches_DifferentMatchStartTimes_SortsByStartTimeDescending() {
+        var teamId = UUID.randomUUID();
+        var teamBuilder = TestTeam.builder().id(teamId);
+        // re-use the same instance across all matches to avoid integrity exceptions
+        var savedTeam = teamRepository.save(teamBuilder.build());
+
+        var startTimes = List.of(
+                LocalDateTime.of(2023, 9, 28, 20, 0),
+                LocalDateTime.of(2020, 5, 9, 21, 0),
+                LocalDateTime.of(2024, 12, 2, 19, 0),
+                LocalDateTime.of(2024, 1, 1, 20, 0),
+                LocalDateTime.of(2024, 8, 20, 4, 0)
+        );
+        // reverse order is expected, so matches from 2024 should be first, then 2023, etc.
+        var expectedStartTimesOrdering = startTimes.stream()
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
+
+        var matches = startTimes.stream().map(startTime ->
+                TestMatch.builder()
+                        .homeTeam(savedTeam)
+                        .startTimeUTC(startTime)
+                        .status(MatchStatus.FINISHED).build()
+        ).collect(Collectors.toList());
+        matchRepository.saveAll(matches);
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamId);
+
+        // then
+        for (int i = 0; i < result.size(); i++) {
+            var match = result.get(i);
+            var expectedStartTime = expectedStartTimesOrdering.get(i);
+            assertEquals(expectedStartTime, match.getStartTimeUTC());
+        }
+    }
+
+    @Test
+    @DisplayName("findGeneralFormEvaluationMatches native query fetches all expected fields")
+    public void findGeneralFormEvaluationMatches_OneMatch_FetchesAllExpectedFields() {
+        var teamA = TestTeam.builder().name("Team A").build();
+        var teamB = TestTeam.builder().name("Team B").build();
+
+        var match = TestMatch.builder()
+                .homeTeam(teamA)
+                .awayTeam(teamB)
+                .scoreInfo(ScoreInfo.of(3, 2))
+                .result(MatchResult.HOME_WIN)
+                .status(MatchStatus.FINISHED).build();
+        matchRepository.save(match);
+
+        // when
+        var result = teamRepository.findGeneralFormEvaluationMatches(teamA.getId());
+
+        // then
+        assertEquals(1, result.size());
+        var matchDetails = result.get(0);
+        assertEquals(match.getId(), matchDetails.getId());
+
+        assertEquals(teamA.getId(), matchDetails.getHomeTeam().getId());
+        assertEquals(teamA.getName(), matchDetails.getHomeTeam().getName());
+
+        assertEquals(teamB.getId(), matchDetails.getAwayTeam().getId());
+        assertEquals(teamB.getName(), matchDetails.getAwayTeam().getName());
+
+        assertEquals(3, matchDetails.getScoreInfo().getHomeGoals());
+        assertEquals(2, matchDetails.getScoreInfo().getAwayGoals());
+
+        assertEquals(MatchResult.HOME_WIN, matchDetails.getResult());
+    }
 }
