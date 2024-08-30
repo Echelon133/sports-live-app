@@ -153,6 +153,19 @@ public class TeamService {
     }
 
     /**
+     * Evaluates the general form of a team based on the last 5 matches of that team (in all competitions).
+     *
+     * @param teamId id of the team whose form is being evaluated
+     * @return a list of at most 5 matches (each one of them evaluated by team's form)
+     */
+    public List<TeamFormDto> evaluateGeneralForm(UUID teamId) {
+        return teamRepository.findGeneralFormEvaluationMatches(teamId).stream()
+                .map(matchDetails ->
+                        new TeamFormDto(interpretResultAsSymbol(teamId, matchDetails), matchDetails)
+                ).collect(Collectors.toList());
+    }
+
+    /**
      * Helper method which interprets the result of the match from the perspective of a particular team.
      *
      * @param teamId id of the team from whose perspective to interpret the result

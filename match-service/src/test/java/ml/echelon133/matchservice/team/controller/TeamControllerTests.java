@@ -1484,20 +1484,6 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/teams/:id/form?competitionId= returns 400 when `competitionId` is not provided")
-    public void getTeamForm_CompetitionIdNotProvided_StatusBadRequest() throws Exception {
-        var teamId = UUID.randomUUID();
-
-        mvc.perform(
-                        get("/api/teams/" + teamId + "/form")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages[0]", is("query parameter 'competitionId' not provided")));
-    }
-
-    @Test
     @DisplayName("GET /api/teams/:id/form?competitionId= returns 200 when 'competitionId' is provided and the service contains the form")
     public void getTeamForm_CompetitionIdProvided_StatusOk() throws Exception {
         var teamId = UUID.randomUUID();
@@ -1527,7 +1513,36 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isOk())
                 .andExpect(content().string(expectedJson));
+    }
 
+    @Test
+    @DisplayName("GET /api/teams/:id/form returns 200 when 'competitionId' is not provided and the service contains the form")
+    public void getTeamForm_CompetitionIdNotProvided_StatusOk() throws Exception {
+        var teamId = UUID.randomUUID();
+
+        var formEntry = new TeamFormDto(
+                'W',
+                TeamFormDetailsDto.from(
+                        UUID.randomUUID(),
+                        LocalDateTime.now(),
+                        ShortTeamDto.from(teamId, "Some team", ""),
+                        ShortTeamDto.from(UUID.randomUUID(), "Some other team", ""),
+                        ScoreInfoDto.from(3, 2)
+                )
+        );
+        var expectedJson = jsonTeamFormDtos.write(List.of(formEntry)).getJson();
+
+        // given
+        given(teamService.evaluateGeneralForm(teamId)).willReturn(List.of(formEntry));
+
+        // when
+        mvc.perform(
+                        get("/api/teams/" + teamId + "/form")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(expectedJson));
     }
 
     @Test
