@@ -129,8 +129,12 @@ public class TeamController {
     }
 
     @GetMapping("/{teamId}/form")
-    public List<TeamFormDto> getTeamForm(@PathVariable UUID teamId, @RequestParam UUID competitionId) {
-        return teamService.evaluateForm(teamId, competitionId);
+    public List<TeamFormDto> getTeamForm(@PathVariable UUID teamId, @RequestParam(required = false) UUID competitionId) {
+        if (competitionId == null) {
+            return teamService.evaluateGeneralForm(teamId);
+        } else {
+            return teamService.evaluateForm(teamId, competitionId);
+        }
     }
 
     @GetMapping("/{teamId}/matches")
