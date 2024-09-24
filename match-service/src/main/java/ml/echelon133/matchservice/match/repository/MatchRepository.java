@@ -71,6 +71,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
                     "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
                     "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
                     "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
+                    "   m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, " +
                     "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
                     "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
                     "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
@@ -101,6 +102,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
                     "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
                     "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
                     "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
+                    "   m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, " +
                     "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
                     "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
                     "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
@@ -132,6 +134,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
                     "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
                     "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
                     "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
+                    "   m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, " +
                     "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
                     "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
                     "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +

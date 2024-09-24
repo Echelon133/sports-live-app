@@ -66,6 +66,9 @@ public class Match extends BaseEntity {
     })
     private ScoreInfo penaltiesInfo;
 
+    @Embedded
+    private RedCardInfo redCardInfo;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
     private MatchResult result;
@@ -83,6 +86,7 @@ public class Match extends BaseEntity {
         this.halfTimeScoreInfo = new ScoreInfo();
         this.scoreInfo = new ScoreInfo();
         this.penaltiesInfo = new ScoreInfo();
+        this.redCardInfo = new RedCardInfo();
         this.result = MatchResult.NONE;
         this.homeLineup = new Lineup();
         this.awayLineup = new Lineup();
@@ -190,5 +194,13 @@ public class Match extends BaseEntity {
 
     public void setAwayLineup(Lineup awayLineup) {
         this.awayLineup = awayLineup;
+    }
+
+    public RedCardInfo getRedCardInfo() {
+        return redCardInfo;
+    }
+
+    public void setRedCardInfo(RedCardInfo redCardInfo) {
+        this.redCardInfo = redCardInfo;
     }
 }

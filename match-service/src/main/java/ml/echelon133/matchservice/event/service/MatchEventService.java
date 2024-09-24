@@ -326,6 +326,24 @@ public class MatchEventService {
                 cardType,
                 intoSerializedPlayerInfo(cardedTeamPlayer)
         );
+
+        // if a card was red (whether direct or not) - increment the counters of team's red cards
+        // so that this information is available right away without having to run event counting
+        // queries for both teams for every fetched match
+        var redOrSecondYellow =
+                cardType.equals(MatchEventDetails.CardDto.CardType.DIRECT_RED) ||
+                        cardType.equals(MatchEventDetails.CardDto.CardType.SECOND_YELLOW);
+        if (redOrSecondYellow) {
+            var homeTeamId = match.getHomeTeam().getId();
+            var cardedPlayerTeamId = cardedTeamPlayer.getTeam().getId();
+            var homeTeamCarded = homeTeamId.equals(cardedPlayerTeamId);
+            if (homeTeamCarded) {
+                match.getRedCardInfo().incrementHomeCards();
+            } else {
+                match.getRedCardInfo().incrementAwayCards();
+            }
+        }
+
         return new MatchEvent(match, eventDetails);
     }
 

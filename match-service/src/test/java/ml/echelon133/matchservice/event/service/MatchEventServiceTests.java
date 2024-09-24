@@ -12,6 +12,7 @@ import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.RedCardInfo;
 import ml.echelon133.matchservice.match.model.ScoreInfo;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.player.model.Player;
@@ -944,6 +945,61 @@ public class MatchEventServiceTests {
             return matchEvent.getMatch().getId().equals(matchId) &&
                     cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
         }));
+    }
+
+    @Test
+    @DisplayName("processEvent accepts multiple CARD events and correctly increments both teams' red card counters")
+    public void processEvent_MultipleCardEvents_CorrectlyIncrementsRedCardCounters() throws ResourceNotFoundException, MatchEventInvalidException {
+        var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
+        var matchId = match.getId();
+
+        // create test players
+        var homeTeamPlayerA = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
+        var homeTeamPlayerB = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 2);
+        var awayTeamPlayerA = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
+        var awayTeamPlayerB = new TeamPlayer(match.getAwayTeam(), new Player(), Position.DEFENDER, 2);
+
+        // put all players in their respective lineups
+        var teamLineup = TestLineupDto.builder()
+                .homeStarting(homeTeamPlayerA.getId(), homeTeamPlayerB.getId())
+                .awayStarting(awayTeamPlayerA.getId(), awayTeamPlayerB.getId())
+                .build();
+
+        var expectedRedCardInfo = RedCardInfo.of(1, 2);
+
+        // setup test events where:
+        //  * one red card is given to the home team
+        //  * two red cards are given to the away team
+        var testEvents = List.of(
+                // 1. second yellow card for homeTeamPlayerA
+                new InsertMatchEvent.CardDto("1", homeTeamPlayerA.getId().toString(), false),
+                // 2. second yellow card for awayTeamPlayerA
+                new InsertMatchEvent.CardDto("1", awayTeamPlayerA.getId().toString(), false),
+                // 3. direct red for awayTeamPlayerB
+                new InsertMatchEvent.CardDto("1", awayTeamPlayerB.getId().toString(), true),
+                // 4. yellow for homeTeamPlayerB
+                new InsertMatchEvent.CardDto("1", homeTeamPlayerB.getId().toString(), false)
+        );
+
+        // given
+        givenMatchReturnEvents(matchId, List.of(
+                createTestCardEvent(match, homeTeamPlayerA.getId(), MatchEventDetails.CardDto.CardType.YELLOW),
+                createTestCardEvent(match, awayTeamPlayerA.getId(), MatchEventDetails.CardDto.CardType.YELLOW)
+        ));
+        given(matchService.findEntityById(matchId)).willReturn(match);
+        given(teamPlayerService.findEntityById(homeTeamPlayerA.getId())).willReturn(homeTeamPlayerA);
+        given(teamPlayerService.findEntityById(homeTeamPlayerB.getId())).willReturn(homeTeamPlayerB);
+        given(teamPlayerService.findEntityById(awayTeamPlayerA.getId())).willReturn(awayTeamPlayerA);
+        given(teamPlayerService.findEntityById(awayTeamPlayerB.getId())).willReturn(awayTeamPlayerB);
+        given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
+
+        // when
+        for (var testEvent : testEvents) {
+            matchEventService.processEvent(matchId, testEvent);
+        }
+
+        // then
+        assertEquals(match.getRedCardInfo(), expectedRedCardInfo);
     }
 
     @Test
