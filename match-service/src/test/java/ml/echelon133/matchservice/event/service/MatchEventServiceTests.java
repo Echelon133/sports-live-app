@@ -1,6 +1,7 @@
 package ml.echelon133.matchservice.event.service;
 
 import ml.echelon133.common.event.KafkaTopicNames;
+import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
@@ -11,6 +12,7 @@ import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatch;
+import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.RedCardInfo;
 import ml.echelon133.matchservice.match.model.ScoreInfo;
@@ -34,8 +36,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class MatchEventServiceTests {
@@ -152,6 +153,10 @@ public class MatchEventServiceTests {
 
         // then
         assertEquals("the player is already ejected", message);
+    }
+
+    private void assertGlobalEventNotBroadcast() {
+        verify(matchEventWebsocketService, never()).sendGlobalMatchEvent(any());
     }
 
     @Test
@@ -395,6 +400,37 @@ public class MatchEventServiceTests {
         verify(matchEventRepository, times(expectedValidStatusChanges.size())).save(
                 argThat(e -> e.getMatch().getId().equals(matchId))
         );
+    }
+
+    @Test
+    @DisplayName("processEvent broadcasts global websocket message on match status change")
+    public void processEvent_MatchStatusChanges_SendsGlobalWebsocketMessage()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        List<InsertMatchEvent.StatusDto> statusEvents = List.of(
+                new InsertMatchEvent.StatusDto("1", MatchStatus.FIRST_HALF.name()),
+                new InsertMatchEvent.StatusDto("1", MatchStatus.ABANDONED.name()),
+                new InsertMatchEvent.StatusDto("1", MatchStatus.POSTPONED.name())
+        );
+
+        for (InsertMatchEvent.StatusDto statusEvent: statusEvents) {
+            var match = TestMatch.builder().build();
+            var matchId = match.getId();
+
+            // given
+            given(matchService.findEntityById(matchId)).willReturn(match);
+
+            // when
+            matchEventService.processEvent(matchId, statusEvent);
+
+            // then
+            verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
+                var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
+                return sentGlobalEvent.getMatchId().equals(matchId) &&
+                        sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
+                        sentGlobalEvent.getTargetStatus().toString().equals(statusEvent.getTargetStatus());
+            }));
+        }
     }
 
     @Test
@@ -756,6 +792,7 @@ public class MatchEventServiceTests {
 
         // then
         assertEventInvalidWhenBallNotInPlay(match, testEvent);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -787,6 +824,7 @@ public class MatchEventServiceTests {
         // then
         var expectedMessage = String.format("the player %s does not play for either team", testTeamPlayerId);
         assertEquals(expectedMessage, message);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -816,6 +854,7 @@ public class MatchEventServiceTests {
         // then
         var expectedMessage = String.format("the player %s is not placed in the lineup of this match", testTeamPlayerId);
         assertEquals(expectedMessage, message);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -948,7 +987,7 @@ public class MatchEventServiceTests {
     }
 
     @Test
-    @DisplayName("processEvent accepts multiple CARD events and correctly increments both teams' red card counters")
+    @DisplayName("processEvent accepts multiple CARD events and correctly increments both teams' red card counters while only sending red card events globally via websocket")
     public void processEvent_MultipleCardEvents_CorrectlyIncrementsRedCardCounters() throws ResourceNotFoundException, MatchEventInvalidException {
         var match = TestMatch.builder().status(MatchStatus.FIRST_HALF).build();
         var matchId = match.getId();
@@ -1000,6 +1039,21 @@ public class MatchEventServiceTests {
 
         // then
         assertEquals(match.getRedCardInfo(), expectedRedCardInfo);
+        // verify one home card is broadcast via the websocket
+        verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
+            var globalRedCardEvent = (GlobalMatchEventDto.RedCardEvent)e;
+            return globalRedCardEvent.getMatchId().equals(matchId) &&
+                    globalRedCardEvent.getType().equals(MatchEventType.CARD) &&
+                    globalRedCardEvent.getSide().equals(GlobalMatchEventDto.EventSide.HOME);
+        }));
+
+        // verify two away cards are broadcast via the websocket
+        verify(matchEventWebsocketService, times(2)).sendGlobalMatchEvent(argThat(e -> {
+            var globalRedCardEvent = (GlobalMatchEventDto.RedCardEvent)e;
+            return globalRedCardEvent.getMatchId().equals(matchId) &&
+                    globalRedCardEvent.getType().equals(MatchEventType.CARD) &&
+                    globalRedCardEvent.getSide().equals(GlobalMatchEventDto.EventSide.AWAY);
+        }));
     }
 
     @Test
@@ -1026,6 +1080,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerIsAlreadyEjected(matchId, testEvent);
+        verify(matchEventWebsocketService, never()).sendGlobalMatchEvent(any());
     }
 
     @Test
@@ -1052,6 +1107,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerIsAlreadyEjected(matchId, testEvent);
+        verify(matchEventWebsocketService, never()).sendGlobalMatchEvent(any());
     }
 
     @Test
@@ -1078,6 +1134,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerIsAlreadyEjected(matchId, testEvent);
+        verify(matchEventWebsocketService, never()).sendGlobalMatchEvent(any());
     }
 
     @Test
@@ -1104,6 +1161,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerIsAlreadyEjected(matchId, testEvent);
+        verify(matchEventWebsocketService, never()).sendGlobalMatchEvent(any());
     }
 
     @Test
@@ -1120,6 +1178,7 @@ public class MatchEventServiceTests {
 
         // then
         assertEventInvalidWhenBallNotInPlay(match, testEvent);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1143,6 +1202,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, scoringTeamPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1166,6 +1226,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, scoringTeamPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1189,6 +1250,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1212,6 +1274,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1235,6 +1298,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1259,6 +1323,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, scoringPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1290,6 +1355,7 @@ public class MatchEventServiceTests {
 
         // then
         assertEquals("own goals cannot have a player assisting", message);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1322,6 +1388,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, assistingTeamPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1354,6 +1421,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, assistingTeamPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1394,6 +1462,7 @@ public class MatchEventServiceTests {
 
         // then
         assertEquals("players do not play for the same team", message);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1428,6 +1497,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1462,6 +1532,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1496,6 +1567,7 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
+        assertGlobalEventNotBroadcast();
     }
 
     @Test
@@ -1530,6 +1602,16 @@ public class MatchEventServiceTests {
 
         // then
         assertPlayerNotOnPitch(matchId, testEvent, assistingPlayerId);
+        assertGlobalEventNotBroadcast();
+    }
+
+    private void assertGlobalGoalEventBroadcast(UUID matchId, GlobalMatchEventDto.EventSide side) {
+        verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
+            var globalGoalEvent = (GlobalMatchEventDto.GoalEvent)e;
+            return globalGoalEvent.getMatchId().equals(matchId) &&
+                    globalGoalEvent.getType().equals(MatchEventType.GOAL) &&
+                    globalGoalEvent.getSide().equals(side);
+        }));
     }
 
     @Test
@@ -1579,6 +1661,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                     !gDto.isOwnGoal();
         }));
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
     }
 
     @Test
@@ -1618,6 +1701,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                     gDto.isOwnGoal();
         }));
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
     }
 
     @Test
@@ -1666,6 +1750,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                     !gDto.isOwnGoal();
         }));
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
     }
 
     @Test
@@ -1705,6 +1790,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                     gDto.isOwnGoal();
         }));
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
     }
 
     @Test
@@ -1757,6 +1843,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                         !gDto.isOwnGoal();
             }));
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
         }
     }
 
@@ -1800,6 +1887,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                         gDto.isOwnGoal();
             }));
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
         }
     }
 
@@ -1853,6 +1941,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                         !gDto.isOwnGoal();
             }));
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
         }
     }
 
@@ -1895,6 +1984,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                         gDto.isOwnGoal();
             }));
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
         }
     }
 

@@ -6,6 +6,7 @@ import ml.echelon133.common.event.dto.MatchEventDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
+import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
 import ml.echelon133.matchservice.match.model.LineupDto;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
@@ -190,6 +191,12 @@ public class MatchEventService {
                 new MatchEventDetails.SerializedScoreInfo(mainScore.getHomeGoals(), mainScore.getAwayGoals())
         );
 
+        // globally broadcast a match changing its status
+        matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.StatusEvent(
+                match.getId(),
+                targetStatus
+        ));
+
         match.setStatus(targetStatus);
         return new MatchEvent(match, eventDetails);
     }
@@ -342,6 +349,12 @@ public class MatchEventService {
             } else {
                 match.getRedCardInfo().incrementAwayCards();
             }
+
+            // globally broadcast a red card for the side which got it
+            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.RedCardEvent(
+                    match.getId(),
+                    homeTeamCarded ? GlobalMatchEventDto.EventSide.HOME : GlobalMatchEventDto.EventSide.AWAY)
+            );
         }
 
         return new MatchEvent(match, eventDetails);
@@ -794,6 +807,12 @@ public class MatchEventService {
             if (match.getStatus().equals(FIRST_HALF)) {
                 match.setHalfTimeScoreInfo(score);
             }
+
+            // globally broadcast a goal being scored
+            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.GoalEvent(
+                    match.getId(),
+                    homeGoal ? GlobalMatchEventDto.EventSide.HOME : GlobalMatchEventDto.EventSide.AWAY
+            ));
         }
     }
 
