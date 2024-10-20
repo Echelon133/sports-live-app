@@ -1,6 +1,5 @@
 package ml.echelon133.matchservice.match;
 
-import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.match.model.Lineup;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.player.model.Player;
@@ -24,7 +23,7 @@ public class TestMatchLineup {
      * @return a match with
      */
     public static Match createTestMatchWithLineup() {
-        var testCountry = new Country("Test", "TE");
+        var testCountry = "PL";
         var testPosition = Position.DEFENDER;
 
         Match testMatch = TestMatch.builder()

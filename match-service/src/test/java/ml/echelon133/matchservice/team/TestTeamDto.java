@@ -1,7 +1,6 @@
 package ml.echelon133.matchservice.team;
 
 import ml.echelon133.matchservice.coach.model.CoachDto;
-import ml.echelon133.matchservice.country.model.CountryDto;
 import ml.echelon133.matchservice.team.model.TeamDto;
 
 import java.util.UUID;
@@ -15,7 +14,7 @@ public interface TestTeamDto {
         private UUID id = UUID.randomUUID();
         private String name = "Test Team";
         private String crestUrl = "https://cdn.statically.io/img/test.com/f=auto/image.png";
-        private CountryDto countryDto = CountryDto.from(UUID.randomUUID(), "Test Country", "TC");
+        private String countryCode = "PL";
         private CoachDto coachDto = CoachDto.from(UUID.randomUUID(), "Test Coach");
 
         private TeamDtoBuilder() {}
@@ -35,8 +34,8 @@ public interface TestTeamDto {
             return this;
         }
 
-        public TeamDtoBuilder countryDto(CountryDto countryDto) {
-            this.countryDto = countryDto;
+        public TeamDtoBuilder countryCode(String countryCode) {
+            this.countryCode = countryCode;
             return this;
         }
 
@@ -50,7 +49,7 @@ public interface TestTeamDto {
                     id,
                     name,
                     crestUrl,
-                    countryDto,
+                    countryCode,
                     coachDto
             );
         }

@@ -2,7 +2,6 @@ package ml.echelon133.matchservice.team.model;
 
 import ml.echelon133.common.entity.BaseEntity;
 import ml.echelon133.matchservice.coach.model.Coach;
-import ml.echelon133.matchservice.country.model.Country;
 
 import javax.persistence.*;
 
@@ -15,19 +14,18 @@ public class Team extends BaseEntity {
     @Column(name = "crest_url", nullable = false)
     private String crestUrl;
 
-    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST}, fetch = FetchType.LAZY)
-    @JoinColumn(name = "country_id", nullable = false)
-    private Country country;
+    @Column(name = "country_code", nullable = false, length = 2)
+    private String countryCode;
 
     @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @JoinColumn(name = "coach_id", nullable = false)
     private Coach coach;
 
     public Team() {}
-    public Team(String name, String crestUrl, Country country, Coach coach) {
+    public Team(String name, String crestUrl, String countryCode, Coach coach) {
         this.name = name;
         this.crestUrl = crestUrl;
-        this.country = country;
+        this.countryCode = countryCode;
         this.coach = coach;
     }
 
@@ -47,12 +45,12 @@ public class Team extends BaseEntity {
         this.crestUrl = crestUrl;
     }
 
-    public Country getCountry() {
-        return country;
+    public String getCountryCode() {
+        return countryCode;
     }
 
-    public void setCountry(Country country) {
-        this.country = country;
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
     }
 
     public Coach getCoach() {

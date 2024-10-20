@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.player.model;
 
+import ml.echelon133.common.constraints.CountryCodeFormat;
 import ml.echelon133.common.constraints.LocalDateFormat;
-import ml.echelon133.matchservice.country.constraints.CountryExists;
 import ml.echelon133.matchservice.player.model.constraints.PositionValue;
 import org.hibernate.validator.constraints.Length;
 
@@ -14,8 +14,8 @@ public class UpsertPlayerDto {
     private String name;
 
     @NotNull
-    @CountryExists
-    private String countryId;
+    @CountryCodeFormat
+    private String countryCode;
 
     @NotNull
     @PositionValue
@@ -26,9 +26,9 @@ public class UpsertPlayerDto {
     private String dateOfBirth;
 
     public UpsertPlayerDto() {}
-    public UpsertPlayerDto(String name, String countryId, String position, String dateOfBirth) {
+    public UpsertPlayerDto(String name, String countryCode, String position, String dateOfBirth) {
         this.name = name;
-        this.countryId = countryId;
+        this.countryCode = countryCode;
         this.position = position;
         this.dateOfBirth = dateOfBirth;
     }
@@ -41,12 +41,12 @@ public class UpsertPlayerDto {
         this.name = name;
     }
 
-    public String getCountryId() {
-        return countryId;
+    public @NotNull String getCountryCode() {
+        return countryCode;
     }
 
-    public void setCountryId(String countryId) {
-        this.countryId = countryId;
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
     }
 
     public String getPosition() {

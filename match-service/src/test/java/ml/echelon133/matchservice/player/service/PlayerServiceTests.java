@@ -1,12 +1,10 @@
 package ml.echelon133.matchservice.player.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.player.model.PlayerDto;
-import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.player.TestPlayerDto;
 import ml.echelon133.matchservice.player.TestUpsertPlayerDto;
 import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.player.model.PlayerDto;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.repository.PlayerRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -34,9 +32,6 @@ public class PlayerServiceTests {
 
     @Mock
     private PlayerRepository playerRepository;
-
-    @Mock
-    private CountryService countryService;
 
     @InjectMocks
     private PlayerService playerService;
@@ -164,38 +159,15 @@ public class PlayerServiceTests {
     }
 
     @Test
-    @DisplayName("updatePlayer throws when the country of the player to update does not exist")
-    public void updatePlayer_CountryEmpty_Throws() throws ResourceNotFoundException {
-        var playerEntity = new Player();
-        var playerId = playerEntity.getId();
-        var countryId = UUID.randomUUID();
-
-        // given
-        given(playerRepository.findById(playerId)).willReturn(Optional.of(playerEntity));
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.updatePlayer(playerId, TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
     @DisplayName("updatePlayer returns the expected dto after correctly updating a player")
     public void updatePlayer_PlayerUpdated_ReturnsDto() throws ResourceNotFoundException {
-        var oldPlayer = new Player("Test", Position.DEFENDER, LocalDate.of(1970, 1, 1), new Country("Poland", "PL"));
-        var newCountry = new Country("Portugal", "PT");
-        var newCountryId = newCountry.getId();
+        var oldPlayer = new Player("Test", Position.DEFENDER, LocalDate.of(1970, 1, 1), "PL");
+        var newCountry = "DE";
         var updateDto = TestUpsertPlayerDto.builder()
                 .name("Some name")
                 .dateOfBirth("1980/01/01")
                 .position("FORWARD")
-                .countryId(newCountryId.toString())
+                .countryCode(newCountry)
                 .build();
         var newDateOfBirth = LocalDate.parse(updateDto.getDateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
         var expectedPlayer = new Player(
@@ -208,7 +180,6 @@ public class PlayerServiceTests {
 
         // given
         given(playerRepository.findById(oldPlayer.getId())).willReturn(Optional.of(oldPlayer));
-        given(countryService.findEntityById(newCountryId)).willReturn(newCountry);
         given(playerRepository.save(argThat(p ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a player with updated
@@ -217,7 +188,7 @@ public class PlayerServiceTests {
                 p.getId().equals(oldPlayer.getId()) &&
                         p.getName().equals(updateDto.getName()) &&
                         p.getPosition().name().equals(updateDto.getPosition()) &&
-                        p.getCountry().getId().toString().equals(updateDto.getCountryId()) &&
+                        p.getCountryCode().equals(updateDto.getCountryCode()) &&
                         p.getDateOfBirth().equals(newDateOfBirth)
                 ))).willReturn(expectedPlayer);
 
@@ -229,7 +200,7 @@ public class PlayerServiceTests {
         assertEquals(updateDto.getName(), playerDto.getName());
         assertEquals(updateDto.getPosition(), playerDto.getPosition());
         assertEquals(newDateOfBirth, playerDto.getDateOfBirth());
-        assertEquals(updateDto.getCountryId(), playerDto.getCountry().getId().toString());
+        assertEquals(updateDto.getCountryCode(), playerDto.getCountryCode());
     }
 
     @Test
@@ -269,33 +240,14 @@ public class PlayerServiceTests {
     }
 
     @Test
-    @DisplayName("createPlayer throws when the country of the player does not exist")
-    public void createPlayer_CountryEmpty_Throws() throws ResourceNotFoundException {
-        var countryId = UUID.randomUUID();
-
-        // given
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            playerService.createPlayer(TestUpsertPlayerDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
     @DisplayName("createPlayer returns the expected dto after correctly creating a player")
     public void createPlayer_PlayerCreated_ReturnsDto() throws ResourceNotFoundException {
-        var country = new Country("Portugal", "PT");
+        var country = "PT";
         var createDto = TestUpsertPlayerDto.builder()
                 .name("Some name")
                 .dateOfBirth("1980/01/01")
                 .position("FORWARD")
-                .countryId(country.getId().toString())
+                .countryCode(country)
                 .build();
         var dateOfBirth = LocalDate.parse(createDto.getDateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
         var expectedPlayer = new Player(
@@ -306,14 +258,13 @@ public class PlayerServiceTests {
         );
 
         // given
-        given(countryService.findEntityById(country.getId())).willReturn(country);
         given(playerRepository.save(argThat(p ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a player whose values
                 // are taken from received upsert DTO
                 p.getName().equals(createDto.getName()) &&
                 p.getPosition().name().equals(createDto.getPosition()) &&
-                p.getCountry().getId().toString().equals(createDto.getCountryId()) &&
+                p.getCountryCode().equals(createDto.getCountryCode()) &&
                 p.getDateOfBirth().equals(dateOfBirth)
         ))).willReturn(expectedPlayer);
 
@@ -324,7 +275,7 @@ public class PlayerServiceTests {
         assertEquals(expectedPlayer.getId(), playerDto.getId());
         assertEquals(expectedPlayer.getName(), playerDto.getName());
         assertEquals(expectedPlayer.getPosition().name(), playerDto.getPosition());
-        assertEquals(expectedPlayer.getCountry().getId(), playerDto.getCountry().getId());
+        assertEquals(expectedPlayer.getCountryCode(), playerDto.getCountryCode());
         assertEquals(expectedPlayer.getDateOfBirth(), playerDto.getDateOfBirth());
     }
 }

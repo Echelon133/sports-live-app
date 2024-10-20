@@ -9,9 +9,6 @@ public interface TeamPlayerDto {
     UUID getId();
     String getPosition();
     Integer getNumber();
-
-    // if country is deleted, set this value to null to prevent any leakage of data (seems to be the simplest solution while using native queries)
-    @Value("#{target.countryDeleted ? null : (target.countryCode)}")
     String getCountryCode();
 
     @Value("#{T(ml.echelon133.matchservice.team.model.TeamPlayerDto.PlayerShortInfoDto).from(target.playerId, target.name, target.dateOfBirth)}")

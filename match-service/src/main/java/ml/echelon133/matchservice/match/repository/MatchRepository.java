@@ -160,13 +160,12 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
     @Query(
             value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
                     "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "c.country_code as countryCode, c.deleted as countryDeleted " +
+                    "p.country_code as countryCode " +
                     "FROM match m " +
                     "JOIN lineup l ON m.home_lineup_id = l.id " +
                     "JOIN starting_player stp ON stp.lineup_id = l.id " +
                     "JOIN team_player tp ON stp.team_player_id = tp.id " +
                     "JOIN player p ON tp.player_id = p.id " +
-                    "JOIN country c ON p.country_id = c.id " +
                     "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
             nativeQuery = true
     )
@@ -182,13 +181,12 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
     @Query(
             value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
                     "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "c.country_code as countryCode, c.deleted as countryDeleted " +
+                    "p.country_code as countryCode " +
                     "FROM match m " +
                     "JOIN lineup l ON m.home_lineup_id = l.id " +
                     "JOIN substitute_player sup ON sup.lineup_id = l.id " +
                     "JOIN team_player tp ON sup.team_player_id = tp.id " +
                     "JOIN player p ON tp.player_id = p.id " +
-                    "JOIN country c ON p.country_id = c.id " +
                     "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
             nativeQuery = true
     )
@@ -204,13 +202,12 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
     @Query(
             value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
                     "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "c.country_code as countryCode, c.deleted as countryDeleted " +
+                    "p.country_code as countryCode " +
                     "FROM match m " +
                     "JOIN lineup l ON m.away_lineup_id = l.id " +
                     "JOIN starting_player stp ON stp.lineup_id = l.id " +
                     "JOIN team_player tp ON stp.team_player_id = tp.id " +
                     "JOIN player p ON tp.player_id = p.id " +
-                    "JOIN country c ON p.country_id = c.id " +
                     "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
             nativeQuery = true
     )
@@ -226,13 +223,12 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
     @Query(
             value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
                     "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "c.country_code as countryCode, c.deleted as countryDeleted " +
+                    "p.country_code as countryCode " +
                     "FROM match m " +
                     "JOIN lineup l ON m.away_lineup_id = l.id " +
                     "JOIN substitute_player sup ON sup.lineup_id = l.id " +
                     "JOIN team_player tp ON sup.team_player_id = tp.id " +
                     "JOIN player p ON tp.player_id = p.id " +
-                    "JOIN country c ON p.country_id = c.id " +
                     "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
             nativeQuery = true
     )

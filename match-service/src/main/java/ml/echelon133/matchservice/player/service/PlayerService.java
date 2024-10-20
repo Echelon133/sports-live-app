@@ -2,9 +2,8 @@ package ml.echelon133.matchservice.player.service;
 
 import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.player.model.PlayerDto;
-import ml.echelon133.matchservice.country.service.CountryService;
 import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.player.model.PlayerDto;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.repository.PlayerRepository;
@@ -26,12 +25,10 @@ public class PlayerService {
     public static final DateTimeFormatter DATE_OF_BIRTH_FORMATTER = DateTimeFormatter.ofPattern(DATE_OF_BIRTH_FORMAT);
 
     private final PlayerRepository playerRepository;
-    private final CountryService countryService;
 
     @Autowired
-    public PlayerService(PlayerRepository playerRepository, CountryService countryService) {
+    public PlayerService(PlayerRepository playerRepository) {
         this.playerRepository = playerRepository;
-        this.countryService = countryService;
     }
 
     /**
@@ -82,10 +79,7 @@ public class PlayerService {
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
         playerToUpdate.setDateOfBirth(LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER));
 
-        // this `UUID.fromString` should never fail because the CountryId value is pre-validated
-        var countryId = UUID.fromString(playerDto.getCountryId());
-        var country = countryService.findEntityById(countryId);
-        playerToUpdate.setCountry(country);
+        playerToUpdate.setCountryCode(playerDto.getCountryCode());
 
         return PlayerMapper.entityToDto(playerRepository.save(playerToUpdate));
     }
@@ -107,11 +101,7 @@ public class PlayerService {
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
         var dateOfBirth = LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER);
 
-        // this `UUID.fromString` should never fail because the CountryId value is pre-validated
-        var countryId = UUID.fromString(playerDto.getCountryId());
-        var country = countryService.findEntityById(countryId);
-
-        var player = new Player(playerDto.getName(), position, dateOfBirth, country);
+        var player = new Player(playerDto.getName(), position, dateOfBirth, playerDto.getCountryCode());
         return PlayerMapper.entityToDto(playerRepository.save(player));
     }
 

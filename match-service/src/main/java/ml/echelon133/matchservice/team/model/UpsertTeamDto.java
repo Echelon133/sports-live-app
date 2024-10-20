@@ -1,7 +1,7 @@
 package ml.echelon133.matchservice.team.model;
 
+import ml.echelon133.common.constraints.CountryCodeFormat;
 import ml.echelon133.matchservice.coach.constraints.CoachExists;
-import ml.echelon133.matchservice.country.constraints.CountryExists;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
 
@@ -18,18 +18,18 @@ public class UpsertTeamDto {
     private String crestUrl;
 
     @NotNull
-    @CountryExists
-    private String countryId;
+    @CountryCodeFormat
+    private String countryCode;
 
     @NotNull
     @CoachExists
     private String coachId;
 
     public UpsertTeamDto() {}
-    public UpsertTeamDto(String name, String crestUrl, String countryId, String coachId) {
+    public UpsertTeamDto(String name, String crestUrl, String countryCode, String coachId) {
         this.name = name;
         this.crestUrl = crestUrl;
-        this.countryId = countryId;
+        this.countryCode = countryCode;
         this.coachId = coachId;
     }
 
@@ -49,12 +49,12 @@ public class UpsertTeamDto {
         this.crestUrl = crestUrl;
     }
 
-    public String getCountryId() {
-        return countryId;
+    public @NotNull String getCountryCode() {
+        return countryCode;
     }
 
-    public void setCountryId(String countryId) {
-        this.countryId = countryId;
+    public void setCountryCode(@NotNull String countryCode) {
+        this.countryCode = countryCode;
     }
 
     public String getCoachId() {

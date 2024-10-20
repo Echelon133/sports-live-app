@@ -1,7 +1,6 @@
 package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.service.PlayerService;
@@ -52,7 +51,7 @@ public class TeamPlayerServiceTests {
                 "Test player",
                 Position.GOALKEEPER,
                 LocalDate.of(1970, 1, 1),
-                new Country("Some country", "SC")
+                "PL"
         );
         return new TeamPlayer(team, player, Position.GOALKEEPER, 1);
     }
@@ -239,7 +238,7 @@ public class TeamPlayerServiceTests {
                 .id(entity.getId())
                 .position(createDto.getPosition())
                 .number(createDto.getNumber())
-                .countryCode(entity.getPlayer().getCountry().getCountryCode())
+                .countryCode(entity.getPlayer().getCountryCode())
                 .playerName(entity.getPlayer().getName())
                 .playerDateOfBirth(entity.getPlayer().getDateOfBirth())
                 .playerId(entity.getPlayer().getId())
@@ -424,7 +423,7 @@ public class TeamPlayerServiceTests {
                 "Player",
                 Position.MIDFIELDER,
                 LocalDate.of(1990, 1, 1),
-                new Country("Test country", "TC")
+                "DE"
         );
         var newPlayerId = newPlayer.getId();
         var newPosition = "MIDFIELDER";
@@ -441,7 +440,7 @@ public class TeamPlayerServiceTests {
                 .id(oldTeamPlayer.getId())
                 .position(newPosition)
                 .number(newNumber)
-                .countryCode(newPlayer.getCountry().getCountryCode())
+                .countryCode(newPlayer.getCountryCode())
                 .playerName(newPlayer.getName())
                 .playerDateOfBirth(newPlayer.getDateOfBirth())
                 .playerId(newPlayer.getId())

@@ -3,8 +3,6 @@ package ml.echelon133.matchservice.player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 
-import java.util.UUID;
-
 public interface TestUpsertPlayerDto {
 
     static UpsertPlayerDtoBuilder builder() {
@@ -13,7 +11,7 @@ public interface TestUpsertPlayerDto {
 
     class UpsertPlayerDtoBuilder {
         private String name = "Test player";
-        private String countryId = UUID.randomUUID().toString();
+        private String countryCode = "PL";
         private String position = Position.FORWARD.name();
         private String dateOfBirth = "1970/01/01";
 
@@ -24,8 +22,8 @@ public interface TestUpsertPlayerDto {
             return this;
         }
 
-        public UpsertPlayerDtoBuilder countryId(String countryId) {
-            this.countryId = countryId;
+        public UpsertPlayerDtoBuilder countryCode(String countryCode) {
+            this.countryCode = countryCode;
             return this;
         }
 
@@ -40,7 +38,7 @@ public interface TestUpsertPlayerDto {
         }
 
         public UpsertPlayerDto build() {
-            return new UpsertPlayerDto(name, countryId, position, dateOfBirth);
+            return new UpsertPlayerDto(name, countryCode, position, dateOfBirth);
         }
     }
 }

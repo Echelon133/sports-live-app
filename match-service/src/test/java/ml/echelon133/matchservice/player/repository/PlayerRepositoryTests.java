@@ -1,8 +1,7 @@
 package ml.echelon133.matchservice.player.repository;
 
-import ml.echelon133.matchservice.player.model.PlayerDto;
-import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.player.model.PlayerDto;
 import ml.echelon133.matchservice.player.model.Position;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +16,8 @@ import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 // Disable kubernetes during tests
 @TestPropertySource(properties = "spring.cloud.kubernetes.enabled=false")
@@ -36,7 +36,7 @@ public class PlayerRepositoryTests {
                 "Robert Lewandowski",
                 Position.FORWARD,
                 LocalDate.of(1988, 8, 21),
-                new Country("Poland", "PL")
+                "PL"
         );
     }
 
@@ -45,7 +45,7 @@ public class PlayerRepositoryTests {
                 name,
                 Position.FORWARD,
                 LocalDate.of(1970, 1, 1),
-                new Country("Poland", "PL")
+                "PL"
         );
     }
 
@@ -55,15 +55,7 @@ public class PlayerRepositoryTests {
         assertEquals(playerEntity.getName(), playerDto.getName());
         assertEquals(playerEntity.getPosition().toString(), playerDto.getPosition());
         assertEquals(playerEntity.getDateOfBirth(), playerDto.getDateOfBirth());
-
-        // countries equal
-        var playerEntityCountry = playerEntity.getCountry();
-        var playerDtoCountry = playerDto.getCountry();
-        assertTrue(
-                playerEntityCountry.getId().equals(playerDtoCountry.getId()) &&
-                playerEntityCountry.getName().equals(playerDtoCountry.getName()) &&
-                playerEntityCountry.getCountryCode().equals(playerDtoCountry.getCountryCode())
-        );
+        assertEquals(playerEntity.getCountryCode(), playerDto.getCountryCode());
     }
 
     @Test
@@ -90,23 +82,6 @@ public class PlayerRepositoryTests {
         // then
         assertTrue(playerDto.isPresent());
         assertEntityAndDtoEqual(player, playerDto.get());
-    }
-
-    @Test
-    @DisplayName("findPlayerById native query finds player when the player exists and does not leak deleted country")
-    public void findPlayerById_PlayerExistsAndCountryDeleted_IsPresentAndDoesNotLeakDeletedCountry() {
-        var country = new Country("Poland", "PL");
-        country.setDeleted(true);
-        var player = getTestPlayer();
-        player.setCountry(country);
-        var savedPlayer = playerRepository.save(player);
-
-        // when
-        var playerDto = playerRepository.findPlayerById(savedPlayer.getId());
-
-        // then
-        assertTrue(playerDto.isPresent());
-        assertNull(playerDto.get().getCountry());
     }
 
     @Test
@@ -166,23 +141,6 @@ public class PlayerRepositoryTests {
         // then
         assertEquals(1, result.getTotalElements());
         assertEntityAndDtoEqual(saved, result.getContent().get(0));
-    }
-
-    @Test
-    @DisplayName("findAllByNameContaining native query does not leak deleted country of a player")
-    public void findAllByNameContaining_PlayerWithDeletedCountry_DoesNotLeakDeletedCountry() {
-        var country = new Country("Poland", "PL");
-        country.setDeleted(true);
-        var player = getTestPlayer();
-        player.setCountry(country);
-        playerRepository.save(player);
-
-        // when
-        Page<PlayerDto> result = playerRepository.findAllByNameContaining(player.getName(), Pageable.ofSize(10));
-
-        // then
-        assertEquals(1, result.getTotalElements());
-        assertNull(result.getContent().get(0).getCountry());
     }
 
     @Test
