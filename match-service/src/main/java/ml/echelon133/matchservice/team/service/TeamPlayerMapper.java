@@ -17,7 +17,7 @@ public class TeamPlayerMapper {
                 ),
                 teamPlayer.getPosition().toString(),
                 teamPlayer.getNumber(),
-                teamPlayer.getPlayer().getCountry().getCountryCode()
+                teamPlayer.getPlayer().getCountryCode()
         );
     }
 }

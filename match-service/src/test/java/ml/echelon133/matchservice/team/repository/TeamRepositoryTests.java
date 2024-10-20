@@ -2,14 +2,13 @@ package ml.echelon133.matchservice.team.repository;
 
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.matchservice.team.model.TeamDto;
 import ml.echelon133.matchservice.coach.model.Coach;
-import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.model.ScoreInfo;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.model.Team;
+import ml.echelon133.matchservice.team.model.TeamDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,15 +45,7 @@ public class TeamRepositoryTests {
         assertEquals(teamEntity.getId(), teamDto.getId());
         assertEquals(teamEntity.getName(), teamDto.getName());
         assertEquals(teamEntity.getCrestUrl(), teamDto.getCrestUrl());
-
-        // countries equal
-        var teamEntityCountry = teamEntity.getCountry();
-        var teamDtoCountry = teamDto.getCountry();
-        assertTrue(
-                teamEntityCountry.getId().equals(teamDtoCountry.getId()) &&
-                teamEntityCountry.getName().equals(teamDtoCountry.getName()) &&
-                teamEntityCountry.getCountryCode().equals(teamDtoCountry.getCountryCode())
-        );
+        assertEquals(teamEntity.getCountryCode(), teamDto.getCountryCode());
 
         // coaches equal
         var teamEntityCoach = teamEntity.getCoach();
@@ -88,22 +79,6 @@ public class TeamRepositoryTests {
         // then
         assertTrue(teamDto.isPresent());
         assertEntityAndDtoEqual(team, teamDto.get());
-    }
-
-    @Test
-    @DisplayName("findTeamById native query finds team when the team exists and does not leak deleted country")
-    public void findTeamById_TeamExistsAndCountryDeleted_IsPresentAndDoesNotLeakDeletedCountry() {
-        var country = new Country("Poland", "PL");
-        country.setDeleted(true);
-        var team = TestTeam.builder().country(country).build();
-        var savedTeam = teamRepository.save(team);
-
-        // when
-        var teamDto = teamRepository.findTeamById(savedTeam.getId());
-
-        // then
-        assertTrue(teamDto.isPresent());
-        assertNull(teamDto.get().getCountry());
     }
 
     @Test
@@ -179,22 +154,6 @@ public class TeamRepositoryTests {
         // then
         assertEquals(1, result.getTotalElements());
         assertEntityAndDtoEqual(saved, result.getContent().get(0));
-    }
-
-    @Test
-    @DisplayName("findAllByNameContaining native query does not leak deleted country of a team")
-    public void findAllByNameContaining_TeamWithDeletedCountry_DoesNotLeakDeletedCountry() {
-        var country = new Country("Poland", "PL");
-        country.setDeleted(true);
-        var team = TestTeam.builder().country(country).build();
-        teamRepository.save(team);
-
-        // when
-        Page<TeamDto> result = teamRepository.findAllByNameContaining(team.getName(), Pageable.ofSize(10));
-
-        // then
-        assertEquals(1, result.getTotalElements());
-        assertNull(result.getContent().get(0).getCountry());
     }
 
     @Test

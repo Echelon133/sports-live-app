@@ -1,19 +1,17 @@
 package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.match.model.ScoreInfoDto;
-import ml.echelon133.matchservice.match.model.ShortTeamDto;
-import ml.echelon133.matchservice.team.model.TeamDto;
-import ml.echelon133.matchservice.team.model.TeamFormDetailsDto;
-import ml.echelon133.matchservice.team.model.TeamFormDto;
 import ml.echelon133.matchservice.coach.model.Coach;
 import ml.echelon133.matchservice.coach.service.CoachService;
-import ml.echelon133.matchservice.country.model.Country;
-import ml.echelon133.matchservice.country.service.CountryService;
+import ml.echelon133.matchservice.match.model.ScoreInfoDto;
+import ml.echelon133.matchservice.match.model.ShortTeamDto;
 import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.TestTeamDto;
 import ml.echelon133.matchservice.team.TestUpsertTeamDto;
 import ml.echelon133.matchservice.team.model.Team;
+import ml.echelon133.matchservice.team.model.TeamDto;
+import ml.echelon133.matchservice.team.model.TeamFormDetailsDto;
+import ml.echelon133.matchservice.team.model.TeamFormDto;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +30,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,9 +39,6 @@ public class TeamServiceTests {
 
     @Mock
     private TeamRepository teamRepository;
-
-    @Mock
-    private CountryService countryService;
 
     @Mock
     private CoachService coachService;
@@ -173,28 +169,6 @@ public class TeamServiceTests {
     }
 
     @Test
-    @DisplayName("updateTeam throws when the country of the team to update does not exist")
-    public void updateTeam_CountryEmpty_Throws() throws ResourceNotFoundException {
-        var teamEntity = TestTeam.builder().build();
-        var teamId = teamEntity.getId();
-        var countryId = UUID.randomUUID();
-
-        // given
-        given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.updateTeam(teamId, TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
     @DisplayName("updateTeam throws when the coach of the team to update does not exist")
     public void updateTeam_CoachEmpty_Throws() throws ResourceNotFoundException {
         var teamEntity = TestTeam.builder().build();
@@ -203,7 +177,6 @@ public class TeamServiceTests {
 
         // given
         given(teamRepository.findById(teamId)).willReturn(Optional.of(teamEntity));
-        given(countryService.findEntityById(any())).willReturn(new Country());
         given(coachService.findEntityById(coachId)).willThrow(
                 new ResourceNotFoundException(Coach.class, coachId)
         );
@@ -221,15 +194,14 @@ public class TeamServiceTests {
     @DisplayName("updateTeam returns the expected dto after correctly updating a team")
     public void updateTeam_TeamUpdated_ReturnsDto() throws ResourceNotFoundException {
         var oldTeam = TestTeam.builder().build();
-        var newCountry = new Country("Portugal", "PT");
-        var newCountryId = newCountry.getId();
+        var newCountry = "PT";
         var newCoach = new Coach("asdf123");
         var newCoachId = newCoach.getId();
         var newCrestUrl = "https://cdn.new.com/image.png";
         var updateDto = TestUpsertTeamDto
                 .builder()
                 .crestUrl(newCrestUrl)
-                .countryId(newCountryId.toString())
+                .countryCode(newCountry)
                 .coachId(newCoachId.toString())
                 .build();
         var expectedTeam = TestTeam
@@ -237,13 +209,12 @@ public class TeamServiceTests {
                 .id(oldTeam.getId())
                 .name(updateDto.getName())
                 .crestUrl(updateDto.getCrestUrl())
-                .country(newCountry)
+                .countryCode(newCountry)
                 .coach(newCoach)
                 .build();
 
         // given
         given(teamRepository.findById(oldTeam.getId())).willReturn(Optional.of(oldTeam));
-        given(countryService.findEntityById(newCountryId)).willReturn(newCountry);
         given(coachService.findEntityById(newCoachId)).willReturn(newCoach);
         given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
@@ -253,7 +224,7 @@ public class TeamServiceTests {
                 t.getId().equals(oldTeam.getId()) &&
                         t.getName().equals(updateDto.getName()) &&
                         t.getCrestUrl().equals(updateDto.getCrestUrl()) &&
-                        t.getCountry().getId().toString().equals(updateDto.getCountryId()) &&
+                        t.getCountryCode().equals(updateDto.getCountryCode()) &&
                         t.getCoach().getId().toString().equals(updateDto.getCoachId())
         ))).willReturn(expectedTeam);
 
@@ -263,7 +234,7 @@ public class TeamServiceTests {
         // then
         assertEquals(oldTeam.getId(), teamDto.getId());
         assertEquals(updateDto.getName(), teamDto.getName());
-        assertEquals(updateDto.getCountryId(), teamDto.getCountry().getId().toString());
+        assertEquals(updateDto.getCountryCode(), teamDto.getCountryCode());
         assertEquals(updateDto.getCoachId(), teamDto.getCoach().getId().toString());
         assertEquals(updateDto.getCrestUrl(), teamDto.getCrestUrl());
     }
@@ -305,25 +276,6 @@ public class TeamServiceTests {
     }
 
     @Test
-    @DisplayName("createTeam throws when the country of the team does not exist")
-    public void createTeam_CountryEmpty_Throws() throws ResourceNotFoundException {
-        var countryId = UUID.randomUUID();
-
-        // given
-        given(countryService.findEntityById(countryId)).willThrow(
-                new ResourceNotFoundException(Country.class, countryId)
-        );
-
-        // when
-        String message = assertThrows(ResourceNotFoundException.class, () -> {
-            teamService.createTeam(TestUpsertTeamDto.builder().countryId(countryId.toString()).build());
-        }).getMessage();
-
-        // then
-        assertEquals(String.format("country %s could not be found", countryId), message);
-    }
-
-    @Test
     @DisplayName("createTeam throws when the coach of the team does not exist")
     public void createTeam_CoachEmpty_Throws() throws ResourceNotFoundException {
         var coachId = UUID.randomUUID();
@@ -332,7 +284,6 @@ public class TeamServiceTests {
         given(coachService.findEntityById(coachId)).willThrow(
                 new ResourceNotFoundException(Coach.class, coachId)
         );
-        given(countryService.findEntityById(any())).willReturn(new Country());
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -346,11 +297,11 @@ public class TeamServiceTests {
     @Test
     @DisplayName("createTeam returns the expected dto after correctly creating a team")
     public void createTeam_TeamCreated_ReturnsDto() throws ResourceNotFoundException {
-        var country = new Country("Portugal", "PT");
+        var country = "PT";
         var coach = new Coach("Test");
         var createDto = TestUpsertTeamDto
                 .builder()
-                .countryId(country.getId().toString())
+                .countryCode(country)
                 .coachId(coach.getId().toString())
                 .crestUrl("https://cdn.test.com/image.png")
                 .build();
@@ -358,12 +309,11 @@ public class TeamServiceTests {
                 .builder()
                 .name(createDto.getName())
                 .crestUrl(createDto.getCrestUrl())
-                .country(country)
+                .countryCode(country)
                 .coach(coach)
                 .build();
 
         // given
-        given(countryService.findEntityById(country.getId())).willReturn(country);
         given(coachService.findEntityById(coach.getId())).willReturn(coach);
         given(teamRepository.save(argThat(t ->
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
@@ -371,7 +321,7 @@ public class TeamServiceTests {
                 // are taken from received upsert DTO
                 t.getName().equals(createDto.getName()) &&
                         t.getCrestUrl().equals(createDto.getCrestUrl()) &&
-                        t.getCountry().getId().toString().equals(createDto.getCountryId()) &&
+                        t.getCountryCode().equals(createDto.getCountryCode()) &&
                         t.getCoach().getId().toString().equals(createDto.getCoachId())
         ))).willReturn(expectedTeam);
 
@@ -381,7 +331,7 @@ public class TeamServiceTests {
         // then
         assertEquals(expectedTeam.getId(), teamDto.getId());
         assertEquals(expectedTeam.getName(), teamDto.getName());
-        assertEquals(expectedTeam.getCountry().getId(), teamDto.getCountry().getId());
+        assertEquals(expectedTeam.getCountryCode(), teamDto.getCountryCode());
         assertEquals(expectedTeam.getCoach().getId(), teamDto.getCoach().getId());
         assertEquals(expectedTeam.getCrestUrl(), teamDto.getCrestUrl());
     }

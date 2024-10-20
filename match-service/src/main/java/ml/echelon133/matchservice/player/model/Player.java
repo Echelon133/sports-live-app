@@ -1,9 +1,11 @@
 package ml.echelon133.matchservice.player.model;
 
 import ml.echelon133.common.entity.BaseEntity;
-import ml.echelon133.matchservice.country.model.Country;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import java.time.LocalDate;
 
 @Entity
@@ -17,16 +19,15 @@ public class Player extends BaseEntity {
 
     private LocalDate dateOfBirth;
 
-    @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-    @JoinColumn(name = "country_id", nullable = false)
-    private Country country;
+    @Column(name = "country_code", nullable = false, length = 2)
+    private String countryCode;
 
     public Player() {}
-    public Player(String name, Position position, LocalDate dateOfBirth, Country country) {
+    public Player(String name, Position position, LocalDate dateOfBirth, String countryCode) {
         this.name = name;
         this.position = position;
         this.dateOfBirth = dateOfBirth;
-        this.country = country;
+        this.countryCode = countryCode;
     }
 
     public String getName() {
@@ -53,11 +54,11 @@ public class Player extends BaseEntity {
         this.dateOfBirth = dateOfBirth;
     }
 
-    public Country getCountry() {
-        return country;
+    public String getCountryCode() {
+        return countryCode;
     }
 
-    public void setCountry(Country country) {
-        this.country = country;
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
     }
 }

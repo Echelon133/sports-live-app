@@ -1,7 +1,6 @@
 package ml.echelon133.matchservice.team;
 
 import ml.echelon133.matchservice.coach.model.Coach;
-import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.team.model.Team;
 
 import java.util.UUID;
@@ -15,7 +14,7 @@ public interface TestTeam {
         private UUID id = UUID.randomUUID();
         private String name = "Test Team";
         private String crestUrl = "https://cdn.statically.io/img/test.com/f=auto/image.png";
-        private Country country = new Country("Test Country", "TC");
+        private String countryCode = "PL";
         private Coach coach = new Coach("Test Coach");
         private boolean deleted = false;
 
@@ -36,8 +35,8 @@ public interface TestTeam {
             return this;
         }
 
-        public TeamBuilder country(Country country) {
-            this.country = country;
+        public TeamBuilder countryCode(String countryCode) {
+            this.countryCode = countryCode;
             return this;
         }
 
@@ -52,7 +51,7 @@ public interface TestTeam {
         }
 
         public Team build() {
-            var team = new Team(name, crestUrl, country, coach);
+            var team = new Team(name, crestUrl, countryCode, coach);
             team.setId(id);
             team.setDeleted(deleted);
             return team;

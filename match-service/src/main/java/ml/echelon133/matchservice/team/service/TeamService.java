@@ -2,13 +2,8 @@ package ml.echelon133.matchservice.team.service;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
-import ml.echelon133.matchservice.team.model.TeamDto;
-import ml.echelon133.matchservice.team.model.TeamFormDetailsDto;
-import ml.echelon133.matchservice.team.model.TeamFormDto;
 import ml.echelon133.matchservice.coach.service.CoachService;
-import ml.echelon133.matchservice.country.service.CountryService;
-import ml.echelon133.matchservice.team.model.Team;
-import ml.echelon133.matchservice.team.model.UpsertTeamDto;
+import ml.echelon133.matchservice.team.model.*;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -25,13 +20,11 @@ import java.util.stream.Collectors;
 public class TeamService {
 
     private final TeamRepository teamRepository;
-    private final CountryService countryService;
     private final CoachService coachService;
 
     @Autowired
-    public TeamService(TeamRepository teamRepository, CountryService countryService, CoachService coachService) {
+    public TeamService(TeamRepository teamRepository, CoachService coachService) {
         this.teamRepository = teamRepository;
-        this.countryService = countryService;
         this.coachService = coachService;
     }
 
@@ -81,10 +74,7 @@ public class TeamService {
         teamToUpdate.setName(teamDto.getName());
         teamToUpdate.setCrestUrl(teamDto.getCrestUrl());
 
-        // this `UUID.fromString` should never fail because the CountryId value is pre-validated
-        var countryId = UUID.fromString(teamDto.getCountryId());
-        var country = countryService.findEntityById(countryId);
-        teamToUpdate.setCountry(country);
+        teamToUpdate.setCountryCode(teamDto.getCountryCode());
 
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
         var coachId = UUID.fromString(teamDto.getCoachId());
@@ -105,15 +95,11 @@ public class TeamService {
      * @throws ResourceNotFoundException thrown when the team's country or coach does not exist in the database
      */
     public TeamDto createTeam(UpsertTeamDto teamDto) throws ResourceNotFoundException {
-        // this `UUID.fromString` should never fail because the CountryId value is pre-validated
-        var countryId = UUID.fromString(teamDto.getCountryId());
-        var country = countryService.findEntityById(countryId);
-
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
         var coachId = UUID.fromString(teamDto.getCoachId());
         var coach = coachService.findEntityById(coachId);
 
-        var team = new Team(teamDto.getName(), teamDto.getCrestUrl(), country, coach);
+        var team = new Team(teamDto.getName(), teamDto.getCrestUrl(), teamDto.getCountryCode(), coach);
         return TeamMapper.entityToDto(teamRepository.save(team));
     }
 

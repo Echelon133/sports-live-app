@@ -1,7 +1,6 @@
 package ml.echelon133.matchservice.team.repository;
 
 
-import ml.echelon133.matchservice.country.model.Country;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 import ml.echelon133.matchservice.team.TestTeam;
@@ -34,7 +33,7 @@ public class TeamPlayerRepositoryTests {
                 name,
                 Position.FORWARD,
                 LocalDate.of(1970, 1, 1),
-                new Country("Test1", "SC")
+                "PL"
         );
     }
 
@@ -140,26 +139,6 @@ public class TeamPlayerRepositoryTests {
     }
 
     @Test
-    @DisplayName("findAllPlayersByTeamId native query does not leak player's country code if the country was marked as deleted")
-    public void findAllPlayersByTeamId_PlayerCountryMarkedAsDeleted_DoesNotLeakDeletedCountry() {
-        var team = TestTeam.builder().build();
-
-        var player = getTestPlayer("Test1");
-        player.getCountry().setDeleted(true);
-
-        teamPlayerRepository.save(
-                new TeamPlayer(team, player, Position.GOALKEEPER, 1)
-        );
-
-        // when
-        var players = teamPlayerRepository.findAllPlayersByTeamId(team.getId());
-
-        // then
-        assertEquals(1, players.size());
-        assertNull(players.get(0).getCountryCode());
-    }
-
-    @Test
     @DisplayName("findAllPlayersByTeamId native query fetches information from all expected columns")
     public void findAllPlayersByTeamId_NonDeletedTeamAndPlayer_FetchesValuesFromAllExpectedColumns() {
         var team = TestTeam.builder().build();
@@ -180,7 +159,7 @@ public class TeamPlayerRepositoryTests {
         assertEquals(savedTeamPlayer.getId(), receivedTeamPlayer.getId());
         assertEquals(savedTeamPlayer.getPosition().toString(), receivedTeamPlayer.getPosition());
         assertEquals(savedTeamPlayer.getNumber(), receivedTeamPlayer.getNumber());
-        assertEquals(savedTeamPlayer.getPlayer().getCountry().getCountryCode(), receivedTeamPlayer.getCountryCode());
+        assertEquals(savedTeamPlayer.getPlayer().getCountryCode(), receivedTeamPlayer.getCountryCode());
 
         var innerPlayer = receivedTeamPlayer.getPlayer();
         assertEquals(player.getId(), innerPlayer.getId());
@@ -265,25 +244,6 @@ public class TeamPlayerRepositoryTests {
     }
 
     @Test
-    @DisplayName("findAllTeamsOfPlayerByPlayerId native query does not leak team's country if it's marked as deleted")
-    public void findAllTeamsOfPlayerByPlayerId_TeamCountryMarkedAsDeleted_DoesNotLeakDeletedCountry() {
-        var team = TestTeam.builder().build();
-        team.getCountry().setDeleted(true);
-
-        var testPlayer = getTestPlayer("Test1");
-        teamPlayerRepository.save(
-                new TeamPlayer(team, testPlayer, Position.GOALKEEPER, 1)
-        );
-
-        // when
-        var teams = teamPlayerRepository.findAllTeamsOfPlayerByPlayerId(testPlayer.getId());
-
-        // then
-        assertEquals(1, teams.size());
-        assertNull(teams.get(0).getCountry());
-    }
-
-    @Test
     @DisplayName("findAllTeamsOfPlayerByPlayerId native query does not leak team's coach if it's marked as deleted")
     public void findAllTeamsOfPlayerByPlayerId_TeamCoachMarkedAsDeleted_DoesNotLeakDeletedCoach() {
         var team = TestTeam.builder().build();
@@ -303,7 +263,7 @@ public class TeamPlayerRepositoryTests {
     }
 
     @Test
-    @DisplayName("findAllTeamsOfPlayerByPlayerId native query finds only teams for whom the player plays")
+    @DisplayName("findAllTeamsOfPlayerByPlayerId native query finds only teams for which the player plays")
     public void findAllTeamsOfPlayerByPlayerId_MultiplePlayersWithTeams_OnlyContainsExpectedTeamsOfPlayer() {
         var team0 = TestTeam.builder().name("Some team").build();
         var team1 = TestTeam.builder().name("Some team 123").build();
@@ -348,10 +308,7 @@ public class TeamPlayerRepositoryTests {
         var coach = team.getCoach();
         assertEquals(coach.getId(), receivedTeam.getCoach().getId());
         assertEquals(coach.getName(), receivedTeam.getCoach().getName());
-        var country = team.getCountry();
-        assertEquals(country.getId(), receivedTeam.getCountry().getId());
-        assertEquals(country.getName(), receivedTeam.getCountry().getName());
-        assertEquals(country.getCountryCode(), receivedTeam.getCountry().getCountryCode());
+        assertEquals(team.getCountryCode(), receivedTeam.getCountryCode());
     }
 
     @Test

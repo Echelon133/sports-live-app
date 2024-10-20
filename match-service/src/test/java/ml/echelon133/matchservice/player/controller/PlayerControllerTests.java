@@ -1,18 +1,15 @@
 package ml.echelon133.matchservice.player.controller;
 
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.player.model.PlayerDto;
-import ml.echelon133.matchservice.team.model.TeamDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
-import ml.echelon133.matchservice.TestValidatorFactory;
-import ml.echelon133.matchservice.country.constraints.CountryExists;
-import ml.echelon133.matchservice.country.repository.CountryRepository;
 import ml.echelon133.matchservice.player.TestPlayerDto;
 import ml.echelon133.matchservice.player.TestUpsertPlayerDto;
 import ml.echelon133.matchservice.player.model.Player;
+import ml.echelon133.matchservice.player.model.PlayerDto;
 import ml.echelon133.matchservice.player.model.UpsertPlayerDto;
 import ml.echelon133.matchservice.player.service.PlayerService;
 import ml.echelon133.matchservice.team.TestTeamDto;
+import ml.echelon133.matchservice.team.model.TeamDto;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,11 +27,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import javax.validation.ConstraintValidator;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasEntry;
@@ -48,10 +43,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class PlayerControllerTests {
 
     private MockMvc mvc;
-
-    // used by @CountryExists.Validator
-    @Mock
-    private CountryRepository countryRepository;
 
     @Mock
     private PlayerService playerService;
@@ -73,13 +64,6 @@ public class PlayerControllerTests {
 
     @BeforeEach
     public void beforeEach() {
-        // validators with mocked dependencies which should be used by the standalone MockMvc configuration
-        // every time a custom constraint validator is requested
-        Map<Class<? extends ConstraintValidator>, ? extends ConstraintValidator> customValidators = Map.of(
-                CountryExists.Validator.class, new CountryExists.Validator(countryRepository)
-        );
-        var validatorFactoryBean = TestValidatorFactory.getInstance(customValidators);
-
         // use a mapper with date/time modules, otherwise LocalDate won't work
         var om = MatchServiceApplication.objectMapper();
 
@@ -90,7 +74,6 @@ public class PlayerControllerTests {
                         // required while testing controller methods which use Pageable
                         new PageableHandlerMethodArgumentResolver()
                 )
-                .setValidator(validatorFactoryBean)
                 .build();
     }
 
@@ -190,10 +173,6 @@ public class PlayerControllerTests {
                 "Xc9f0Gs7BSxW0SWDcEMz6vrM6e970ZQEB6LnTW3sIqtZwZOdcqAl2gvNvn2huYpPwCDnu7td5cFjAUXJaZDmaZ37oJSAKkTthS6hch6qhOJDQpvwISuXgLCHHrjl9VGRPInGCCla0yQ1ZkLVEYsjDUQ2RkrYFTi0wRvf75KXxvcLXqC7DoDGMPNpvvcy1Vh7WxaP3F4C"
         );
 
-        // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-
         // when
         for (String correctName : correctNameLengths) {
             var contentDto = TestUpsertPlayerDto.builder().name(correctName).build();
@@ -210,9 +189,9 @@ public class PlayerControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/players returns 422 when countryId is not provided")
+    @DisplayName("POST /api/players returns 422 when countryCode is not provided")
     public void createPlayer_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = TestUpsertPlayerDto.builder().countryId(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().countryCode(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -223,49 +202,31 @@ public class PlayerControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("field has to be provided")))
+                        jsonPath("$.messages", hasEntry("countryCode", List.of("field has to be provided")))
                 );
     }
 
     @Test
-    @DisplayName("POST /api/players returns 422 when countryId is not a uuid")
-    public void createPlayer_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var contentDto = TestUpsertPlayerDto.builder().countryId("a").build();
-        var json = jsonUpsertPlayerDto.write(contentDto).getJson();
+    @DisplayName("POST /api/players returns 422 when the countryCode is not valid")
+    public void createPlayer_CountryCodeNotValid_StatusUnprocessableEntity() throws Exception {
+        var countryCodes = List.of("AAA", "BBB", "CCC");
 
-        mvc.perform(
-                        post("/api/players")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
-    }
+        for (String countryCode : countryCodes) {
+            var contentDto = TestUpsertPlayerDto.builder().countryCode(countryCode).build();
+            var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
-    @Test
-    @DisplayName("POST /api/players returns 422 when the countryId does not reference an existing entity")
-    public void createPlayer_CountryDoesNotExist_StatusUnprocessableEntity() throws Exception {
-        var countryId = UUID.randomUUID();
-        var contentDto = TestUpsertPlayerDto.builder().countryId(countryId.toString()).build();
-        var json = jsonUpsertPlayerDto.write(contentDto).getJson();
-
-        // given
-        given(countryRepository.existsByIdAndDeletedFalse(countryId)).willReturn(false);
-
-        // when
-        mvc.perform(
-                        post("/api/players")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
+            // when
+            mvc.perform(
+                            post("/api/players")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("countryCode", List.of("invalid ISO 3166-1 alpha-2 country code")))
+                    );
+        }
     }
 
     @Test
@@ -316,10 +277,6 @@ public class PlayerControllerTests {
                 "goalkeeper", "defender", "midfielder", "forward", // lowercase
                 "GOALkeeper", "DEFender", "MIDfielder", "FORward" // mixed
         );
-
-        // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
         for (String correctPosition : correctPositions) {
@@ -386,10 +343,6 @@ public class PlayerControllerTests {
                 "1970/01/01", "1988/08/10", "2000/03/05"
         );
 
-        // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-
         // when
         for (String correctDate : correctDates) {
             var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(correctDate).build();
@@ -419,11 +372,9 @@ public class PlayerControllerTests {
         var expectedJson = jsonPlayerDto.write(expectedDto).getJson();
 
         // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(playerService.createPlayer(argThat(a ->
             a.getName().equals(contentDto.getName()) &&
-                    a.getCountryId().equals(contentDto.getCountryId()) &&
+                    a.getCountryCode().equals(contentDto.getCountryCode()) &&
                     a.getPosition().equals(contentDto.getPosition()) &&
                     a.getDateOfBirth().equals(contentDto.getDateOfBirth())
         ))).willReturn(expectedDto);
@@ -463,8 +414,6 @@ public class PlayerControllerTests {
         var upsertJson = jsonUpsertPlayerDto.write(upsertDto).getJson();
 
         // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(playerService.updatePlayer(eq(playerId), any())).willThrow(
                 new ResourceNotFoundException(Player.class, playerId)
         );
@@ -539,10 +488,6 @@ public class PlayerControllerTests {
                 "Xc9f0Gs7BSxW0SWDcEMz6vrM6e970ZQEB6LnTW3sIqtZwZOdcqAl2gvNvn2huYpPwCDnu7td5cFjAUXJaZDmaZ37oJSAKkTthS6hch6qhOJDQpvwISuXgLCHHrjl9VGRPInGCCla0yQ1ZkLVEYsjDUQ2RkrYFTi0wRvf75KXxvcLXqC7DoDGMPNpvvcy1Vh7WxaP3F4C"
         );
 
-        // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-
         // when
         for (String correctName : correctNameLengths) {
             var contentDto = TestUpsertPlayerDto.builder().name(correctName).build();
@@ -559,10 +504,10 @@ public class PlayerControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/players/:id returns 422 when countryId is not provided")
-    public void updatePlayer_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
+    @DisplayName("PUT /api/players/:id returns 422 when countryCode is not provided")
+    public void updatePlayer_CountryCodeNotProvided_StatusUnprocessableEntity() throws Exception {
         var playerId = UUID.randomUUID();
-        var contentDto = TestUpsertPlayerDto.builder().countryId(null).build();
+        var contentDto = TestUpsertPlayerDto.builder().countryCode(null).build();
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -573,51 +518,32 @@ public class PlayerControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("field has to be provided")))
+                        jsonPath("$.messages", hasEntry("countryCode", List.of("field has to be provided")))
                 );
     }
 
     @Test
-    @DisplayName("PUT /api/players/:id returns 422 when countryId is not a uuid")
-    public void updatePlayer_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var playerId = UUID.randomUUID();
-        var contentDto = TestUpsertPlayerDto.builder().countryId("a").build();
-        var json = jsonUpsertPlayerDto.write(contentDto).getJson();
+    @DisplayName("PUT /api/players/:id returns 422 when the countryCode is not valid")
+    public void updatePlayer_CountryCodeNotValid_StatusUnprocessableEntity() throws Exception {
+        var countryCodes = List.of("AAA", "BBB", "CCC");
 
-        mvc.perform(
-                        put("/api/players/" + playerId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
-    }
+        for (String countryCode : countryCodes) {
+            var playerId = UUID.randomUUID();
+            var contentDto = TestUpsertPlayerDto.builder().countryCode(countryCode).build();
+            var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
-    @Test
-    @DisplayName("PUT /api/players/:id returns 422 when the countryId does not reference an existing entity")
-    public void updatePlayer_CountryDoesNotExist_StatusUnprocessableEntity() throws Exception {
-        var countryId = UUID.randomUUID();
-        var playerId = UUID.randomUUID();
-        var contentDto = TestUpsertPlayerDto.builder().countryId(countryId.toString()).build();
-        var json = jsonUpsertPlayerDto.write(contentDto).getJson();
-
-        // given
-        given(countryRepository.existsByIdAndDeletedFalse(countryId)).willReturn(false);
-
-        // when
-        mvc.perform(
-                        put("/api/players/" + playerId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
+            // when
+            mvc.perform(
+                            put("/api/players/" + playerId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("countryCode", List.of("invalid ISO 3166-1 alpha-2 country code")))
+                    );
+        }
     }
 
     @Test
@@ -671,10 +597,6 @@ public class PlayerControllerTests {
                 "goalkeeper", "defender", "midfielder", "forward", // lowercase
                 "GOALkeeper", "DEFender", "MIDfielder", "FORward" // mixed
         );
-
-        // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
         for (String correctPosition : correctPositions) {
@@ -744,10 +666,6 @@ public class PlayerControllerTests {
                 "1970/01/01", "1988/08/10", "2000/03/05"
         );
 
-        // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-
         // when
         for (String correctDate : correctDates) {
             var contentDto = TestUpsertPlayerDto.builder().dateOfBirth(correctDate).build();
@@ -774,17 +692,16 @@ public class PlayerControllerTests {
                 .name(contentDto.getName())
                 .position(contentDto.getPosition())
                 .dateOfBirth(LocalDate.parse(contentDto.getDateOfBirth(), DateTimeFormatter.ofPattern(PlayerService.DATE_OF_BIRTH_FORMAT)))
+                .countryCode(contentDto.getCountryCode())
                 .build();
         var expectedJson = jsonPlayerDto.write(expectedDto).getJson();
 
         // given
-        // make sure that @CountryExists in UpsertPlayerDto is true
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(playerService.updatePlayer(
                 eq(playerId),
                 argThat(a ->
                 a.getName().equals(contentDto.getName()) &&
-                        a.getCountryId().equals(contentDto.getCountryId()) &&
+                        a.getCountryCode().equals(contentDto.getCountryCode()) &&
                         a.getPosition().equals(contentDto.getPosition()) &&
                         a.getDateOfBirth().equals(contentDto.getDateOfBirth())
         ))).willReturn(expectedDto);

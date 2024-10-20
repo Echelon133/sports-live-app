@@ -1,4 +1,4 @@
-package ml.echelon133.matchservice.country.model.constraints;
+package ml.echelon133.common.constraints;
 
 import javax.validation.Constraint;
 import javax.validation.ConstraintValidator;
@@ -26,10 +26,10 @@ public @interface CountryCodeFormat {
 
         @Override
         public boolean isValid(String flagCode, ConstraintValidatorContext constraintValidatorContext) {
-            if (flagCode != null) {
-                return FLAG_CODE_PATTERN.matcher(flagCode).matches();
+            if (flagCode == null) {
+                return true;
             }
-            return false;
+            return FLAG_CODE_PATTERN.matcher(flagCode).matches();
         }
     }
 }

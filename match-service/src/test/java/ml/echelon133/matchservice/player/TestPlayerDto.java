@@ -1,6 +1,5 @@
 package ml.echelon133.matchservice.player;
 
-import ml.echelon133.matchservice.country.model.CountryDto;
 import ml.echelon133.matchservice.player.model.PlayerDto;
 
 import java.time.LocalDate;
@@ -16,7 +15,7 @@ public interface TestPlayerDto {
         private String name = "Test Player";
         private String position = "FORWARD";
         private LocalDate dateOfBirth = LocalDate.of(1970, 1, 1);
-        private CountryDto countryDto = CountryDto.from(UUID.randomUUID(), "Test Country", "TC");
+        private String countryCode = "PL";
 
         private PlayerDtoBuilder() {}
 
@@ -40,8 +39,8 @@ public interface TestPlayerDto {
             return this;
         }
 
-        public PlayerDtoBuilder countryDto(CountryDto countryDto) {
-            this.countryDto = countryDto;
+        public PlayerDtoBuilder countryCode(String countryCode) {
+            this.countryCode = countryCode;
             return this;
         }
 
@@ -51,7 +50,7 @@ public interface TestPlayerDto {
                     name,
                     position,
                     dateOfBirth,
-                    countryDto
+                    countryCode
             );
         }
     }

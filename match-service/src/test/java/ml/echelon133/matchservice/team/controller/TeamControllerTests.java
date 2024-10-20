@@ -5,8 +5,6 @@ import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
 import ml.echelon133.matchservice.coach.constraints.CoachExists;
 import ml.echelon133.matchservice.coach.repository.CoachRepository;
-import ml.echelon133.matchservice.country.constraints.CountryExists;
-import ml.echelon133.matchservice.country.repository.CountryRepository;
 import ml.echelon133.matchservice.match.model.CompactMatchDto;
 import ml.echelon133.matchservice.match.model.ScoreInfoDto;
 import ml.echelon133.matchservice.match.model.ShortTeamDto;
@@ -56,10 +54,6 @@ public class TeamControllerTests {
 
     private MockMvc mvc;
 
-    // used by @CountryExists.Validator
-    @Mock
-    private CountryRepository countryRepository;
-
     // used by @CoachExists.Validator
     @Mock
     private CoachRepository coachRepository;
@@ -100,7 +94,6 @@ public class TeamControllerTests {
         // validators with mocked dependencies which should be used by the standalone MockMvc configuration
         // every time a custom constraint validator is requested
         Map<Class<? extends ConstraintValidator>, ? extends ConstraintValidator> customValidators = Map.of(
-                CountryExists.Validator.class, new CountryExists.Validator(countryRepository),
                 CoachExists.Validator.class, new CoachExists.Validator(coachRepository),
                 PlayerExists.Validator.class, new PlayerExists.Validator(playerRepository)
         );
@@ -218,7 +211,6 @@ public class TeamControllerTests {
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
         for (String correctName : correctNameLengths) {
@@ -272,9 +264,9 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/teams returns 422 when countryId is not provided")
+    @DisplayName("POST /api/teams returns 422 when countryCode is not provided")
     public void createTeam_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
-        var contentDto = TestUpsertTeamDto.builder().countryId(null).build();
+        var contentDto = TestUpsertTeamDto.builder().countryCode(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -285,50 +277,34 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("field has to be provided")))
+                        jsonPath("$.messages", hasEntry("countryCode", List.of("field has to be provided")))
                 );
     }
 
     @Test
-    @DisplayName("POST /api/teams returns 422 when countryId is not a uuid")
-    public void createTeam_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var contentDto = TestUpsertTeamDto.builder().countryId("a").build();
-        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+    @DisplayName("POST /api/teams returns 422 when the countryCode is not valid")
+    public void createTeam_CountryCodeNotValid_StatusUnprocessableEntity() throws Exception {
+        var countryCodes = List.of("AAA", "BBB", "CCC");
 
-        mvc.perform(
-                        post("/api/teams")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
-    }
+        for (String countryCode : countryCodes) {
+            var contentDto = TestUpsertTeamDto.builder().countryCode(countryCode).build();
+            var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
-    @Test
-    @DisplayName("POST /api/teams returns 422 when the countryId does not reference an existing entity")
-    public void createTeam_CountryDoesNotExist_StatusUnprocessableEntity() throws Exception {
-        var countryId = UUID.randomUUID();
-        var contentDto = TestUpsertTeamDto.builder().countryId(countryId.toString()).build();
-        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+            // given
+            given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
-        // given
-        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-        given(countryRepository.existsByIdAndDeletedFalse(countryId)).willReturn(false);
-
-        // when
-        mvc.perform(
-                        post("/api/teams")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
+            // when
+            mvc.perform(
+                            post("/api/teams")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("countryCode", List.of("invalid ISO 3166-1 alpha-2 country code")))
+                    );
+        }
     }
 
     @Test
@@ -376,7 +352,6 @@ public class TeamControllerTests {
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(coachId)).willReturn(false);
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
         mvc.perform(
@@ -404,11 +379,10 @@ public class TeamControllerTests {
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(teamService.createTeam(argThat(a ->
                 a.getName().equals(contentDto.getName()) &&
                         a.getCrestUrl().equals(contentDto.getCrestUrl()) &&
-                        a.getCountryId().equals(contentDto.getCountryId()) &&
+                        a.getCountryCode().equals(contentDto.getCountryCode()) &&
                         a.getCoachId().equals(contentDto.getCoachId())
         ))).willReturn(expectedDto);
 
@@ -448,7 +422,6 @@ public class TeamControllerTests {
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(teamService.updateTeam(eq(teamId), any())).willThrow(
                 new ResourceNotFoundException(Team.class, teamId)
         );
@@ -525,7 +498,6 @@ public class TeamControllerTests {
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
         for (String correctName : correctNameLengths) {
@@ -581,10 +553,10 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("PUT /api/teams/:id returns 422 when countryId is not provided")
+    @DisplayName("PUT /api/teams/:id returns 422 when countryCode is not provided")
     public void updateTeam_CountryIdNotProvided_StatusUnprocessableEntity() throws Exception {
         var teamId = UUID.randomUUID();
-        var contentDto = TestUpsertTeamDto.builder().countryId(null).build();
+        var contentDto = TestUpsertTeamDto.builder().countryCode(null).build();
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -595,52 +567,35 @@ public class TeamControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("field has to be provided")))
+                        jsonPath("$.messages", hasEntry("countryCode", List.of("field has to be provided")))
                 );
     }
 
     @Test
-    @DisplayName("PUT /api/teams/:id returns 422 when countryId is not a uuid")
-    public void updateTeam_CountryIdInvalidUuid_StatusUnprocessableEntity() throws Exception {
-        var teamId = UUID.randomUUID();
-        var contentDto = TestUpsertTeamDto.builder().countryId("a").build();
-        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+    @DisplayName("PUT /api/teams/:id returns 422 when the countryCode is not valid")
+    public void updateTeam_CountryCodeNotValid_StatusUnprocessableEntity() throws Exception {
+        var countryCodes = List.of("AAA", "BBB", "CCC");
 
-        mvc.perform(
-                        put("/api/teams/" + teamId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
-    }
+        for (String countryCode : countryCodes) {
+            var teamId = UUID.randomUUID();
+            var contentDto = TestUpsertTeamDto.builder().countryCode(countryCode).build();
+            var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
-    @Test
-    @DisplayName("PUT /api/teams/:id returns 422 when the countryId does not reference an existing entity")
-    public void updateTeam_CountryDoesNotExist_StatusUnprocessableEntity() throws Exception {
-        var countryId = UUID.randomUUID();
-        var teamId = UUID.randomUUID();
-        var contentDto = TestUpsertTeamDto.builder().countryId(countryId.toString()).build();
-        var json = jsonUpsertTeamDto.write(contentDto).getJson();
+            // given
+            given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
-        // given
-        given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-        given(countryRepository.existsByIdAndDeletedFalse(countryId)).willReturn(false);
-
-        // when
-        mvc.perform(
-                        put("/api/teams/" + teamId)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(
-                        jsonPath("$.messages", hasEntry("countryId", List.of("id does not belong to a valid country")))
-                );
+            // when
+            mvc.perform(
+                            put("/api/teams/" + teamId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("countryCode", List.of("invalid ISO 3166-1 alpha-2 country code")))
+                    );
+        }
     }
 
     @Test
@@ -691,7 +646,6 @@ public class TeamControllerTests {
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(coachId)).willReturn(false);
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
 
         // when
         mvc.perform(
@@ -720,13 +674,12 @@ public class TeamControllerTests {
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
-        given(countryRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(teamService.updateTeam(
                 eq(teamId),
                 argThat(a ->
                         a.getName().equals(contentDto.getName()) &&
                                 a.getCrestUrl().equals(contentDto.getCrestUrl()) &&
-                                a.getCountryId().equals(contentDto.getCountryId()) &&
+                                a.getCountryCode().equals(contentDto.getCountryCode()) &&
                                 a.getCoachId().equals(contentDto.getCoachId())
                 ))).willReturn(expectedDto);
 
