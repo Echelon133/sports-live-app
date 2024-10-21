@@ -40,6 +40,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -629,8 +630,8 @@ public class CompetitionControllerTests {
         List<List<String>> incorrectGroupTeamSizes = List.of(
                 // 1 team
                 generateTeamIds(1),
-                /// 25 teams
-                generateTeamIds(25)
+                /// 37 teams
+                generateTeamIds(37)
         );
 
         for (List<String> teams : incorrectGroupTeamSizes) {
@@ -646,7 +647,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("groups[0].teams", List.of("size must be between 2 and 24")))
+                            jsonPath("$.messages", hasEntry("groups[0].teams", List.of("size must be between 2 and 36")))
                     );
         }
     }
@@ -657,8 +658,8 @@ public class CompetitionControllerTests {
         List<List<String>> correctGroupTeamSizes = List.of(
                 // 2 teams
                 generateTeamIds(2),
-                /// 24 teams
-                generateTeamIds(24)
+                /// 36 teams
+                generateTeamIds(36)
         );
 
         // given
@@ -803,9 +804,11 @@ public class CompetitionControllerTests {
         List<List<UpsertCompetitionDto.UpsertLegendDto>> incorrectPositionSize = List.of(
                 // 0 positions
                 List.of(TestUpsertLegendDto.builder().positions(Set.of()).build()),
-                // 7 positions
-                List.of(TestUpsertLegendDto.builder().positions(Set.of(1, 2, 3, 4, 5, 6, 7)).build())
-        );
+                // 17 positions
+                List.of(TestUpsertLegendDto.builder().positions(
+                        Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17)
+                ).build()
+                ));
 
         for (List<UpsertCompetitionDto.UpsertLegendDto> legend : incorrectPositionSize) {
             var contentDto = TestUpsertCompetitionDto.builder()
@@ -820,7 +823,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("legend[0].positions", List.of("size must be between 1 and 6")))
+                            jsonPath("$.messages", hasEntry("legend[0].positions", List.of("size must be between 1 and 16")))
                     );
         }
     }
@@ -831,8 +834,10 @@ public class CompetitionControllerTests {
         List<List<UpsertCompetitionDto.UpsertLegendDto>> correctPositionSize = List.of(
                 // 1 position
                 List.of(TestUpsertLegendDto.builder().positions(Set.of(1)).build()),
-                // 6 positions
-                List.of(TestUpsertLegendDto.builder().positions(Set.of(2, 3, 4, 5, 6, 7)).build())
+                // 16 positions
+                List.of(TestUpsertLegendDto.builder().positions(
+                        Set.of(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17)
+                ).build())
         );
 
         // given
@@ -851,6 +856,7 @@ public class CompetitionControllerTests {
                                     .accept(MediaType.APPLICATION_JSON)
                                     .content(json)
                     )
+                    .andDo(print())
                     .andExpect(status().isOk());
         }
     }
@@ -1012,12 +1018,12 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 422 when legend references positions that do not appear in a group")
     public void createCompetition_LegendPositionsNotInRangeForSingleGroup_StatusUnprocessableEntity() throws Exception {
-        // default TestUpsertGroupDto in TestUpsertCompetitionDto creates a single group of 10 teams,
-        // which means that positions 0, 11, 12, 13, etc. are not legal, because they refer to
+        // default TestUpsertGroupDto in TestUpsertCompetitionDto creates a single group of 20 teams,
+        // which means that positions 0, 21, 22, 23, etc. are not legal, because they refer to
         // positions which do not exist in a group
         List<UpsertCompetitionDto.UpsertLegendDto> incorrectPositionReferences =
                 IntStream
-                        .of(0, 11, 20, 25, 50)
+                        .of(0, 21, 30, 35, 50)
                         .mapToObj(i -> TestUpsertLegendDto.builder().positions(Set.of(i)).build())
                         .collect(Collectors.toList());
 

@@ -15,7 +15,7 @@ public interface TestUpsertGroupDto {
 
     class UpsertGroupDtoBuilder {
         private String name = "Group " + UUID.randomUUID();
-        private List<String> teams = IntStream.range(0, 10).mapToObj(i ->
+        private List<String> teams = IntStream.range(0, 20).mapToObj(i ->
                 UUID.randomUUID().toString()).collect(Collectors.toList());
 
         private UpsertGroupDtoBuilder() {}

@@ -71,7 +71,7 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
                     "WHERE ps.competition_id = :competitionId " +
                     "ORDER BY ps.goals DESC, ps.assists DESC",
             countQuery =
-                    "SELECT (*) " +
+                    "SELECT COUNT(*) " +
                     "FROM player_stats ps " +
                     "WHERE ps.competition_id = :competitionId ",
             nativeQuery = true

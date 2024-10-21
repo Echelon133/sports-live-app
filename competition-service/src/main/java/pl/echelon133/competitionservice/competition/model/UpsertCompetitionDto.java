@@ -84,7 +84,7 @@ public class UpsertCompetitionDto {
         @Length(max = 50)
         private String name;
 
-        @Size(min = 2, max = 24)
+        @Size(min = 2, max = 36)
         private List<@UUID String> teams;
 
         public UpsertGroupDto() {}
@@ -112,7 +112,7 @@ public class UpsertCompetitionDto {
 
     public static class UpsertLegendDto {
 
-        @Size(min = 1, max = 6)
+        @Size(min = 1, max = 16)
         private Set<Integer> positions;
 
         @NotNull
