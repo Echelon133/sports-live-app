@@ -1,6 +1,7 @@
 package ml.echelon133.matchservice.match.model;
 
 import ml.echelon133.common.event.MatchEventType;
+import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 
 import java.io.Serializable;
@@ -85,10 +86,12 @@ public abstract class GlobalMatchEventDto implements Serializable {
      */
     public static class StatusEvent extends GlobalMatchEventDto {
         private MatchStatus targetStatus;
+        private MatchResult result;
 
-        public StatusEvent(UUID matchId, MatchStatus targetStatus) {
+        public StatusEvent(UUID matchId, MatchStatus targetStatus, MatchResult result) {
             super(matchId, MatchEventType.STATUS);
             this.targetStatus = targetStatus;
+            this.result = result;
         }
 
         public MatchStatus getTargetStatus() {
@@ -97,6 +100,14 @@ public abstract class GlobalMatchEventDto implements Serializable {
 
         public void setTargetStatus(MatchStatus targetStatus) {
             this.targetStatus = targetStatus;
+        }
+
+        public MatchResult getResult() {
+            return result;
+        }
+
+        public void setResult(MatchResult result) {
+            this.result = result;
         }
     }
 }
