@@ -428,9 +428,97 @@ public class MatchEventServiceTests {
                 var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
                 return sentGlobalEvent.getMatchId().equals(matchId) &&
                         sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
+                        sentGlobalEvent.getResult().equals(MatchResult.NONE) &&
                         sentGlobalEvent.getTargetStatus().toString().equals(statusEvent.getTargetStatus());
             }));
         }
+    }
+
+    @Test
+    @DisplayName("processEvent broadcasts global websocket message with correct result when home team wins")
+    public void processEvent_MatchStatusChangesHomeTeamWins_SendsGlobalWebsocketMessage()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+
+        var match = TestMatch.builder()
+                .status(MatchStatus.SECOND_HALF)
+                .scoreInfo(ScoreInfo.of(2, 1))
+                .build();
+        var matchId = match.getId();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        // when
+        matchEventService.processEvent(matchId, finishingStatus);
+
+        // then
+        verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
+            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
+            return sentGlobalEvent.getMatchId().equals(matchId) &&
+                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
+                    sentGlobalEvent.getResult().equals(MatchResult.HOME_WIN) &&
+                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent broadcasts global websocket message with correct result when away team wins")
+    public void processEvent_MatchStatusChangesAwayTeamWins_SendsGlobalWebsocketMessage()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+
+        var match = TestMatch.builder()
+                .status(MatchStatus.SECOND_HALF)
+                .scoreInfo(ScoreInfo.of(1, 2))
+                .build();
+        var matchId = match.getId();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        // when
+        matchEventService.processEvent(matchId, finishingStatus);
+
+        // then
+        verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
+            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
+            return sentGlobalEvent.getMatchId().equals(matchId) &&
+                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
+                    sentGlobalEvent.getResult().equals(MatchResult.AWAY_WIN) &&
+                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+        }));
+    }
+
+    @Test
+    @DisplayName("processEvent broadcasts global websocket message with correct result when teams draw")
+    public void processEvent_MatchStatusChangesTeamsDraw_SendsGlobalWebsocketMessage()
+            throws ResourceNotFoundException, MatchEventInvalidException {
+
+        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+
+        var match = TestMatch.builder()
+                .status(MatchStatus.SECOND_HALF)
+                .scoreInfo(ScoreInfo.of(2, 2))
+                .build();
+        var matchId = match.getId();
+
+        // given
+        given(matchService.findEntityById(matchId)).willReturn(match);
+
+        // when
+        matchEventService.processEvent(matchId, finishingStatus);
+
+        // then
+        verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
+            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
+            return sentGlobalEvent.getMatchId().equals(matchId) &&
+                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
+                    sentGlobalEvent.getResult().equals(MatchResult.DRAW) &&
+                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+        }));
     }
 
     @Test

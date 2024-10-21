@@ -194,7 +194,8 @@ public class MatchEventService {
         // globally broadcast a match changing its status
         matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.StatusEvent(
                 match.getId(),
-                targetStatus
+                targetStatus,
+                match.getResult()
         ));
 
         match.setStatus(targetStatus);
