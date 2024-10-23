@@ -6,7 +6,7 @@ Backend for an application which lets users:
 *  lookup dates of future matches
 *  check team standings and player statistics filtered by competition
 
-## Technology
+## Tech stack
 
 * Jenkins
 * Kubernetes
