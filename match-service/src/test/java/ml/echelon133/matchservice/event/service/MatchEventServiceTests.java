@@ -23,14 +23,19 @@ import ml.echelon133.matchservice.team.TestTeam;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.exceptions.misusing.InvalidUseOfMatchersException;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,6 +45,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class MatchEventServiceTests {
+
+    @Mock
+    private Clock clock;
 
     @Mock
     private MatchEventRepository matchEventRepository;
@@ -58,6 +66,15 @@ public class MatchEventServiceTests {
 
     @InjectMocks
     private MatchEventService matchEventService;
+
+    @BeforeEach
+    public void beforeEach() {
+        // Simplest setup which avoids NullPointerException being thrown by all test cases
+        // which need the clock while calling LocalDateTime.now(clock).
+        // This solution should be lenient to also avoid UnnecessaryStubbingException.
+        Mockito.lenient().when(clock.instant()).thenReturn(Clock.systemUTC().instant());
+        Mockito.lenient().when(clock.getZone()).thenReturn(ZoneOffset.MIN);
+    }
 
     // this method simplifies binding concrete arguments to concrete responses from mocked
     // TeamPlayerService's `findEntityById` method.
@@ -431,6 +448,53 @@ public class MatchEventServiceTests {
                         sentGlobalEvent.getResult().equals(MatchResult.NONE) &&
                         sentGlobalEvent.getTargetStatus().toString().equals(statusEvent.getTargetStatus());
             }));
+        }
+    }
+
+    @Test
+    @DisplayName("processEvent of STATUS events only sets the last modification date of the status when the status actually changes")
+    public void processEvent_AllCombinationsOfStatusChanges_OnlySetsLastModificationDateOnSuccessfulStatusChange()
+            throws ResourceNotFoundException {
+
+        var expectedStatusLastModifiedUTC = LocalDateTime.now();
+
+        // given
+        given(clock.instant()).willReturn(expectedStatusLastModifiedUTC.toInstant(ZoneOffset.MIN));
+
+        // check all combinations of initial and target statuses that are possible
+        for (MatchStatus initialMatchStatus: MatchStatus.values()) {
+            for (MatchStatus targetMatchStatus: MatchStatus.values()) {
+                var match = TestMatch.builder()
+                        .status(initialMatchStatus)
+                        // set both scorelines to an impossible state to avoid throwing on checks that do not allow
+                        // the extra-time or penalties to end in a draw
+                        .scoreInfo(ScoreInfo.of(2, 1))
+                        .penaltiesInfo(ScoreInfo.of(3, 1))
+                        .build();
+                var matchId = match.getId();
+
+                // given
+                given(matchService.findEntityById(matchId)).willReturn(match);
+
+                // when
+                var testedEvent = new InsertMatchEvent.StatusDto("1", targetMatchStatus.name());
+
+                try {
+                    matchEventService.processEvent(matchId, testedEvent);
+
+                    // if processing has succeeded:
+                    //      * the status should always be updated
+                    //      * the statusLastModifiedUTC should always be set to LocalDateTime.now()
+                    assertEquals(targetMatchStatus, match.getStatus());
+                    assertEquals(expectedStatusLastModifiedUTC, match.getStatusLastModifiedUTC());
+                } catch (MatchEventInvalidException ignore) {
+                    // if processing has failed:
+                    //      * the status must NOT be updated
+                    //      * the statusLastModifiedUTC original value must remain (null in this case)
+                    assertEquals(initialMatchStatus, match.getStatus());
+                    assertNull(match.getStatusLastModifiedUTC());
+                }
+            }
         }
     }
 

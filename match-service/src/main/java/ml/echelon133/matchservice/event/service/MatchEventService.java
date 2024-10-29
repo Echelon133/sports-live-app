@@ -6,12 +6,12 @@ import ml.echelon133.common.event.dto.MatchEventDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
-import ml.echelon133.matchservice.match.model.LineupDto;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
 import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
+import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
+import ml.echelon133.matchservice.match.model.LineupDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +36,7 @@ import static ml.echelon133.common.match.MatchStatus.*;
 @Transactional
 public class MatchEventService {
 
+    private final Clock clock;
     private final MatchService matchService;
     private final TeamPlayerService teamPlayerService;
     private final MatchEventRepository matchEventRepository;
@@ -42,12 +45,14 @@ public class MatchEventService {
 
     @Autowired
     public MatchEventService(
+            Clock clock,
             MatchService matchService,
             TeamPlayerService teamPlayerService,
             MatchEventRepository matchEventRepository,
             MatchEventWebsocketService matchEventWebsocketService,
             KafkaProducer<UUID, MatchEventDetails> matchEventDetailsProducer
     ) {
+        this.clock = clock;
         this.matchService = matchService;
         this.teamPlayerService = teamPlayerService;
         this.matchEventRepository = matchEventRepository;
@@ -199,6 +204,11 @@ public class MatchEventService {
         ));
 
         match.setStatus(targetStatus);
+
+        // set the time of last status modification, so that it's possible for the client
+        // to approximate the match clock of live matches
+        match.setStatusLastModifiedUTC(LocalDateTime.now(clock));
+
         return new MatchEvent(match, eventDetails);
     }
 
