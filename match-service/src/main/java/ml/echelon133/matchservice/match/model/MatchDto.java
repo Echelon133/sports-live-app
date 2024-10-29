@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface MatchDto {
     UUID getId();
     String getStatus();
+    LocalDateTime getStatusLastModifiedUTC();
     String getResult();
     UUID getCompetitionId();
     LocalDateTime getStartTimeUTC();
@@ -46,6 +47,7 @@ public interface MatchDto {
     class MatchDtoBuilder {
         private UUID id;
         private String status;
+        private LocalDateTime statusLastModifiedUTC;
         private String result;
         private UUID competitionId;
         private LocalDateTime startTimeUTC;
@@ -66,6 +68,11 @@ public interface MatchDto {
 
         public MatchDtoBuilder status(String status) {
             this.status = status;
+            return this;
+        }
+
+        public MatchDtoBuilder statusLastModifiedUTC(LocalDateTime statusLastModifiedUTC) {
+            this.statusLastModifiedUTC = statusLastModifiedUTC;
             return this;
         }
 
@@ -129,6 +136,11 @@ public interface MatchDto {
                 @Override
                 public String getStatus() {
                     return status;
+                }
+
+                @Override
+                public LocalDateTime getStatusLastModifiedUTC() {
+                    return statusLastModifiedUTC;
                 }
 
                 @Override

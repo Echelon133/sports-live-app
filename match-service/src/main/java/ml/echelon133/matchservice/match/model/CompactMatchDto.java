@@ -8,6 +8,7 @@ import java.util.UUID;
 public interface CompactMatchDto {
     UUID getId();
     String getStatus();
+    LocalDateTime getStatusLastModifiedUTC();
     String getResult();
     UUID getCompetitionId();
     LocalDateTime getStartTimeUTC();
@@ -39,6 +40,7 @@ public interface CompactMatchDto {
     class CompactMatchDtoBuilder {
         private UUID id;
         private String status;
+        private LocalDateTime statusLastModifiedUTC;
         private String result;
         private UUID competitionId;
         private LocalDateTime startTimeUTC;
@@ -58,6 +60,11 @@ public interface CompactMatchDto {
 
         public CompactMatchDtoBuilder status(String status) {
             this.status = status;
+            return this;
+        }
+
+        public CompactMatchDtoBuilder statusLastModifiedUTC(LocalDateTime statusLastModifiedUTC) {
+            this.statusLastModifiedUTC = statusLastModifiedUTC;
             return this;
         }
 
@@ -116,6 +123,11 @@ public interface CompactMatchDto {
                 @Override
                 public String getStatus() {
                     return status;
+                }
+
+                @Override
+                public LocalDateTime getStatusLastModifiedUTC() {
+                    return statusLastModifiedUTC;
                 }
 
                 @Override

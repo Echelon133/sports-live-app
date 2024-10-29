@@ -26,6 +26,9 @@ public class Match extends BaseEntity {
     @Column(nullable = false, length = 15)
     private MatchStatus status;
 
+    @Column(name = "status_last_modified_utc")
+    private LocalDateTime statusLastModifiedUTC;
+
     @ManyToOne(optional = false, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinColumn(name = "home_team_id", nullable = false)
     private Team homeTeam;
@@ -83,6 +86,7 @@ public class Match extends BaseEntity {
 
     public Match() {
         this.status = MatchStatus.NOT_STARTED;
+        this.statusLastModifiedUTC = null;
         this.halfTimeScoreInfo = new ScoreInfo();
         this.scoreInfo = new ScoreInfo();
         this.penaltiesInfo = new ScoreInfo();
@@ -98,6 +102,14 @@ public class Match extends BaseEntity {
 
     public void setStatus(MatchStatus status) {
         this.status = status;
+    }
+
+    public LocalDateTime getStatusLastModifiedUTC() {
+        return statusLastModifiedUTC;
+    }
+
+    public void setStatusLastModifiedUTC(LocalDateTime statusLastModifiedUTC) {
+        this.statusLastModifiedUTC = statusLastModifiedUTC;
     }
 
     public Team getHomeTeam() {

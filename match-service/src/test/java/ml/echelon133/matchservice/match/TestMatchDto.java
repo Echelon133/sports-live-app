@@ -17,6 +17,7 @@ public interface TestMatchDto {
         return MatchDto.builder()
                 .id(UUID.randomUUID())
                 .status(MatchStatus.NOT_STARTED.toString())
+                .statusLastModifiedUTC(null)
                 .result(MatchResult.NONE.toString())
                 .competitionId(UUID.randomUUID())
                 .startTimeUTC(LocalDateTime.of(2023, 1, 1, 20, 0))
