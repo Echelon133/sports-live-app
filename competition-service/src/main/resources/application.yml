@@ -1,6 +1,11 @@
 server:
   port: 80
 
+feign:
+  autoconfiguration:
+    jackson:
+      enabled: true
+
 spring:
   kafka:
     bootstrap-servers: http://kafka-service:9092
