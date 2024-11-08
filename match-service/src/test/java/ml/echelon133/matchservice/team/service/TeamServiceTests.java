@@ -276,6 +276,28 @@ public class TeamServiceTests {
     }
 
     @Test
+    @DisplayName("findTeamsByIds correctly calls the repository method")
+    public void findTeamsByIds_CustomIdsAndPageable_CorrectlyCallsRepository() {
+        var pageable = Pageable.ofSize(7).withPage(4);
+        var expectedDto = TestTeamDto.builder().build();
+        var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
+
+        var requestedTeamIds = List.of(expectedDto.getId());
+
+        // given
+        given(teamRepository.findAllByTeamIds(
+                eq(requestedTeamIds),
+                argThat(p -> p.getPageSize() == 7 && p.getPageNumber() == 4)
+        )).willReturn(expectedPage);
+
+        // when
+        var result = teamService.findTeamsByIds(requestedTeamIds, pageable);
+
+        // then
+        assertEquals(1, result.getNumberOfElements());
+    }
+
+    @Test
     @DisplayName("createTeam throws when the coach of the team does not exist")
     public void createTeam_CoachEmpty_Throws() throws ResourceNotFoundException {
         var coachId = UUID.randomUUID();
