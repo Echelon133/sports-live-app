@@ -695,20 +695,40 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/teams?name= returns 400 when `name` is not provided")
-    public void getTeamsByName_NameNotProvided_StatusBadRequest() throws Exception {
+    @DisplayName("GET /api/teams returns 400 when neither `name` nor 'teamIds' are provided")
+    public void getTeamsByCriteria_NameAndTeamIdsNotProvided_StatusBadRequest() throws Exception {
         mvc.perform(
                         get("/api/teams")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages[0]", is("query parameter 'name' not provided")));
+                .andExpect(jsonPath("$.messages", containsInAnyOrder(
+                        "query parameter 'name' not provided",
+                        "query parameter 'teamIds' not provided"
+                )));
     }
 
     @Test
-    @DisplayName("GET /api/teams?name returns 200 when `name` is provided and pageable is default")
-    public void getTeamsByName_NameProvidedWithDefaultPageable_StatusOk() throws Exception {
+    @DisplayName("GET /api/teams returns 400 when both `name` and 'teamIds' are provided")
+    public void getTeamsByCriteria_NameAndTeamIdsProvided_StatusBadRequest() throws Exception {
+        mvc.perform(
+                        get("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("name", "test")
+                                .param("teamIds", String.format("%s,%s", UUID.randomUUID(), UUID.randomUUID()))
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages", containsInAnyOrder(
+                        "query parameter 'name' cannot be provided together with 'teamIds'",
+                        "query parameter 'teamIds' cannot be provided together with 'name'"
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams returns 200 when only `name` is provided and pageable is default")
+    public void getTeamsByCriteria_NameProvidedWithDefaultPageable_StatusOk() throws Exception {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
@@ -732,8 +752,8 @@ public class TeamControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/teams?name returns 200 when `name` is provided and pageable values are custom")
-    public void getTeamsByName_NameProvidedWithCustomPageParameters_StatusOk() throws Exception {
+    @DisplayName("GET /api/teams returns 200 when only `name` is provided and pageable values are custom")
+    public void getTeamsByCriteria_NameProvidedWithCustomPageParameters_StatusOk() throws Exception {
         var pValue = "test";
         var testPageSize = 7;
         var testPageNumber = 4;
@@ -759,6 +779,62 @@ public class TeamControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.size()", is(1)))
                 .andExpect(jsonPath("$.content[0].name", is(pValue)));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams returns 200 when only `teamIds` is provided and pageable is default")
+    public void getTeamsByCriteria_TeamIdsProvidedWithDefaultPageable_StatusOk() throws Exception {
+        var defaultPageNumber = 0;
+        var defaultPageSize = 20;
+
+        Page<TeamDto> expectedPage = Page.empty();
+
+        var requestedTeamId = UUID.randomUUID();
+
+        //given
+        given(teamService.findTeamsByIds(
+                eq(List.of(requestedTeamId)),
+                argThat(p -> p.getPageSize() == defaultPageSize && p.getPageNumber() == defaultPageNumber)
+        )).willReturn(expectedPage);
+
+        mvc.perform(
+                        get("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("teamIds", requestedTeamId.toString())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/teams returns 200 when only `teamIds` is provided and pageable values are custom")
+    public void getTeamsByCriteria_TeamIdsProvidedWithCustomPageParameters_StatusOk() throws Exception {
+        var requestedTeamId = UUID.randomUUID();
+        var testPageSize = 7;
+        var testPageNumber = 4;
+        var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
+        var expectedContent = List.of(TestTeamDto.builder().id(requestedTeamId).build());
+
+        Page<TeamDto> expectedPage = new PageImpl<>(expectedContent, expectedPageable, 1);
+
+        //given
+        given(teamService.findTeamsByIds(
+                eq(List.of(requestedTeamId)),
+                argThat(p -> p.getPageNumber() == testPageNumber && p.getPageSize() == testPageSize)
+        )).willReturn(expectedPage);
+
+        mvc.perform(
+                        get("/api/teams")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("teamIds", requestedTeamId.toString())
+                                .param("page", String.valueOf(testPageNumber))
+                                .param("size", String.valueOf(testPageSize))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(1)))
+                .andExpect(jsonPath("$.content[0].id", is(requestedTeamId.toString())));
     }
 
     @Test
