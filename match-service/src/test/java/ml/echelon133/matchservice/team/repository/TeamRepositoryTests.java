@@ -230,6 +230,93 @@ public class TeamRepositoryTests {
     }
 
     @Test
+    @DisplayName("findAllByTeamIds native query only finds teams with specified ids")
+    public void findAllByTeamIds_MultipleTeams_OnlyFindsMatchingTeams() {
+        var saved1 = teamRepository.save(TestTeam.builder().build());
+        var saved2 = teamRepository.save(TestTeam.builder().build());
+        teamRepository.save(TestTeam.builder().build());
+
+        var id1 = saved1.getId();
+        var id2 = saved2.getId();
+
+        // only request two of the three ids
+        var requestedIds = List.of(id1, id2);
+
+        // when
+        Page<TeamDto> result = teamRepository.findAllByTeamIds(requestedIds, Pageable.ofSize(10));
+
+        // then
+        assertEquals(2, result.getTotalElements());
+
+        var received1 = result.getContent().stream().filter(t -> t.getId().equals(id1)).findFirst().get();
+        assertEntityAndDtoEqual(saved1, received1);
+
+        var received2 = result.getContent().stream().filter(t -> t.getId().equals(id2)).findFirst().get();
+        assertEntityAndDtoEqual(saved2, received2);
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIds native query does not leak deleted coach of a team")
+    public void findAllByTeamIds_TeamWithDeletedCoach_DoesNotLeakDeletedCoach() {
+        var coach = new Coach("Test");
+        coach.setDeleted(true);
+        var saved = teamRepository.save(TestTeam.builder().coach(coach).build());
+
+        var requestedTeamIds = List.of(saved.getId());
+
+        // when
+        Page<TeamDto> result = teamRepository.findAllByTeamIds(requestedTeamIds, Pageable.ofSize(10));
+
+        // then
+        assertEquals(1, result.getTotalElements());
+        assertNull(result.getContent().get(0).getCoach());
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIds native query only finds non-deleted results for teams with requested ids")
+    public void findAllByTeamIds_SomeDeletedTeams_OnlyFindsMatchingNonDeletedTeams() {
+        var saved1 = teamRepository.save(TestTeam.builder().deleted(true).build());
+        var saved2 = teamRepository.save(TestTeam.builder().build());
+
+        var deletedId = saved1.getId();
+        var nonDeletedId = saved2.getId();
+
+        var requestedTeamIds = List.of(deletedId, nonDeletedId);
+
+        // when
+        Page<TeamDto> result = teamRepository.findAllByTeamIds(requestedTeamIds, Pageable.ofSize(10));
+
+        // then
+        assertEquals(1, result.getTotalElements());
+        // make sure that only the non-deleted team is present in the result
+        assertTrue(result.getContent().stream().anyMatch(t -> t.getId().equals(nonDeletedId)));
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIds native query takes page size information from Pageable into account")
+    public void findAllByTeamIds_PageableCustomPageSize_UsesPageableInfo() {
+        // when
+        Page<TeamDto> result = teamRepository.findAllByTeamIds(List.of(), Pageable.ofSize(8));
+
+        // then
+        assertEquals(8, result.getPageable().getPageSize());
+    }
+
+    @Test
+    @DisplayName("findAllByTeamIds native query takes page number information from Pageable into account")
+    public void findAllByTeamIds_PageableCustomPageNumber_UsesPageableInfo() {
+        var pageable = PageRequest.ofSize(6).withPage(5);
+
+        // when
+        Page<TeamDto> result = teamRepository.findAllByTeamIds(List.of(), pageable);
+
+        // then
+        var receivedPageable = result.getPageable();
+        assertEquals(6, receivedPageable.getPageSize());
+        assertEquals(5, receivedPageable.getPageNumber());
+    }
+
+    @Test
     @DisplayName("findFormEvaluationMatches native query does not fetch matches marked as deleted")
     public void findFormEvaluationMatches_MatchMarkedAsDeleted_SizeIsZero() {
         var competitionId = UUID.randomUUID();
