@@ -1,6 +1,5 @@
 package pl.echelon133.competitionservice.competition.service;
 
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,7 +9,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import pl.echelon133.competitionservice.competition.*;
+import pl.echelon133.competitionservice.competition.TestCompetition;
+import pl.echelon133.competitionservice.competition.TestUpsertCompetitionDto;
+import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
+import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
+import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
@@ -33,7 +36,7 @@ public class CompetitionServiceTests {
     private CompetitionRepository competitionRepository;
 
     @Mock
-    private AsyncMatchServiceClient matchServiceClient;
+    private MatchServiceClient matchServiceClient;
 
     @InjectMocks
     private CompetitionService competitionService;
@@ -108,21 +111,66 @@ public class CompetitionServiceTests {
     }
 
     @Test
-    @DisplayName("createCompetition throws when a team fetch fails")
-    public void createCompetition_TeamDetailsFetchFails_Throws() {
+    @DisplayName("createCompetition throws when http client returns more teams than requested")
+    public void createCompetition_TeamDetailsFetchSizeGreaterThanExpected_ThrowsRuntimeException() {
         var teamId = UUID.randomUUID();
-        var groupTeams = List.of(teamId.toString());
+
+        // request one team
+        var requestedTeamIds = List.of(teamId);
         var group = TestUpsertGroupDto.builder()
-                .teams(groupTeams)
+                .teams(requestedTeamIds.stream().map(UUID::toString).collect(Collectors.toList()))
                 .build();
         var dto = TestUpsertCompetitionDto.builder()
                 .groups(List.of(group))
                 .build();
 
+        // simulate a response with more teams than requested
+        var incorrectClientResponse = new PageImpl<>(List.of(
+                new TeamDetailsDto(teamId, "Test 1", ""),
+                new TeamDetailsDto(UUID.randomUUID(), "Test 2", "")
+        ));
+
         // given
-        given(matchServiceClient.getAllTeams(argThat(l -> l.contains(teamId)))).willThrow(
-                new AsyncMatchServiceClient.FetchFailedException(teamId)
-        );
+        given(matchServiceClient.getTeamByTeamIds(
+                argThat(l -> l.containsAll(requestedTeamIds) && l.size() == requestedTeamIds.size()),
+                eq(Pageable.ofSize(requestedTeamIds.size()))
+        )).willReturn(incorrectClientResponse);
+
+        // when
+        String message = assertThrows(RuntimeException.class, () -> {
+            competitionService.createCompetition(dto);
+        }).getMessage();
+
+        // then
+        assertEquals("validation of teams' data could not be completed successfully", message);
+    }
+
+    @Test
+    @DisplayName("createCompetition throws when http client returns fewer teams than requested")
+    public void createCompetition_TeamDetailsFetchSizeSmallerThanExpected_ThrowsCompetitionInvalidException() {
+        var teamId = UUID.randomUUID();
+        // id of the team whose details won't be returned by the client
+        var missingTeamId = UUID.randomUUID();
+
+        // request two teams
+        var requestedTeamIds = List.of(teamId, missingTeamId);
+        var group = TestUpsertGroupDto.builder()
+                .teams(requestedTeamIds.stream().map(UUID::toString).collect(Collectors.toList()))
+                .build();
+        var dto = TestUpsertCompetitionDto.builder()
+                .groups(List.of(group))
+                .build();
+
+        // simulate a response with fewer teams than requested
+        var incorrectClientResponse = new PageImpl<>(List.of(
+                new TeamDetailsDto(teamId, "Team 1", "")
+        ));
+
+        // given
+        given(matchServiceClient.getTeamByTeamIds(
+                argThat(l -> l.containsAll(requestedTeamIds) && l.size() == requestedTeamIds.size()),
+                eq(Pageable.ofSize(requestedTeamIds.size()))
+        )).willReturn(incorrectClientResponse);
 
         // when
         String message = assertThrows(CompetitionInvalidException.class, () -> {
@@ -130,7 +178,7 @@ public class CompetitionServiceTests {
         }).getMessage();
 
         // then
-        var expectedMessage = String.format("failed to fetch resource with id %s", teamId);
+        var expectedMessage = String.format("teams with ids [%s] cannot be placed in this competition", missingTeamId);
         assertEquals(expectedMessage, message);
     }
 
@@ -167,13 +215,16 @@ public class CompetitionServiceTests {
                 List.of(expectedLegend)
         );
 
+        var requestedTeamIds = List.of(groupTeamId);
+        var clientResponse = new PageImpl<>(List.of(
+           new TeamDetailsDto(groupTeamId, expectedTeamStats.getTeamName(), expectedTeamStats.getCrestUrl())
+        ));
+
         // given
-        given(matchServiceClient.getAllTeams(any())).willAnswer(inv -> {
-            List<UUID> teamIds = inv.getArgument(0);
-            return teamIds.stream()
-                    .map(id -> new TeamDetailsDto(id, "Team " + id, "Url " + id))
-                    .collect(Collectors.groupingBy(TeamDetailsDto::getId));
-        });
+        given(matchServiceClient.getTeamByTeamIds(
+                argThat(l -> l.containsAll(requestedTeamIds) && l.size() == requestedTeamIds.size()),
+                eq(Pageable.ofSize(requestedTeamIds.size()))
+        )).willReturn(clientResponse);
         // this simply prevents a NullPointerException, actual checking of the saved value
         // happens in the `verify` at the bottom of this test
         given(competitionRepository.save(any(Competition.class))).willReturn(expectedCompetition);
