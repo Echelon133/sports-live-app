@@ -6,12 +6,8 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
 import ml.echelon133.matchservice.match.model.CompactMatchDto;
 import ml.echelon133.matchservice.match.service.MatchService;
-import ml.echelon133.matchservice.team.model.TeamFormDto;
-import ml.echelon133.matchservice.team.model.TeamDto;
-import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
-import ml.echelon133.matchservice.team.model.UpsertTeamDto;
-import ml.echelon133.matchservice.team.model.UpsertTeamPlayerDto;
+import ml.echelon133.matchservice.team.model.*;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,8 +93,31 @@ public class TeamController {
     }
 
     @GetMapping
-    public Page<TeamDto> getTeamsByName(Pageable pageable, @RequestParam String name) {
-        return teamService.findTeamsByName(name, pageable);
+    public Page<TeamDto> getTeamsByCriteria(
+            Pageable pageable,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) List<UUID> teamIds
+    ) throws RequestParamsInvalidException {
+
+        // either 'name' and 'teamIds' must be provided
+        if (name == null && teamIds == null) {
+            throw new RequestParamsInvalidException(Map.of(
+                    "name", "not provided",
+                    "teamIds", "not provided"
+            ));
+        // 'name' and 'teamIds' are mutually exclusive and must NOT be provided together
+        } else if (name != null && teamIds != null) {
+            throw new RequestParamsInvalidException(Map.of(
+                    "name", "cannot be provided together with 'teamIds'",
+                    "teamIds", "cannot be provided together with 'name'"
+            ));
+        }
+
+        if (name != null) {
+            return teamService.findTeamsByName(name, pageable);
+        } else {
+            return teamService.findTeamsByIds(teamIds, pageable);
+        }
     }
 
     @PutMapping("/{teamId}")

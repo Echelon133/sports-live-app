@@ -1,32 +1,30 @@
 package pl.echelon133.competitionservice.competition.service;
 
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
 
 import javax.transaction.Transactional;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletionException;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
 
 @Service
 @Transactional
 public class CompetitionService {
 
     private final CompetitionRepository competitionRepository;
-    private final AsyncMatchServiceClient matchServiceClient;
+    private final MatchServiceClient matchServiceClient;
 
     @Autowired
-    public CompetitionService(CompetitionRepository competitionRepository, AsyncMatchServiceClient matchServiceClient) {
+    public CompetitionService(CompetitionRepository competitionRepository, MatchServiceClient matchServiceClient) {
         this.competitionRepository = competitionRepository;
         this.matchServiceClient = matchServiceClient;
     }
@@ -73,7 +71,7 @@ public class CompetitionService {
      *
      * @param competitionDto dto representing the information about a competition that will be saved in the database
      * @return id of the created competition
-     * @throws CompetitionInvalidException thrown when a competition could not be created based on given data
+     * @throws CompetitionInvalidException thrown when a competition could not be created using given data
      */
     public UUID createCompetition(UpsertCompetitionDto competitionDto) throws CompetitionInvalidException {
         var competition = new Competition(
@@ -85,27 +83,55 @@ public class CompetitionService {
         List<Group> groups = new ArrayList<>(competitionDto.getGroups().size());
 
         // none of `UUID.fromString` calls should fail because all ids are pre-validated
-        List<UUID> teamIds = competitionDto
+        List<UUID> requestedTeamIds = competitionDto
                 .getGroups().stream()
                 .flatMap(g -> g.getTeams().stream())
                 .map(UUID::fromString)
                 .collect(Collectors.toList());
 
-        Map<UUID, List<TeamDetailsDto>> fetchedTeamDetails;
-        try {
-             fetchedTeamDetails = matchServiceClient.getAllTeams(teamIds);
-        } catch (CompletionException ex) {
-            throw new CompetitionInvalidException(ex.getMessage());
+        // fetch details about teams which are supposed to play in this competition, and group them by
+        // their id for faster lookup (Upsert object is pre-validated and makes sure there are no duplicate ids,
+        // therefore every list should be of size 1)
+        Map<UUID, List<TeamDetailsDto>> allTeamDetails = matchServiceClient
+                .getTeamByTeamIds(requestedTeamIds, Pageable.ofSize(requestedTeamIds.size()))
+                .getContent()
+                .stream()
+                .collect(groupingBy(TeamDetailsDto::getId));
+
+        // only proceed with creating this competition if there are exactly as many fetched team details as requested,
+        // otherwise there is a possibility that:
+        //      * some of the ids do not refer to teams that actually exist
+        //      * the API endpoint does not fetch details about existing teams correctly
+        if (allTeamDetails.size() != requestedTeamIds.size()) {
+            var allRequestedIds = new HashSet<>(requestedTeamIds);
+            var allReceivedIds = allTeamDetails.keySet();
+
+            if (allReceivedIds.size() > allRequestedIds.size()) {
+                // this will only happen if the API endpoint is broken and returns more teams than requested,
+                // ideally we should return error 500
+                throw new RuntimeException("validation of teams' data could not be completed successfully");
+            } else {
+                // evaluate which team ids did not return a result, so that the missing ids can be displayed in the
+                // error message
+                allRequestedIds.removeAll(allReceivedIds);
+
+                var formattedMessage = String.format(
+                        "teams with ids %s cannot be placed in this competition",
+                        Arrays.toString(allRequestedIds.toArray())
+                );
+                throw new CompetitionInvalidException(formattedMessage);
+            }
         }
 
         for (var groupDto : competitionDto.getGroups()) {
             // none of `UUID.fromString` calls during `map` should fail because all ids are pre-validated
             var teams = groupDto.getTeams().stream().map(UUID::fromString).map(
                     tId -> {
-                        // if `getAllTeams` hasn't thrown, `get` is guaranteed to always have a value,
-                        // additionally, each value is a list of one element, so we can unpack the value from the list
-                        // right away
-                        var teamDetail = fetchedTeamDetails.get(tId).get(0);
+                        // at this point, it's GUARANTEED that there is a team details object with that id at index 0:
+                        //      * if such id had not been found, an exception would have been thrown before getting here
+                        //      * if it has been found, then the team details object corresponding to it exists and has
+                        //          been placed in the lookup map in a list which contains exactly 1 element
+                        var teamDetail = allTeamDetails.get(tId).get(0);
                         return new TeamStats(teamDetail.getId(), teamDetail.getName(), teamDetail.getCrestUrl());
                     }).collect(Collectors.toList());
 

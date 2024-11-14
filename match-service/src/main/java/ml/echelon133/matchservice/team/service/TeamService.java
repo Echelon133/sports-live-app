@@ -115,6 +115,17 @@ public class TeamService {
     }
 
     /**
+     * Finds all teams whose ids are in the id list.
+     *
+     * @param teamIds requested team ids
+     * @param pageable information about the wanted page
+     * @return a page of teams
+     */
+    public Page<TeamDto> findTeamsByIds(List<UUID> teamIds, Pageable pageable) {
+        return teamRepository.findAllByTeamIds(teamIds, pageable);
+    }
+
+    /**
      * Marks a team with the specified id as deleted.
      *
      * @param id id of the team to be marked as deleted
