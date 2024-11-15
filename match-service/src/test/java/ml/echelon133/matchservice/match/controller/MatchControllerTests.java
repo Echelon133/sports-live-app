@@ -1503,6 +1503,33 @@ public class MatchControllerTests {
     }
 
     @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 200 when the lineup is validated")
+    public void updateHomeLineup_LineupValid_StatusOk() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        // 11 unique starting players
+        List<String> startingPlayers = generateRandomStringIds(11);
+        // 5 unique substitute players
+        List<String> substitutePlayers = generateRandomStringIds(5);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/home")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when starting players not provided")
     public void updateAwayLineup_StartingPlayersNotProvided_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
@@ -1797,6 +1824,33 @@ public class MatchControllerTests {
                                 .content(json)
                 )
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 200 when the lineup is validated")
+    public void updateAwayLineup_LineupValid_StatusOk() throws Exception {
+        var matchId = UUID.randomUUID();
+
+        // 11 unique starting players
+        List<String> startingPlayers = generateRandomStringIds(11);
+        // 5 unique substitute players
+        List<String> substitutePlayers = generateRandomStringIds(5);
+
+        var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                startingPlayers, substitutePlayers
+        )).getJson();
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        // when
+        mvc.perform(
+                        put("/api/matches/" + matchId + "/lineups/away")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isOk());
     }
 
     private List<String> generateRandomStringIds(int numberOfIds) {
