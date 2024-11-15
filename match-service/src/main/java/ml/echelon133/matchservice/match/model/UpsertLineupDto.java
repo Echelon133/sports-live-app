@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.match.model;
 
+import ml.echelon133.matchservice.match.model.constraints.FormationCorrect;
 import ml.echelon133.matchservice.match.model.constraints.PlayerIdsUnique;
 import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
 
@@ -17,10 +18,17 @@ public class UpsertLineupDto {
     @NotNull
     private List<@TeamPlayerExists String> substitutePlayers;
 
+    @FormationCorrect
+    private String formation;
+
     public UpsertLineupDto() {}
     public UpsertLineupDto(List<String> startingPlayers, List<String> substitutePlayers) {
         this.startingPlayers = startingPlayers;
         this.substitutePlayers = substitutePlayers;
+    }
+    public UpsertLineupDto(List<String> startingPlayers, List<String> substitutePlayers, String formation) {
+        this(startingPlayers, substitutePlayers);
+        this.formation = formation;
     }
 
     public List<String> getStartingPlayers() {
@@ -37,5 +45,13 @@ public class UpsertLineupDto {
 
     public void setSubstitutePlayers(List<String> substitutePlayers) {
         this.substitutePlayers = substitutePlayers;
+    }
+
+    public String getFormation() {
+        return formation;
+    }
+
+    public void setFormation(String formation) {
+        this.formation = formation;
     }
 }

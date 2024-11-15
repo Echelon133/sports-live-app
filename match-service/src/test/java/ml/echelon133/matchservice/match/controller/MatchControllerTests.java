@@ -1503,6 +1503,75 @@ public class MatchControllerTests {
     }
 
     @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 422 when the formation is invalid")
+    public void updateHomeLineup_FormationInvalid_StatusOk() throws Exception {
+        var invalidFormations = List.of(
+                "asdf", "0-0-0-0-0", "11", "5-5", "a-b-c-d", "----", "442", "4321"
+        );
+
+        var matchId = UUID.randomUUID();
+
+        // 11 unique starting players
+        List<String> startingPlayers = generateRandomStringIds(11);
+        // 5 unique substitute players
+        List<String> substitutePlayers = generateRandomStringIds(5);
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        for (var invalidFormation : invalidFormations) {
+            var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                    startingPlayers, substitutePlayers, invalidFormation
+            )).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/matches/" + matchId + "/lineups/home")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("formation", List.of("provided formation is invalid"))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/home returns 200 when the formation is valid")
+    public void updateHomeLineup_FormationValid_StatusOk() throws Exception {
+        var validFormations = List.of(
+                "2-3-5", "2-3-2-3", "3-2-5", "3-4-3", "3-3-4",
+                "4-2-4", "4-4-2", "4-4-1-1", "4-1-2-1-2", "4-1-3-2",
+                "4-3-3", "4-3-1-2", "4-5-1"
+        );
+
+        var matchId = UUID.randomUUID();
+
+        // 11 unique starting players
+        List<String> startingPlayers = generateRandomStringIds(11);
+        // 5 unique substitute players
+        List<String> substitutePlayers = generateRandomStringIds(5);
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        for (var validFormation : validFormations) {
+            var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                    startingPlayers, substitutePlayers, validFormation
+            )).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/matches/" + matchId + "/lineups/home")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
     @DisplayName("PUT /api/matches/:id/lineups/home returns 200 when the lineup is validated")
     public void updateHomeLineup_LineupValid_StatusOk() throws Exception {
         var matchId = UUID.randomUUID();
@@ -1824,6 +1893,75 @@ public class MatchControllerTests {
                                 .content(json)
                 )
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 422 when the formation is invalid")
+    public void updateAwayLineup_FormationInvalid_StatusOk() throws Exception {
+        var invalidFormations = List.of(
+                "asdf", "0-0-0-0-0", "11", "5-5", "a-b-c-d", "----", "442", "4321"
+        );
+
+        var matchId = UUID.randomUUID();
+
+        // 11 unique starting players
+        List<String> startingPlayers = generateRandomStringIds(11);
+        // 5 unique substitute players
+        List<String> substitutePlayers = generateRandomStringIds(5);
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        for (var invalidFormation : invalidFormations) {
+            var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                    startingPlayers, substitutePlayers, invalidFormation
+            )).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/matches/" + matchId + "/lineups/away")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("formation", List.of("provided formation is invalid"))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/matches/:id/lineups/away returns 200 when the formation is valid")
+    public void updateAwayLineup_FormationValid_StatusOk() throws Exception {
+        var validFormations = List.of(
+                "2-3-5", "2-3-2-3", "3-2-5", "3-4-3", "3-3-4",
+                "4-2-4", "4-4-2", "4-4-1-1", "4-1-2-1-2", "4-1-3-2",
+                "4-3-3", "4-3-1-2", "4-5-1"
+        );
+
+        var matchId = UUID.randomUUID();
+
+        // 11 unique starting players
+        List<String> startingPlayers = generateRandomStringIds(11);
+        // 5 unique substitute players
+        List<String> substitutePlayers = generateRandomStringIds(5);
+
+        // given
+        given(teamPlayerRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
+
+        for (var validFormation : validFormations) {
+            var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
+                    startingPlayers, substitutePlayers, validFormation
+            )).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/matches/" + matchId + "/lineups/away")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+        }
     }
 
     @Test
