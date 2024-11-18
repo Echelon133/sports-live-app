@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.match.service;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.model.LineupFormationsDto;
 import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.TestMatchDto;
@@ -899,12 +900,16 @@ public class MatchServiceTests {
         var homeSubstitutePlayer= TestTeamPlayerDto.builder().build();
         var awayStartingPlayer= TestTeamPlayerDto.builder().build();
         var awaySubstitutePlayer= TestTeamPlayerDto.builder().build();
+        var homeFormation = "4-4-2";
+        var awayFormation = "4-3-3";
+        var lineupFormations = LineupFormationsDto.from(homeFormation, awayFormation);
 
         // given
         given(matchRepository.findHomeStartingPlayersByMatchId(matchId)).willReturn(List.of(homeStartingPlayer));
         given(matchRepository.findHomeSubstitutePlayersByMatchId(matchId)).willReturn(List.of(homeSubstitutePlayer));
         given(matchRepository.findAwayStartingPlayersByMatchId(matchId)).willReturn(List.of(awayStartingPlayer));
         given(matchRepository.findAwaySubstitutePlayersByMatchId(matchId)).willReturn(List.of(awaySubstitutePlayer));
+        given(matchRepository.findLineupFormationsByMatchId(matchId)).willReturn(Optional.of(lineupFormations));
 
         // when
         var lineup = matchService.findMatchLineup(matchId);
@@ -916,6 +921,8 @@ public class MatchServiceTests {
         assertEquals(homeSubstitutePlayer.getId(), homeLineup.getSubstitutePlayers().get(0).getId());
         assertEquals(awayStartingPlayer.getId(), awayLineup.getStartingPlayers().get(0).getId());
         assertEquals(awaySubstitutePlayer.getId(), awayLineup.getSubstitutePlayers().get(0).getId());
+        assertEquals(homeFormation, homeLineup.getFormation());
+        assertEquals(awayFormation, awayLineup.getFormation());
     }
 
     @Test
@@ -1041,6 +1048,7 @@ public class MatchServiceTests {
                 .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
         var substituteHomeTeamPlayers = validHomeTeamPlayers.subList(3, 4)
                 .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        var homeFormation = "4-3-3";
 
         // given
         given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
@@ -1057,15 +1065,17 @@ public class MatchServiceTests {
 
         // when
         matchService.updateHomeLineup(matchId, new UpsertLineupDto(
-                startingHomeTeamPlayers, substituteHomeTeamPlayers
+                startingHomeTeamPlayers, substituteHomeTeamPlayers, homeFormation
         ));
 
         // then
         verify(matchRepository).save(argThat(m ->
                 m.getHomeLineup().getStartingPlayers().size() == 3 &&
                 m.getHomeLineup().getSubstitutePlayers().size() == 1 &&
-                m.getAwayLineup().getStartingPlayers().size() == 0 &&
-                m.getAwayLineup().getSubstitutePlayers().size() == 0
+                m.getAwayLineup().getStartingPlayers().isEmpty() &&
+                m.getAwayLineup().getSubstitutePlayers().isEmpty() &&
+                m.getHomeLineup().getFormation().equals(homeFormation) &&
+                m.getAwayLineup().getFormation() == null
         ));
     }
 
@@ -1192,6 +1202,7 @@ public class MatchServiceTests {
                 .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
         var substituteAwayTeamPlayers = validAwayTeamPlayers.subList(3, 4)
                 .stream().map(p -> p.getId().toString()).collect(Collectors.toList());
+        var awayFormation = "4-3-3";
 
         // given
         given(matchRepository.findById(matchId)).willReturn(Optional.of(match));
@@ -1208,15 +1219,18 @@ public class MatchServiceTests {
 
         // when
         matchService.updateAwayLineup(matchId, new UpsertLineupDto(
-                startingAwayTeamPlayers, substituteAwayTeamPlayers
+                startingAwayTeamPlayers, substituteAwayTeamPlayers, awayFormation
         ));
 
         // then
         verify(matchRepository).save(argThat(m ->
-                m.getHomeLineup().getStartingPlayers().size() == 0 &&
-                m.getHomeLineup().getSubstitutePlayers().size() == 0 &&
+                m.getHomeLineup().getStartingPlayers().isEmpty() &&
+                m.getHomeLineup().getSubstitutePlayers().isEmpty() &&
                 m.getAwayLineup().getStartingPlayers().size() == 3 &&
-                m.getAwayLineup().getSubstitutePlayers().size() == 1
+                m.getAwayLineup().getSubstitutePlayers().size() == 1 &&
+                m.getHomeLineup().getFormation() == null &&
+                m.getAwayLineup().getFormation().equals(awayFormation)
+
         ));
     }
 }
