@@ -1152,6 +1152,54 @@ public class MatchRepositoryTests {
         assertLineupContainsPlayers(awaySubstitutePlayers2, match2.getAwayLineup().getSubstitutePlayers());
     }
 
+    @Test
+    @DisplayName("findLineupFormationsByMatchId native query returns an empty result when match does not exist")
+    public void findLineupFormationsByMatchId_MatchNotFound_ResultEmpty() {
+        var matchId = UUID.randomUUID();
+
+        // when
+        var lineupFormations = matchRepository.findLineupFormationsByMatchId(matchId);
+
+        // then
+        assertTrue(lineupFormations.isEmpty());
+    }
+
+    @Test
+    @DisplayName("findLineupFormationsByMatchId native query returns null for both home and away formations when they are set to default values")
+    public void findLineupFormationsByMatchId_MatchWithEmptyLineup_BothFormationsAreNull() {
+        var matchId = UUID.randomUUID();
+        matchRepository.save(TestMatch.builder().id(matchId).build());
+
+        // when
+        var lineupFormations = matchRepository.findLineupFormationsByMatchId(matchId);
+
+        // then
+        assertTrue(lineupFormations.isPresent());
+        assertNull(lineupFormations.get().getHomeFormation());
+        assertNull(lineupFormations.get().getAwayFormation());
+    }
+
+    @Test
+    @DisplayName("findLineupFormationsByMatchId native query returns correct values for both home and away formations when they are set to custom values")
+    public void findLineupFormationsByMatchId_MatchWithSetLineup_BothFormationsAreCorrect() {
+        var match = TestMatchLineup.createTestMatchWithLineup();
+        // set both home and away formations
+        var expectedHomeFormation = "4-4-2";
+        var expectedAwayFormation = "4-3-3";
+        match.getHomeLineup().setFormation(expectedHomeFormation);
+        match.getAwayLineup().setFormation(expectedAwayFormation);
+        matchRepository.save(match);
+        var matchId = match.getId();
+
+        // when
+        var lineupFormations = matchRepository.findLineupFormationsByMatchId(matchId);
+
+        // then
+        assertTrue(lineupFormations.isPresent());
+        assertEquals(expectedHomeFormation, lineupFormations.get().getHomeFormation());
+        assertEquals(expectedAwayFormation, lineupFormations.get().getAwayFormation());
+    }
+
     private static void assertLineupContainsPlayers(List<TeamPlayerDto> foundLineup, List<TeamPlayer> expectedLineup) {
         var foundIds = foundLineup.stream().map(TeamPlayerDto::getId).collect(Collectors.toList());
         var expectedIds = expectedLineup.stream().map(BaseEntity::getId).collect(Collectors.toList());
