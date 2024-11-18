@@ -22,10 +22,25 @@ public class LineupDto {
         this.home = new TeamLineup(homeStartingPlayers, homeSubstitutePlayers);
         this.away = new TeamLineup(awayStartingPlayers, awaySubstitutePlayers);
     }
+    public LineupDto(
+            List<TeamPlayerDto> homeStartingPlayers,
+            List<TeamPlayerDto> homeSubstitutePlayers,
+            List<TeamPlayerDto> awayStartingPlayers,
+            List<TeamPlayerDto> awaySubstitutePlayers,
+            LineupFormationsDto lineupFormations
+    ) {
+        this.home = new TeamLineup(
+                homeStartingPlayers, homeSubstitutePlayers, lineupFormations.getHomeFormation()
+        );
+        this.away = new TeamLineup(
+                awayStartingPlayers, awaySubstitutePlayers, lineupFormations.getAwayFormation()
+        );
+    }
 
     public static class TeamLineup {
         private final List<TeamPlayerDto> startingPlayers;
         private final List<TeamPlayerDto> substitutePlayers;
+        private String formation;
 
         public TeamLineup() {
             this.startingPlayers = List.of();
@@ -35,6 +50,14 @@ public class LineupDto {
             this.startingPlayers = startingPlayers;
             this.substitutePlayers = substitutePlayers;
         }
+        public TeamLineup(
+                List<TeamPlayerDto> startingPlayers,
+                List<TeamPlayerDto> substitutePlayers,
+                String formation
+        ) {
+            this(startingPlayers, substitutePlayers);
+            this.formation = formation;
+        }
 
         public List<TeamPlayerDto> getStartingPlayers() {
             return startingPlayers;
@@ -42,6 +65,10 @@ public class LineupDto {
 
         public List<TeamPlayerDto> getSubstitutePlayers() {
             return substitutePlayers;
+        }
+
+        public String getFormation() {
+            return formation;
         }
     }
 

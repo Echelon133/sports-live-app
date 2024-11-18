@@ -4,13 +4,9 @@ import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
-import ml.echelon133.matchservice.match.model.LineupDto;
-import ml.echelon133.matchservice.match.model.MatchDto;
 import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
 import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
-import ml.echelon133.matchservice.match.model.UpsertLineupDto;
-import ml.echelon133.matchservice.match.model.UpsertMatchDto;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -121,9 +117,10 @@ public class MatchController {
         return matchService.findMatchLineup(matchId);
     }
 
-    @PutMapping("/{matchId}/lineups/home")
-    public void updateHomeLineup(
+    @PutMapping("/{matchId}/lineups/{side:home|away}")
+    public void updateLineup(
             @PathVariable UUID matchId,
+            @PathVariable String side,
             @RequestBody @Valid UpsertLineupDto lineupDto,
             BindingResult result
     ) throws RequestBodyContentInvalidException, ResourceNotFoundException, LineupPlayerInvalidException {
@@ -131,19 +128,12 @@ public class MatchController {
         if (result.hasErrors()) {
             throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
         }
-        matchService.updateHomeLineup(matchId, lineupDto);
-    }
 
-    @PutMapping("/{matchId}/lineups/away")
-    public void updateAwayLineup(
-            @PathVariable UUID matchId,
-            @RequestBody @Valid UpsertLineupDto lineupDto,
-            BindingResult result
-    ) throws RequestBodyContentInvalidException, ResourceNotFoundException, LineupPlayerInvalidException {
-
-        if (result.hasErrors()) {
-            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        // side's regex guarantees that its value is either 'home' or 'away'
+        if (side.equals("home")) {
+            matchService.updateHomeLineup(matchId, lineupDto);
+        } else {
+            matchService.updateAwayLineup(matchId, lineupDto);
         }
-        matchService.updateAwayLineup(matchId, lineupDto);
     }
 }

@@ -1,9 +1,10 @@
 package ml.echelon133.matchservice.match.repository;
 
 import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.model.LineupFormationsDto;
+import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.MatchDto;
 import ml.echelon133.matchservice.team.model.TeamPlayerDto;
-import ml.echelon133.matchservice.match.model.Match;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -237,4 +238,21 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
             nativeQuery = true
     )
     List<TeamPlayerDto> findAwaySubstitutePlayersByMatchId(UUID matchId);
+
+    /**
+     * Finds formations of both lineups of a match with the specified id.
+     *
+     * @param matchId id of the match whose lineup formations need to be found
+     * @return an {@link Optional} containing a dto with lineup formations of both teams playing in a match (if the match exists),
+     *      otherwise the optional is empty
+     */
+    @Query(
+            value = "SELECT home_lineup.formation as homeFormation, away_lineup.formation as awayFormation " +
+                    "FROM match m " +
+                    "JOIN lineup home_lineup ON m.home_lineup_id = home_lineup.id " +
+                    "JOIN lineup away_lineup ON m.away_lineup_id = away_lineup.id " +
+                    "WHERE m.deleted = false AND m.id = :matchId",
+            nativeQuery = true
+    )
+    Optional<LineupFormationsDto> findLineupFormationsByMatchId(UUID matchId);
 }

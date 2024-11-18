@@ -3,15 +3,9 @@ package ml.echelon133.matchservice.match.service;
 import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
-import ml.echelon133.matchservice.match.model.LineupDto;
-import ml.echelon133.matchservice.match.model.MatchDto;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
-import ml.echelon133.matchservice.match.model.Lineup;
-import ml.echelon133.matchservice.match.model.Match;
-import ml.echelon133.matchservice.match.model.UpsertLineupDto;
-import ml.echelon133.matchservice.match.model.UpsertMatchDto;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.team.model.Team;
@@ -268,7 +262,9 @@ public class MatchService {
             matchRepository.findHomeStartingPlayersByMatchId(matchId),
             matchRepository.findHomeSubstitutePlayersByMatchId(matchId),
             matchRepository.findAwayStartingPlayersByMatchId(matchId),
-            matchRepository.findAwaySubstitutePlayersByMatchId(matchId)
+            matchRepository.findAwaySubstitutePlayersByMatchId(matchId),
+            matchRepository.findLineupFormationsByMatchId(matchId)
+                    .orElse(LineupFormationsDto.from(null, null))
         );
     }
 
@@ -360,6 +356,7 @@ public class MatchService {
         Lineup lineup = homeLineup ? match.getHomeLineup() : match.getAwayLineup();
         lineup.setStartingPlayers(startingPlayers);
         lineup.setSubstitutePlayers(substitutePlayers);
+        lineup.setFormation(lineupDto.getFormation());
         matchRepository.save(match);
     }
 }

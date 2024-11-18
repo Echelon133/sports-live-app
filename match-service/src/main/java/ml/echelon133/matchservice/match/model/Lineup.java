@@ -26,6 +26,9 @@ public class Lineup extends BaseEntity {
     )
     List<TeamPlayer> substitutePlayers;
 
+    @Column(length = 10)
+    private String formation;
+
     public Lineup() {
         this.startingPlayers = new ArrayList<>();
         this.substitutePlayers = new ArrayList<>();
@@ -33,6 +36,14 @@ public class Lineup extends BaseEntity {
     public Lineup(List<TeamPlayer> startingPlayers, List<TeamPlayer> substitutePlayers) {
         this.startingPlayers = startingPlayers;
         this.substitutePlayers = substitutePlayers;
+    }
+    public Lineup(
+            List<TeamPlayer> startingPlayers,
+            List<TeamPlayer> substitutePlayers,
+            String formation
+    ) {
+        this(startingPlayers, substitutePlayers);
+        this.formation = formation;
     }
 
     public List<TeamPlayer> getStartingPlayers() {
@@ -49,5 +60,13 @@ public class Lineup extends BaseEntity {
 
     public void setSubstitutePlayers(List<TeamPlayer> substitutePlayers) {
         this.substitutePlayers = substitutePlayers;
+    }
+
+    public String getFormation() {
+        return formation;
+    }
+
+    public void setFormation(String formation) {
+        this.formation = formation;
     }
 }
