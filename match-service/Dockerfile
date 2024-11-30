@@ -1,4 +1,4 @@
-FROM amazoncorretto:11
+FROM amazoncorretto:17.0.13
 EXPOSE 80
 WORKDIR /app
 ADD /target/match-service-0.1.0-SNAPSHOT.jar app.jar
