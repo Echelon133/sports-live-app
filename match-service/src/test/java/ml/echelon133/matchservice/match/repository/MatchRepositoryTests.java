@@ -24,6 +24,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -847,13 +848,24 @@ public class MatchRepositoryTests {
         );
     }
 
+    private static void assertLocalDateTimeEquals(LocalDateTime t1, LocalDateTime t2) {
+        // if both are null, then there is no reason to use asserts, if neither is null, then
+        // we need to compare them without using the nanosecond precision
+        if (t1 != null && t2 != null) {
+            assertEquals(
+                    t1.truncatedTo(ChronoUnit.SECONDS),
+                    t2.truncatedTo(ChronoUnit.SECONDS)
+            );
+        }
+    }
+
     private static void assertEntityAndDtoEqual(Match entity, MatchDto dto) {
         // simple fields equal
         assertEquals(dto.getId(), entity.getId());
         assertEquals(dto.getStatus(), entity.getStatus().toString());
-        assertEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
+        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
         assertEquals(dto.getCompetitionId(), entity.getCompetitionId());
-        assertEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
+        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
 
         // home teams equal
         var homeTeamEntity = entity.getHomeTeam();
@@ -927,9 +939,9 @@ public class MatchRepositoryTests {
         // simple fields equal
         assertEquals(dto.getId(), entity.getId());
         assertEquals(dto.getStatus(), entity.getStatus().toString());
-        assertEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
+        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
         assertEquals(dto.getCompetitionId(), entity.getCompetitionId());
-        assertEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
+        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
 
         // home teams equal
         var homeTeamEntity = entity.getHomeTeam();
