@@ -2,6 +2,7 @@ package pl.echelon133.competitionservice.competition.service;
 
 import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.dto.MatchEventDetails;
+import ml.echelon133.common.event.dto.SerializedPlayer;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -431,7 +432,7 @@ public class MatchEventDetailsMessageListenerTests {
                         competitionId,
                         teamId,
                         MatchEventDetails.CardDto.CardType.YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -467,7 +468,7 @@ public class MatchEventDetailsMessageListenerTests {
                         competitionId,
                         teamId,
                         MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -503,7 +504,7 @@ public class MatchEventDetailsMessageListenerTests {
                         competitionId,
                         teamId,
                         MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -534,7 +535,7 @@ public class MatchEventDetailsMessageListenerTests {
                         competitionId,
                         teamId,
                         MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -564,7 +565,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         null,
@@ -597,7 +598,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         null,
@@ -641,10 +642,10 @@ public class MatchEventDetailsMessageListenerTests {
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, scoringPlayerId, scoringPlayerName
                         ),
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, assistingPlayerId, assistingPlayerName
                         ),
                         false
@@ -682,7 +683,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         null,
@@ -719,7 +720,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         true,
@@ -751,7 +752,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         true,

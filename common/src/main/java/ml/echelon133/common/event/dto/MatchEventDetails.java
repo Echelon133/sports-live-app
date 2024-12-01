@@ -59,44 +59,6 @@ public abstract class MatchEventDetails implements Serializable {
         this.competitionId = competitionId;
     }
 
-
-    public static class SerializedPlayerInfo implements Serializable {
-        private UUID teamPlayerId;
-        private UUID playerId;
-        private String name;
-
-        public SerializedPlayerInfo() {}
-        public SerializedPlayerInfo(UUID teamPlayerId, UUID playerId, String name) {
-            this.teamPlayerId = teamPlayerId;
-            this.playerId = playerId;
-            this.name = name;
-        }
-
-        public UUID getTeamPlayerId() {
-            return teamPlayerId;
-        }
-
-        public void setTeamPlayerId(UUID teamPlayerId) {
-            this.teamPlayerId = teamPlayerId;
-        }
-
-        public UUID getPlayerId() {
-            return playerId;
-        }
-
-        public void setPlayerId(UUID playerId) {
-            this.playerId = playerId;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-    }
-
     public static class SerializedScoreInfo implements Serializable {
         private int homeGoals;
         private int awayGoals;
@@ -236,14 +198,14 @@ public abstract class MatchEventDetails implements Serializable {
     public static class CardDto extends MatchEventDetails {
         private UUID teamId;
         private CardType cardType;
-        private SerializedPlayerInfo cardedPlayer;
+        private SerializedPlayer cardedPlayer;
 
         public enum CardType {
             YELLOW, SECOND_YELLOW, DIRECT_RED
         }
 
         public CardDto() {}
-        public CardDto(String minute, UUID competitionId, UUID teamId, CardType cardType, SerializedPlayerInfo cardedPlayer) {
+        public CardDto(String minute, UUID competitionId, UUID teamId, CardType cardType, SerializedPlayer cardedPlayer) {
             super(MatchEventType.CARD, minute, competitionId);
             this.teamId = teamId;
             this.cardType = cardType;
@@ -267,11 +229,11 @@ public abstract class MatchEventDetails implements Serializable {
             this.cardType = cardType;
         }
 
-        public SerializedPlayerInfo getCardedPlayer() {
+        public SerializedPlayer getCardedPlayer() {
             return cardedPlayer;
         }
 
-        public void setCardedPlayer(SerializedPlayerInfo cardedPlayer) {
+        public void setCardedPlayer(SerializedPlayer cardedPlayer) {
             this.cardedPlayer = cardedPlayer;
         }
     }
@@ -281,14 +243,14 @@ public abstract class MatchEventDetails implements Serializable {
      */
     public static class GoalDto extends MatchEventDetails {
         private UUID teamId;
-        private SerializedPlayerInfo scoringPlayer;
-        private SerializedPlayerInfo assistingPlayer;
+        private SerializedPlayer scoringPlayer;
+        private SerializedPlayer assistingPlayer;
         private boolean ownGoal;
 
         public GoalDto() {}
         public GoalDto(
                 String minute, UUID competitionId, UUID teamId,
-                SerializedPlayerInfo scoringPlayer, SerializedPlayerInfo assistingPlayer, boolean ownGoal
+                SerializedPlayer scoringPlayer, SerializedPlayer assistingPlayer, boolean ownGoal
         ) {
             super(MatchEventType.GOAL, minute, competitionId);
             this.teamId = teamId;
@@ -305,19 +267,19 @@ public abstract class MatchEventDetails implements Serializable {
             this.teamId = teamId;
         }
 
-        public SerializedPlayerInfo getScoringPlayer() {
+        public SerializedPlayer getScoringPlayer() {
             return scoringPlayer;
         }
 
-        public void setScoringPlayer(SerializedPlayerInfo scoringPlayer) {
+        public void setScoringPlayer(SerializedPlayer scoringPlayer) {
             this.scoringPlayer = scoringPlayer;
         }
 
-        public SerializedPlayerInfo getAssistingPlayer() {
+        public SerializedPlayer getAssistingPlayer() {
             return assistingPlayer;
         }
 
-        public void setAssistingPlayer(SerializedPlayerInfo assistingPlayer) {
+        public void setAssistingPlayer(SerializedPlayer assistingPlayer) {
             this.assistingPlayer = assistingPlayer;
         }
 
@@ -335,13 +297,13 @@ public abstract class MatchEventDetails implements Serializable {
      */
     public static class SubstitutionDto extends MatchEventDetails {
         private UUID teamId;
-        private SerializedPlayerInfo playerIn;
-        private SerializedPlayerInfo playerOut;
+        private SerializedPlayer playerIn;
+        private SerializedPlayer playerOut;
 
         public SubstitutionDto() {}
         public SubstitutionDto(
                 String minute, UUID competitionId, UUID teamId,
-                SerializedPlayerInfo playerIn, SerializedPlayerInfo playerOut
+                SerializedPlayer playerIn, SerializedPlayer playerOut
         ) {
             super(MatchEventType.SUBSTITUTION, minute, competitionId);
             this.teamId = teamId;
@@ -357,19 +319,19 @@ public abstract class MatchEventDetails implements Serializable {
             this.teamId = teamId;
         }
 
-        public SerializedPlayerInfo getPlayerIn() {
+        public SerializedPlayer getPlayerIn() {
             return playerIn;
         }
 
-        public void setPlayerIn(SerializedPlayerInfo playerIn) {
+        public void setPlayerIn(SerializedPlayer playerIn) {
             this.playerIn = playerIn;
         }
 
-        public SerializedPlayerInfo getPlayerOut() {
+        public SerializedPlayer getPlayerOut() {
             return playerOut;
         }
 
-        public void setPlayerOut(SerializedPlayerInfo playerOut) {
+        public void setPlayerOut(SerializedPlayer playerOut) {
             this.playerOut = playerOut;
         }
     }
@@ -379,14 +341,14 @@ public abstract class MatchEventDetails implements Serializable {
      */
     public static class PenaltyDto extends MatchEventDetails {
         private UUID teamId;
-        private SerializedPlayerInfo shootingPlayer;
+        private SerializedPlayer shootingPlayer;
         private boolean countAsGoal;
         private boolean scored;
 
         public PenaltyDto() {}
         public PenaltyDto(
                 String minute, UUID competitionId, UUID teamId,
-                SerializedPlayerInfo shootingPlayer, boolean countAsGoal, boolean scored
+                SerializedPlayer shootingPlayer, boolean countAsGoal, boolean scored
         ) {
             super(MatchEventType.PENALTY, minute, competitionId);
             this.teamId = teamId;
@@ -403,11 +365,11 @@ public abstract class MatchEventDetails implements Serializable {
             this.teamId = teamId;
         }
 
-        public SerializedPlayerInfo getShootingPlayer() {
+        public SerializedPlayer getShootingPlayer() {
             return shootingPlayer;
         }
 
-        public void setShootingPlayer(SerializedPlayerInfo shootingPlayer) {
+        public void setShootingPlayer(SerializedPlayer shootingPlayer) {
             this.shootingPlayer = shootingPlayer;
         }
 

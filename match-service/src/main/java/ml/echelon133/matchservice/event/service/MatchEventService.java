@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.event.service;
 import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.event.dto.MatchEventDto;
+import ml.echelon133.common.event.dto.SerializedPlayer;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -241,7 +242,7 @@ public class MatchEventService {
      */
     private static boolean isCardEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
         if (event.getEvent() instanceof MatchEventDetails.CardDto e) {
-            return e.getCardedPlayer().getTeamPlayerId().equals(teamPlayerId);
+            return e.getCardedPlayer().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -340,7 +341,7 @@ public class MatchEventService {
                 match.getCompetitionId(),
                 cardedTeamPlayer.getTeam().getId(),
                 cardType,
-                intoSerializedPlayerInfo(cardedTeamPlayer)
+                intoSerializedPlayer(cardedTeamPlayer)
         );
 
         // if a card was red (whether direct or not) - increment the counters of team's red cards
@@ -425,10 +426,10 @@ public class MatchEventService {
         }
         var scoringTeam = scoredByHomeTeam ? match.getHomeTeam() : match.getAwayTeam();
 
-        MatchEventDetails.SerializedPlayerInfo scoringPlayerInfo = intoSerializedPlayerInfo(scoringPlayer);
-        MatchEventDetails.SerializedPlayerInfo assistingPlayerInfo = null;
+        SerializedPlayer scoringPlayerInfo = intoSerializedPlayer(scoringPlayer);
+        SerializedPlayer assistingPlayerInfo = null;
         if (assistingPlayer != null) {
-            assistingPlayerInfo = intoSerializedPlayerInfo(assistingPlayer);
+            assistingPlayerInfo = intoSerializedPlayer(assistingPlayer);
         }
 
         var eventDetails = new MatchEventDetails.GoalDto(
@@ -491,11 +492,11 @@ public class MatchEventService {
         //      * have been on the pitch from the start or got subbed on during the match
         throwIfPlayerNotOnPitch(match, playerOut);
 
-        MatchEventDetails.SerializedPlayerInfo playerInInfo =
-                intoSerializedPlayerInfo(playerIn);
+        SerializedPlayer playerInInfo =
+                intoSerializedPlayer(playerIn);
 
-        MatchEventDetails.SerializedPlayerInfo playerOutInfo =
-                intoSerializedPlayerInfo(playerOut);
+        SerializedPlayer playerOutInfo =
+                intoSerializedPlayer(playerOut);
 
         var eventDetails = new MatchEventDetails.SubstitutionDto(
                 substitutionDto.getMinute(),
@@ -562,7 +563,7 @@ public class MatchEventService {
                 penaltyDto.getMinute(),
                 match.getCompetitionId(),
                 shootingPlayer.getTeam().getId(),
-                intoSerializedPlayerInfo(shootingPlayer),
+                intoSerializedPlayer(shootingPlayer),
                 !duringPenaltyShootout,
                 penaltyDto.isScored()
         );
@@ -759,7 +760,7 @@ public class MatchEventService {
      */
     private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
         if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto e) {
-            return e.getPlayerOut().getTeamPlayerId().equals(teamPlayerId);
+            return e.getPlayerOut().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -775,7 +776,7 @@ public class MatchEventService {
      */
     private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
         if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto e) {
-            return e.getPlayerIn().getTeamPlayerId().equals(teamPlayerId);
+            return e.getPlayerIn().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -830,8 +831,8 @@ public class MatchEventService {
      * @param teamPlayer an entity to convert
      * @return converted entity
      */
-    private MatchEventDetails.SerializedPlayerInfo intoSerializedPlayerInfo(TeamPlayer teamPlayer) {
-        return new MatchEventDetails.SerializedPlayerInfo(
+    private SerializedPlayer intoSerializedPlayer(TeamPlayer teamPlayer) {
+        return new SerializedPlayer(
             teamPlayer.getId(),
             teamPlayer.getPlayer().getId(),
             teamPlayer.getPlayer().getName()

@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.event.service;
 import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.common.event.dto.MatchEventDetails;
+import ml.echelon133.common.event.dto.SerializedPlayer;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -106,7 +107,7 @@ public class MatchEventServiceTests {
                     UUID.randomUUID(),
                     null,
                     type,
-                    new MatchEventDetails.SerializedPlayerInfo(receivingTeamPlayerId, null, null)
+                    new SerializedPlayer(receivingTeamPlayerId, null, null)
             )
         );
     }
@@ -118,8 +119,8 @@ public class MatchEventServiceTests {
                     "1",
                     UUID.randomUUID(),
                     null,
-                    new MatchEventDetails.SerializedPlayerInfo(playerInId, null, null),
-                    new MatchEventDetails.SerializedPlayerInfo(playerOutId, null, null)
+                    new SerializedPlayer(playerInId, null, null),
+                    new SerializedPlayer(playerOutId, null, null)
             )
         );
     }
@@ -1808,8 +1809,8 @@ public class MatchEventServiceTests {
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
                     gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                     !gDto.isOwnGoal();
         }));
@@ -1848,7 +1849,7 @@ public class MatchEventServiceTests {
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
                     gDto.getAssistingPlayer() == null &&
                     gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                     gDto.isOwnGoal();
@@ -1897,8 +1898,8 @@ public class MatchEventServiceTests {
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
                     gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                     !gDto.isOwnGoal();
         }));
@@ -1937,7 +1938,7 @@ public class MatchEventServiceTests {
         verify(matchEventRepository).save(argThat(matchEvent -> {
             MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
                     gDto.getAssistingPlayer() == null &&
                     gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                     gDto.isOwnGoal();
@@ -1990,8 +1991,8 @@ public class MatchEventServiceTests {
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
                         gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                         !gDto.isOwnGoal();
             }));
@@ -2034,7 +2035,7 @@ public class MatchEventServiceTests {
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
                         gDto.getAssistingPlayer() == null &&
                         gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                         gDto.isOwnGoal();
@@ -2088,8 +2089,8 @@ public class MatchEventServiceTests {
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
                         gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                         !gDto.isOwnGoal();
             }));
@@ -2131,7 +2132,7 @@ public class MatchEventServiceTests {
             verify(matchEventRepository).save(argThat(matchEvent -> {
                 MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
                         gDto.getAssistingPlayer() == null &&
                         gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                         gDto.isOwnGoal();
@@ -2662,8 +2663,8 @@ public class MatchEventServiceTests {
             MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+                    sDto.getPlayerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.getPlayerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2709,8 +2710,8 @@ public class MatchEventServiceTests {
             MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+                    sDto.getPlayerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.getPlayerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2754,8 +2755,8 @@ public class MatchEventServiceTests {
             MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+                    sDto.getPlayerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.getPlayerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2900,7 +2901,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     pDto.isCountAsGoal() &&
                     pDto.isScored();
         }));
@@ -2940,7 +2941,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     pDto.isCountAsGoal() &&
                     !pDto.isScored();
         }));
@@ -2980,7 +2981,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     pDto.isCountAsGoal() &&
                     pDto.isScored();
         }));
@@ -3020,7 +3021,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     pDto.isCountAsGoal() &&
                     !pDto.isScored();
         }));
@@ -3063,7 +3064,7 @@ public class MatchEventServiceTests {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
                         pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                         pDto.isCountAsGoal() &&
                         pDto.isScored();
             }));
@@ -3107,7 +3108,7 @@ public class MatchEventServiceTests {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
                         pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                         pDto.isCountAsGoal() &&
                         !pDto.isScored();
             }));
@@ -3151,7 +3152,7 @@ public class MatchEventServiceTests {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
                         pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                         pDto.isCountAsGoal() &&
                         pDto.isScored();
             }));
@@ -3195,7 +3196,7 @@ public class MatchEventServiceTests {
                 MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
                         pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                         pDto.isCountAsGoal() &&
                         !pDto.isScored();
             }));
@@ -3236,7 +3237,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     !pDto.isCountAsGoal() &&
                     pDto.isScored();
         }));
@@ -3276,7 +3277,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     !pDto.isCountAsGoal() &&
                     !pDto.isScored();
         }));
@@ -3316,7 +3317,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     !pDto.isCountAsGoal() &&
                     pDto.isScored();
         }));
@@ -3356,7 +3357,7 @@ public class MatchEventServiceTests {
             MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
                     pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
+                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
                     !pDto.isCountAsGoal() &&
                     !pDto.isScored();
         }));

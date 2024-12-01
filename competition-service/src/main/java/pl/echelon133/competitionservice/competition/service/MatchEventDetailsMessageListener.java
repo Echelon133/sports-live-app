@@ -152,13 +152,13 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
     private void processCardEvent(UUID recordId, MatchEventDetails.CardDto event) throws ResourceNotFoundException {
         var cardedPlayer = event.getCardedPlayer();
         var competitionId = event.getCompetitionId();
-        var playerId = cardedPlayer.getPlayerId();
+        var playerId = cardedPlayer.playerId();
 
         PlayerStats playerStats = playerStatsService.findPlayerStatsOrDefault(
                 playerId,
                 competitionId,
                 event.getTeamId(),
-                cardedPlayer.getName()
+                cardedPlayer.name()
         );
 
         MatchEventDetails.CardDto.CardType t = event.getCardType();
@@ -200,12 +200,12 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         var competitionId = event.getCompetitionId();
 
         var scoringPlayer = event.getScoringPlayer();
-        var scoringPlayerId = scoringPlayer.getPlayerId();
+        var scoringPlayerId = scoringPlayer.playerId();
         PlayerStats scoringPlayerStats = playerStatsService.findPlayerStatsOrDefault(
                 scoringPlayerId,
                 competitionId,
                 event.getTeamId(),
-                scoringPlayer.getName()
+                scoringPlayer.name()
         );
         scoringPlayerStats.incrementGoals();
         logger.debug(
@@ -217,12 +217,12 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         // the goal might have an assisting player
         if (event.getAssistingPlayer() != null) {
             var assistingPlayer = event.getAssistingPlayer();
-            var assistingPlayerId = assistingPlayer.getPlayerId();
+            var assistingPlayerId = assistingPlayer.playerId();
             PlayerStats assistingPlayerStats = playerStatsService.findPlayerStatsOrDefault(
                     assistingPlayerId,
                     competitionId,
                     event.getTeamId(),
-                    assistingPlayer.getName()
+                    assistingPlayer.name()
             );
             assistingPlayerStats.incrementAssists();
             logger.debug(
@@ -255,12 +255,12 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
 
         var competitionId = event.getCompetitionId();
         var shootingPlayer = event.getShootingPlayer();
-        var shootingPlayerId = shootingPlayer.getPlayerId();
+        var shootingPlayerId = shootingPlayer.playerId();
         PlayerStats shootingPlayerStats = playerStatsService.findPlayerStatsOrDefault(
                 shootingPlayerId,
                 competitionId,
                 event.getTeamId(),
-                shootingPlayer.getName()
+                shootingPlayer.name()
         );
         shootingPlayerStats.incrementGoals();
         logger.debug(
