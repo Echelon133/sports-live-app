@@ -102,8 +102,8 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         away.incrementMatchesPlayed();
 
         // update `goalsScored` and `goalsConceded` of both teams
-        var homeGoals = event.getMainScore().getHomeGoals();
-        var awayGoals = event.getMainScore().getAwayGoals();
+        var homeGoals = event.getMainScore().homeGoals();
+        var awayGoals = event.getMainScore().awayGoals();
         home.incrementGoalsScoredBy(homeGoals);
         home.incrementGoalsConcededBy(awayGoals);
         away.incrementGoalsScoredBy(awayGoals);
