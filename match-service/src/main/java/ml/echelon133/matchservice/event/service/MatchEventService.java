@@ -1,10 +1,7 @@
 package ml.echelon133.matchservice.event.service;
 
 import ml.echelon133.common.event.KafkaTopicNames;
-import ml.echelon133.common.event.dto.MatchEventDetails;
-import ml.echelon133.common.event.dto.MatchEventDto;
-import ml.echelon133.common.event.dto.SerializedPlayer;
-import ml.echelon133.common.event.dto.SerializedScore;
+import ml.echelon133.common.event.dto.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -193,7 +190,7 @@ public class MatchEventService {
                 statusDto.getMinute(),
                 match.getCompetitionId(),
                 targetStatus,
-                new MatchEventDetails.SerializedTeamInfo(match.getHomeTeam().getId(), match.getAwayTeam().getId()),
+                new SerializedTeam(match.getHomeTeam().getId(), match.getAwayTeam().getId()),
                 match.getResult(),
                 new SerializedScore(mainScore.getHomeGoals(), mainScore.getAwayGoals())
         );

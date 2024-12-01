@@ -59,39 +59,12 @@ public abstract class MatchEventDetails implements Serializable {
         this.competitionId = competitionId;
     }
 
-    public static class SerializedTeamInfo implements Serializable {
-        private UUID homeTeamId;
-        private UUID awayTeamId;
-
-        public SerializedTeamInfo() {}
-        public SerializedTeamInfo(UUID homeTeamId, UUID awayTeamId) {
-            this.homeTeamId = homeTeamId;
-            this.awayTeamId = awayTeamId;
-        }
-
-        public UUID getHomeTeamId() {
-            return homeTeamId;
-        }
-
-        public void setHomeTeamId(UUID homeTeamId) {
-            this.homeTeamId = homeTeamId;
-        }
-
-        public UUID getAwayTeamId() {
-            return awayTeamId;
-        }
-
-        public void setAwayTeamId(UUID awayTeamId) {
-            this.awayTeamId = awayTeamId;
-        }
-    }
-
     /**
      * Data class representing already processed match event of type <b>STATUS</b>.
      */
     public static class StatusDto extends MatchEventDetails {
         private MatchStatus targetStatus;
-        private SerializedTeamInfo teams;
+        private SerializedTeam teams;
         private MatchResult result;
         private SerializedScore mainScore;
 
@@ -100,7 +73,7 @@ public abstract class MatchEventDetails implements Serializable {
                 String minute,
                 UUID competitionId,
                 MatchStatus targetStatus,
-                SerializedTeamInfo teams,
+                SerializedTeam teams,
                 MatchResult matchResult,
                 SerializedScore mainScore
         ) {
@@ -119,11 +92,11 @@ public abstract class MatchEventDetails implements Serializable {
             this.targetStatus = targetStatus;
         }
 
-        public SerializedTeamInfo getTeams() {
+        public SerializedTeam getTeams() {
             return teams;
         }
 
-        public void setTeams(SerializedTeamInfo teams) {
+        public void setTeams(SerializedTeam teams) {
             this.teams = teams;
         }
 

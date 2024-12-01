@@ -4,6 +4,7 @@ import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.event.dto.SerializedPlayer;
 import ml.echelon133.common.event.dto.SerializedScore;
+import ml.echelon133.common.event.dto.SerializedTeam;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -165,7 +166,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
                         new SerializedScore(homeGoals, awayGoals)
                 )
@@ -217,7 +218,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.HOME_WIN,
                         new SerializedScore(homeGoals, awayGoals)
                 )
@@ -269,7 +270,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.AWAY_WIN,
                         new SerializedScore(homeGoals, awayGoals)
                 )
@@ -306,7 +307,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.NONE, // can only happen as a business logic error
                         new SerializedScore(homeGoals, awayGoals)
                 )
@@ -333,7 +334,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
                         new SerializedScore(homeGoals, awayGoals)
                 )
@@ -364,7 +365,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
                         new SerializedScore(homeGoals, awayGoals)
                 )
@@ -396,7 +397,7 @@ public class MatchEventDetailsMessageListenerTests {
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
                         new SerializedScore(homeGoals, awayGoals)
                 )

@@ -618,8 +618,8 @@ public class MatchEventServiceTests {
                 var teams = sDto.getTeams();
                 return e.getMatch().getId().equals(matchId) &&
                         sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -656,8 +656,8 @@ public class MatchEventServiceTests {
                 var teams = sDto.getTeams();
                 return e.getMatch().getId().equals(matchId) &&
                         sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -694,8 +694,8 @@ public class MatchEventServiceTests {
                 var teams = sDto.getTeams();
                 return e.getMatch().getId().equals(matchId) &&
                         sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -732,8 +732,8 @@ public class MatchEventServiceTests {
                 var teams = sDto.getTeams();
                 return e.getMatch().getId().equals(matchId) &&
                         sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -770,8 +770,8 @@ public class MatchEventServiceTests {
                 var teams = sDto.getTeams();
                 return e.getMatch().getId().equals(matchId) &&
                         sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -838,8 +838,8 @@ public class MatchEventServiceTests {
                 var teams = sDto.getTeams();
                 return e.getMatch().getId().equals(matchId) &&
                         sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -876,8 +876,8 @@ public class MatchEventServiceTests {
                 var teams = sDto.getTeams();
                 return e.getMatch().getId().equals(matchId) &&
                         sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }

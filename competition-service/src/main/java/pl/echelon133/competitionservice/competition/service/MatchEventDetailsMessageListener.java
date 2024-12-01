@@ -90,8 +90,8 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         }
 
         var teamInfo = event.getTeams();
-        var homeTeamId = teamInfo.getHomeTeamId();
-        var awayTeamId = teamInfo.getAwayTeamId();
+        var homeTeamId = teamInfo.homeTeamId();
+        var awayTeamId = teamInfo.awayTeamId();
         var competitionId = event.getCompetitionId();
 
         var home = teamStatsService.findTeamStats(homeTeamId, competitionId);
