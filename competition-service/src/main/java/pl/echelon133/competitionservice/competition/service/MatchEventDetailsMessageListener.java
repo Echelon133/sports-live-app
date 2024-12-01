@@ -40,14 +40,14 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         var event = record.value();
 
         try {
-            if (event instanceof MatchEventDetails.StatusDto) {
-                processStatusEvent(recordId, (MatchEventDetails.StatusDto) event);
-            } else if (event instanceof MatchEventDetails.CardDto) {
-                processCardEvent(recordId, (MatchEventDetails.CardDto) event);
-            } else if (event instanceof MatchEventDetails.GoalDto) {
-                processGoalEvent(recordId, (MatchEventDetails.GoalDto) event);
-            } else if (event instanceof MatchEventDetails.PenaltyDto) {
-                processPenaltyEvent(recordId, (MatchEventDetails.PenaltyDto) event);
+            if (event instanceof MatchEventDetails.StatusDto statusEventDto) {
+                processStatusEvent(recordId, statusEventDto);
+            } else if (event instanceof MatchEventDetails.CardDto cardEventDto) {
+                processCardEvent(recordId, cardEventDto);
+            } else if (event instanceof MatchEventDetails.GoalDto goalEventDto) {
+                processGoalEvent(recordId, goalEventDto);
+            } else if (event instanceof MatchEventDetails.PenaltyDto penaltyEventDto) {
+                processPenaltyEvent(recordId, penaltyEventDto);
             } else {
                 logNoOperation(recordId, "The event does not contain any data about teams or players");
             }

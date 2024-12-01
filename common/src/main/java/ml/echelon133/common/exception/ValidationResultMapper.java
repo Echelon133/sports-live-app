@@ -27,8 +27,7 @@ public class ValidationResultMapper {
         Map<String, List<String>> mappedResult = new HashMap<>();
 
         result.getAllErrors().forEach(error -> {
-            if (error instanceof FieldError) {
-                var e = (FieldError)error;
+            if (error instanceof FieldError e) {
                 mappedResult.putIfAbsent(e.getField(), new ArrayList<>());
                 var fieldErrorList = mappedResult.get(e.getField());
                 fieldErrorList.add(e.getDefaultMessage());

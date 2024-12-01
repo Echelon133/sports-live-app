@@ -95,18 +95,18 @@ public class MatchEventService {
         var match = matchService.findEntityById(matchId);
         MatchEvent matchEvent;
 
-        if (eventDto instanceof InsertMatchEvent.StatusDto) {
-            matchEvent = processStatusEvent(match, (InsertMatchEvent.StatusDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.CommentaryDto) {
-            matchEvent = processCommentaryEvent(match, (InsertMatchEvent.CommentaryDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.CardDto) {
-            matchEvent = processCardEvent(match, (InsertMatchEvent.CardDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.GoalDto) {
-            matchEvent = processGoalEvent(match, (InsertMatchEvent.GoalDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.SubstitutionDto) {
-            matchEvent = processSubstitutionEvent(match, (InsertMatchEvent.SubstitutionDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.PenaltyDto) {
-            matchEvent = processPenaltyEvent(match, (InsertMatchEvent.PenaltyDto) eventDto);
+        if (eventDto instanceof InsertMatchEvent.StatusDto statusEventDto) {
+            matchEvent = processStatusEvent(match, statusEventDto);
+        } else if (eventDto instanceof InsertMatchEvent.CommentaryDto commentaryEventDto) {
+            matchEvent = processCommentaryEvent(match, commentaryEventDto);
+        } else if (eventDto instanceof InsertMatchEvent.CardDto cardEventDto) {
+            matchEvent = processCardEvent(match, cardEventDto);
+        } else if (eventDto instanceof InsertMatchEvent.GoalDto goalEventDto) {
+            matchEvent = processGoalEvent(match, goalEventDto);
+        } else if (eventDto instanceof InsertMatchEvent.SubstitutionDto substitutionEventDto) {
+            matchEvent = processSubstitutionEvent(match, substitutionEventDto);
+        } else if (eventDto instanceof InsertMatchEvent.PenaltyDto penaltyEventDto) {
+            matchEvent = processPenaltyEvent(match, penaltyEventDto);
         } else {
             throw new MatchEventInvalidException("handling of this event is not implemented");
         }
@@ -240,8 +240,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isCardEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.CardDto) {
-            var e = (MatchEventDetails.CardDto) event.getEvent();
+        if (event.getEvent() instanceof MatchEventDetails.CardDto e) {
             return e.getCardedPlayer().getTeamPlayerId().equals(teamPlayerId);
         } else {
             return false;
@@ -257,8 +256,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isCardEventOfCardType(MatchEventDto event, MatchEventDetails.CardDto.CardType... cardTypes) {
-        if (event.getEvent() instanceof MatchEventDetails.CardDto) {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) event.getEvent();
+        if (event.getEvent() instanceof MatchEventDetails.CardDto cDto) {
             var foundCardType= cDto.getCardType();
             return Arrays.asList(cardTypes).contains(foundCardType);
         } else {
@@ -760,8 +758,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
-            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
+        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto e) {
             return e.getPlayerOut().getTeamPlayerId().equals(teamPlayerId);
         } else {
             return false;
@@ -777,8 +774,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
-            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
+        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto e) {
             return e.getPlayerIn().getTeamPlayerId().equals(teamPlayerId);
         } else {
             return false;
