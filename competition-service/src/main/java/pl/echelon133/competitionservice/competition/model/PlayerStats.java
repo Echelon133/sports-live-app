@@ -2,7 +2,7 @@ package pl.echelon133.competitionservice.competition.model;
 
 import ml.echelon133.common.entity.BaseEntity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.UUID;
 
 @Entity

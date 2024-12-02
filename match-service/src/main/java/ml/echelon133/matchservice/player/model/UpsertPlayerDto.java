@@ -5,7 +5,7 @@ import ml.echelon133.common.constraints.LocalDateFormat;
 import ml.echelon133.matchservice.player.model.constraints.PositionValue;
 import org.hibernate.validator.constraints.Length;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public class UpsertPlayerDto {
 

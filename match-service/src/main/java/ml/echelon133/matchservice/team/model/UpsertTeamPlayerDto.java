@@ -4,7 +4,7 @@ import ml.echelon133.matchservice.player.constraints.PlayerExists;
 import ml.echelon133.matchservice.player.model.constraints.PositionValue;
 import org.hibernate.validator.constraints.Range;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public class UpsertTeamPlayerDto {
 

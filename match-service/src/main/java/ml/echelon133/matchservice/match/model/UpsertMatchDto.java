@@ -7,7 +7,7 @@ import ml.echelon133.matchservice.referee.constraints.RefereeExists;
 import ml.echelon133.matchservice.team.constraints.TeamExists;
 import ml.echelon133.matchservice.venue.constraints.VenueExists;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @TeamIdsDifferent
 public class UpsertMatchDto {

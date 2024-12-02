@@ -2,10 +2,10 @@ package pl.echelon133.competitionservice.competition.model;
 
 import ml.echelon133.common.entity.BaseEntity;
 
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import java.util.Set;
 
 @Entity

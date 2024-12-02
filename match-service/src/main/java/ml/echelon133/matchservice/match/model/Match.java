@@ -7,7 +7,7 @@ import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.venue.model.Venue;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 

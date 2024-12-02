@@ -6,7 +6,7 @@ import org.springframework.web.bind.support.SpringWebConstraintValidatorFactory;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
-import javax.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidator;
 import java.util.Map;
 
 /**

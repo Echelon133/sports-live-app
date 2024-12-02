@@ -8,8 +8,8 @@ import ml.echelon133.matchservice.event.model.dto.constraints.MatchStatusValid;
 import ml.echelon133.matchservice.event.model.dto.constraints.SubstitutionPlayerIdsDifferent;
 import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Data classes representing all pre-processed match events that can be provided by the client.

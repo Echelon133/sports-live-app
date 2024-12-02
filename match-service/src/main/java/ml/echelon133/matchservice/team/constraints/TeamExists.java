@@ -3,10 +3,10 @@ package ml.echelon133.matchservice.team.constraints;
 import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

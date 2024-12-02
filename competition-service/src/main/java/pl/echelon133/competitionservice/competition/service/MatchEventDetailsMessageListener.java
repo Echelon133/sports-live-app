@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.listener.MessageListener;
 import pl.echelon133.competitionservice.competition.model.PlayerStats;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 

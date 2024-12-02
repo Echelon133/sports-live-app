@@ -1,9 +1,10 @@
 package ml.echelon133.matchservice.coach.controller;
 
-import ml.echelon133.matchservice.coach.model.CoachDto;
+import jakarta.validation.Valid;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
+import ml.echelon133.matchservice.coach.model.CoachDto;
 import ml.echelon133.matchservice.coach.model.UpsertCoachDto;
 import ml.echelon133.matchservice.coach.service.CoachService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.Map;
 import java.util.UUID;
 

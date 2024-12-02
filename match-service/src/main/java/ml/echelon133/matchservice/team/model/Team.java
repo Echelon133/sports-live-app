@@ -3,7 +3,7 @@ package ml.echelon133.matchservice.team.model;
 import ml.echelon133.common.entity.BaseEntity;
 import ml.echelon133.matchservice.coach.model.Coach;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 public class Team extends BaseEntity {
