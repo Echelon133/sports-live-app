@@ -375,8 +375,9 @@ public class VenueControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<VenueDto> expectedPage = Page.empty();
+        Page<VenueDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(venueService.findVenuesByName(

@@ -732,8 +732,9 @@ public class TeamControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<TeamDto> expectedPage = Page.empty();
+        Page<TeamDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(teamService.findTeamsByName(
@@ -786,8 +787,9 @@ public class TeamControllerTests {
     public void getTeamsByCriteria_TeamIdsProvidedWithDefaultPageable_StatusOk() throws Exception {
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<TeamDto> expectedPage = Page.empty();
+        Page<TeamDto> expectedPage = Page.empty(expectedPageable);
 
         var requestedTeamId = UUID.randomUUID();
 

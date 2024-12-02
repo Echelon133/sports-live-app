@@ -735,8 +735,9 @@ public class PlayerControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<PlayerDto> expectedPage = Page.empty();
+        Page<PlayerDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(playerService.findPlayersByName(

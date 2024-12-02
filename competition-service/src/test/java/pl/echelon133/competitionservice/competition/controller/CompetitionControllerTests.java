@@ -169,8 +169,9 @@ public class CompetitionControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<CompetitionDto> expectedPage = Page.empty();
+        Page<CompetitionDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(competitionService.findCompetitionsByName(
@@ -1255,8 +1256,9 @@ public class CompetitionControllerTests {
         var competitionId = UUID.randomUUID();
         var defaultPageNumber = 0;
         var defaultPageSize = 25;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<PlayerStatsDto> expectedPage = Page.empty();
+        Page<PlayerStatsDto> expectedPage = Page.empty(expectedPageable);
 
         // given
         given(competitionService.findPlayerStatsByCompetition(
