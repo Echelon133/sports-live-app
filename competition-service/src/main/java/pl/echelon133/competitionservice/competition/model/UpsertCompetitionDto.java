@@ -1,16 +1,16 @@
 package pl.echelon133.competitionservice.competition.model;
 
-import ml.echelon133.common.constraints.UUID;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.Length;
 import org.hibernate.validator.constraints.URL;
+import org.hibernate.validator.constraints.UUID;
 import pl.echelon133.competitionservice.competition.model.constraints.LegendPositionsInRange;
 import pl.echelon133.competitionservice.competition.model.constraints.PositionsUniqueInLegend;
 import pl.echelon133.competitionservice.competition.model.constraints.SentimentValue;
 import pl.echelon133.competitionservice.competition.model.constraints.TeamsUniqueInGroups;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Set;
 
