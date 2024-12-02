@@ -205,12 +205,12 @@ public class CompetitionServiceTests {
                 .build();
 
         var expectedTeamStats = new TeamStats(groupTeamId, "Team " + groupTeamId, "Url " + groupTeamId);
-        var expectedGroup = new Group(dtoGroup.getName(), List.of(expectedTeamStats));
-        var expectedLegend = new Legend(dtoLegend.getPositions(), dtoLegend.getContext(), Legend.LegendSentiment.POSITIVE_A);
+        var expectedGroup = new Group(dtoGroup.name(), List.of(expectedTeamStats));
+        var expectedLegend = new Legend(dtoLegend.positions(), dtoLegend.context(), Legend.LegendSentiment.POSITIVE_A);
         var expectedCompetition = new Competition(
-                dtoCompetition.getName(),
-                dtoCompetition.getSeason(),
-                dtoCompetition.getLogoUrl(),
+                dtoCompetition.name(),
+                dtoCompetition.season(),
+                dtoCompetition.logoUrl(),
                 List.of(expectedGroup),
                 List.of(expectedLegend)
         );

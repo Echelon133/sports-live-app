@@ -71,7 +71,7 @@ public class CoachService {
                 .filter(v -> !v.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Coach.class, id));
 
-        coachToUpdate.setName(coachDto.getName());
+        coachToUpdate.setName(coachDto.name());
 
         return entityToDto(coachRepository.save(coachToUpdate));
     }
@@ -88,7 +88,7 @@ public class CoachService {
     public CoachDto createCoach(UpsertCoachDto coachDto) {
         return entityToDto(
                 coachRepository
-                        .save(new Coach(coachDto.getName()))
+                        .save(new Coach(coachDto.name()))
         );
     }
 

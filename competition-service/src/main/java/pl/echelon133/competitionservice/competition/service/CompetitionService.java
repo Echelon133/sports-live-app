@@ -75,17 +75,17 @@ public class CompetitionService {
      */
     public UUID createCompetition(UpsertCompetitionDto competitionDto) throws CompetitionInvalidException {
         var competition = new Competition(
-                competitionDto.getName(),
-                competitionDto.getSeason(),
-                competitionDto.getLogoUrl()
+                competitionDto.name(),
+                competitionDto.season(),
+                competitionDto.logoUrl()
         );
 
-        List<Group> groups = new ArrayList<>(competitionDto.getGroups().size());
+        List<Group> groups = new ArrayList<>(competitionDto.groups().size());
 
         // none of `UUID.fromString` calls should fail because all ids are pre-validated
         List<UUID> requestedTeamIds = competitionDto
-                .getGroups().stream()
-                .flatMap(g -> g.getTeams().stream())
+                .groups().stream()
+                .flatMap(g -> g.teams().stream())
                 .map(UUID::fromString)
                 .collect(Collectors.toList());
 
@@ -123,9 +123,9 @@ public class CompetitionService {
             }
         }
 
-        for (var groupDto : competitionDto.getGroups()) {
+        for (var groupDto : competitionDto.groups()) {
             // none of `UUID.fromString` calls during `map` should fail because all ids are pre-validated
-            var teams = groupDto.getTeams().stream().map(UUID::fromString).map(
+            var teams = groupDto.teams().stream().map(UUID::fromString).map(
                     tId -> {
                         // at this point, it's GUARANTEED that there is a team details object with that id at index 0:
                         //      * if such id had not been found, an exception would have been thrown before getting here
@@ -135,7 +135,7 @@ public class CompetitionService {
                         return new TeamStats(teamDetail.getId(), teamDetail.getName(), teamDetail.getCrestUrl());
                     }).collect(Collectors.toList());
 
-            var group = new Group(groupDto.getName(), teams);
+            var group = new Group(groupDto.name(), teams);
             // bidirectionally link teams with their groups
             teams.forEach(t -> t.setGroup(group));
             // bidirectionally link groups with their competition
@@ -143,13 +143,13 @@ public class CompetitionService {
             groups.add(group);
         }
 
-        var legend = competitionDto.getLegend().stream().map(
+        var legend = competitionDto.legend().stream().map(
                 l ->
                         new Legend(
-                                l.getPositions(),
-                                l.getContext(),
+                                l.positions(),
+                                l.context(),
                                 // this `valueOfIgnoreCase` should never fail because the sentiment value is pre-validated
-                                Legend.LegendSentiment.valueOfIgnoreCase(l.getSentiment())
+                                Legend.LegendSentiment.valueOfIgnoreCase(l.sentiment())
                         )
                 ).collect(Collectors.toList());
 

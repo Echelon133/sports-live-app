@@ -26,9 +26,9 @@ public @interface TeamsUniqueInGroups {
         @Override
         public boolean isValid(Collection<UpsertCompetitionDto.UpsertGroupDto> upsertGroupDtos, ConstraintValidatorContext constraintValidatorContext) {
             var allIdsCounter = upsertGroupDtos.stream()
-                    .flatMap(g -> g.getTeams().stream()).count();
+                    .flatMap(g -> g.teams().stream()).count();
             var uniqueIdsCounter = upsertGroupDtos.stream()
-                    .flatMap(g -> g.getTeams().stream()).collect(Collectors.toSet()).size();
+                    .flatMap(g -> g.teams().stream()).collect(Collectors.toSet()).size();
             return allIdsCounter == uniqueIdsCounter;
         }
     }

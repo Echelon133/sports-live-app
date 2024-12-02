@@ -166,7 +166,7 @@ public class TeamPlayerServiceTests {
     @DisplayName("createTeamPlayer throws when the team is not found")
     public void createTeamPlayer_TeamNotFound_Throws() {
         var teamId = UUID.randomUUID();
-        var createDto = new UpsertTeamPlayerDto();
+        var createDto = new UpsertTeamPlayerDto(null, null, null);
 
         // given
         given(teamPlayerRepository.teamHasPlayerWithNumber(any(), any())).willReturn(false);
@@ -185,7 +185,7 @@ public class TeamPlayerServiceTests {
     @DisplayName("createTeamPlayer throws when the team is marked as deleted")
     public void createTeamPlayer_TeamMarkedAsDeleted_Throws() {
         var teamId = UUID.randomUUID();
-        var createDto = new UpsertTeamPlayerDto();
+        var createDto = new UpsertTeamPlayerDto(null, null, null);
         var team = TestTeam.builder().build();
         team.setDeleted(true);
 
@@ -236,8 +236,8 @@ public class TeamPlayerServiceTests {
         var expectedDto = TestTeamPlayerDto
                 .builder()
                 .id(entity.getId())
-                .position(createDto.getPosition())
-                .number(createDto.getNumber())
+                .position(createDto.position())
+                .number(createDto.number())
                 .countryCode(entity.getPlayer().getCountryCode())
                 .playerName(entity.getPlayer().getName())
                 .playerDateOfBirth(entity.getPlayer().getDateOfBirth())
@@ -245,14 +245,14 @@ public class TeamPlayerServiceTests {
                 .build();
 
         // given
-        given(teamPlayerRepository.teamHasPlayerWithNumber(teamId, createDto.getNumber())).willReturn(false);
+        given(teamPlayerRepository.teamHasPlayerWithNumber(teamId, createDto.number())).willReturn(false);
         given(teamRepository.findById(teamId)).willReturn(Optional.of(entity.getTeam()));
         given(playerService.findEntityById(playerId)).willReturn(entity.getPlayer());
         given(teamPlayerRepository.save(argThat(tp ->
                 tp.getTeam().equals(entity.getTeam()) &&
                     tp.getPlayer().equals(entity.getPlayer()) &&
-                    tp.getNumber().equals(createDto.getNumber()) &&
-                    tp.getPosition().toString().equals(createDto.getPosition())
+                    tp.getNumber().equals(createDto.number()) &&
+                    tp.getPosition().toString().equals(createDto.position())
         ))).willReturn(entity);
 
         // when
@@ -273,7 +273,7 @@ public class TeamPlayerServiceTests {
     public void updateTeamPlayer_TeamPlayerNotFound_Throws() {
         var teamId = UUID.randomUUID();
         var teamPlayerId = UUID.randomUUID();
-        var updateDto = new UpsertTeamPlayerDto();
+        var updateDto = new UpsertTeamPlayerDto(null, null, null);
 
         // given
         given(teamPlayerRepository.findById(teamPlayerId)).willReturn(Optional.empty());
@@ -295,7 +295,7 @@ public class TeamPlayerServiceTests {
     public void updateTeamPlayer_TeamPlayerMarkedAsDeleted_Throws() {
         var teamId = UUID.randomUUID();
         var teamPlayerId = UUID.randomUUID();
-        var updateDto = new UpsertTeamPlayerDto();
+        var updateDto = new UpsertTeamPlayerDto(null, null, null);
         var teamPlayer = new TeamPlayer();
         teamPlayer.setDeleted(true);
 
@@ -319,7 +319,7 @@ public class TeamPlayerServiceTests {
     public void updateTeamPlayer_TeamMarkedAsDeleted_Throws() {
         var teamId = UUID.randomUUID();
         var teamPlayerId = UUID.randomUUID();
-        var updateDto = new UpsertTeamPlayerDto();
+        var updateDto = new UpsertTeamPlayerDto(null, null, null);
         var teamPlayer = getTestTeamPlayer();
         teamPlayer.setId(teamPlayerId);
         teamPlayer.getTeam().setDeleted(true);
@@ -341,7 +341,7 @@ public class TeamPlayerServiceTests {
     public void updateTeamPlayer_TeamIdAndTeamPlayerTeamIdAreInconsistent_Throws() {
         var teamId = UUID.randomUUID();
         var teamPlayerId = UUID.randomUUID();
-        var updateDto = new UpsertTeamPlayerDto();
+        var updateDto = new UpsertTeamPlayerDto(null, null, null);
         var teamPlayer = new TeamPlayer();
         // make sure that the teamId and teamPlayer's Team's teamId are different
         teamPlayer.setTeam(TestTeam.builder().build());
@@ -448,7 +448,7 @@ public class TeamPlayerServiceTests {
 
         // given
         given(teamPlayerRepository.findById(teamPlayerId)).willReturn(Optional.of(oldTeamPlayer));
-        given(teamPlayerRepository.teamHasPlayerWithNumber(teamId, createDto.getNumber())).willReturn(false);
+        given(teamPlayerRepository.teamHasPlayerWithNumber(teamId, createDto.number())).willReturn(false);
         given(playerService.findEntityById(newPlayerId)).willReturn(newPlayer);
         given(teamPlayerRepository.save(argThat(tp ->
                 tp.getTeam().equals(oldTeamPlayer.getTeam()) &&

@@ -125,11 +125,11 @@ public class CoachServiceTests {
     public void createCoach_ValidDto_CorrectlySavesAndReturns() {
         var idToSave = UUID.randomUUID();
         var initialDto = new UpsertCoachDto("Test");
-        var entity = new Coach(initialDto.getName());
+        var entity = new Coach(initialDto.name());
         entity.setId(idToSave);
 
         // given
-        given(coachRepository.save(argThat(v -> v.getName().equals(initialDto.getName())))).willReturn(entity);
+        given(coachRepository.save(argThat(v -> v.getName().equals(initialDto.name())))).willReturn(entity);
 
         // when
         CoachDto savedDto = coachService.createCoach(initialDto);

@@ -96,34 +96,34 @@ public class MatchService {
         var match = new Match();
 
         // this `UUID.fromString` should never fail because the homeTeamId value is pre-validated
-        var homeTeamId = UUID.fromString(matchDto.getHomeTeamId());
+        var homeTeamId = UUID.fromString(matchDto.homeTeamId());
         var homeTeam = teamService.findEntityById(homeTeamId);
         match.setHomeTeam(homeTeam);
 
         // this `UUID.fromString` should never fail because the awayTeamId value is pre-validated
-        var awayTeamId = UUID.fromString(matchDto.getAwayTeamId());
+        var awayTeamId = UUID.fromString(matchDto.awayTeamId());
         var awayTeam = teamService.findEntityById(awayTeamId);
         match.setAwayTeam(awayTeam);
 
         // this `LocalDateTime.parse` should never fail because the startTimeUTC value is pre-validated
-        var startTimeUTC = LocalDateTime.parse(matchDto.getStartTimeUTC(), DATE_OF_MATCH_FORMATTER);
+        var startTimeUTC = LocalDateTime.parse(matchDto.startTimeUTC(), DATE_OF_MATCH_FORMATTER);
         match.setStartTimeUTC(startTimeUTC);
 
         // this `UUID.fromString` should never fail because the venueId value is pre-validated
-        var venueId = UUID.fromString(matchDto.getVenueId());
+        var venueId = UUID.fromString(matchDto.venueId());
         var venue = venueService.findEntityById(venueId);
         match.setVenue(venue);
 
         // referee is optional, only fetch it if it's not null
-        if (matchDto.getRefereeId() != null) {
+        if (matchDto.refereeId() != null) {
             // this `UUID.fromString` should never fail because the refereeId value is pre-validated
-            var refereeId = UUID.fromString(matchDto.getRefereeId());
+            var refereeId = UUID.fromString(matchDto.refereeId());
             var referee = refereeService.findEntityById(refereeId);
             match.setReferee(referee);
         }
 
         // this `UUID.fromString` should never fail because the competitionId value is pre-validated
-        var competitionId = UUID.fromString(matchDto.getCompetitionId());
+        var competitionId = UUID.fromString(matchDto.competitionId());
         match.setCompetitionId(competitionId);
 
         return MatchMapper.entityToDto(matchRepository.save(match));
@@ -144,34 +144,34 @@ public class MatchService {
         var matchToUpdate = findEntityById(matchId);
 
         // this `UUID.fromString` should never fail because the homeTeamId value is pre-validated
-        var homeTeamId = UUID.fromString(matchDto.getHomeTeamId());
+        var homeTeamId = UUID.fromString(matchDto.homeTeamId());
         var homeTeam = teamService.findEntityById(homeTeamId);
         matchToUpdate.setHomeTeam(homeTeam);
 
         // this `UUID.fromString` should never fail because the awayTeamId value is pre-validated
-        var awayTeamId = UUID.fromString(matchDto.getAwayTeamId());
+        var awayTeamId = UUID.fromString(matchDto.awayTeamId());
         var awayTeam = teamService.findEntityById(awayTeamId);
         matchToUpdate.setAwayTeam(awayTeam);
 
         // this `LocalDateTime.parse` should never fail because the startTimeUTC value is pre-validated
-        var startTimeUTC = LocalDateTime.parse(matchDto.getStartTimeUTC(), DATE_OF_MATCH_FORMATTER);
+        var startTimeUTC = LocalDateTime.parse(matchDto.startTimeUTC(), DATE_OF_MATCH_FORMATTER);
         matchToUpdate.setStartTimeUTC(startTimeUTC);
 
         // this `UUID.fromString` should never fail because the venueId value is pre-validated
-        var venueId = UUID.fromString(matchDto.getVenueId());
+        var venueId = UUID.fromString(matchDto.venueId());
         var venue = venueService.findEntityById(venueId);
         matchToUpdate.setVenue(venue);
 
         // referee is optional, only fetch it if it's not null
-        if (matchDto.getRefereeId() != null) {
+        if (matchDto.refereeId() != null) {
             // this `UUID.fromString` should never fail because the refereeId value is pre-validated
-            var refereeId = UUID.fromString(matchDto.getRefereeId());
+            var refereeId = UUID.fromString(matchDto.refereeId());
             var referee = refereeService.findEntityById(refereeId);
             matchToUpdate.setReferee(referee);
         }
 
         // this `UUID.fromString` should never fail because the competitionId value is pre-validated
-        var competitionId = UUID.fromString(matchDto.getCompetitionId());
+        var competitionId = UUID.fromString(matchDto.competitionId());
         matchToUpdate.setCompetitionId(competitionId);
 
         return MatchMapper.entityToDto(matchRepository.save(matchToUpdate));
@@ -329,7 +329,7 @@ public class MatchService {
 
         // UUID.fromString should never fail because the validation of UpsertLineupDto guarantees that every single
         // string representing ids of starting players is a valid uuid
-        List<UUID> wantedStartingPlayers = lineupDto.getStartingPlayers().stream()
+        List<UUID> wantedStartingPlayers = lineupDto.startingPlayers().stream()
                 .map(UUID::fromString).collect(Collectors.toList());
         List<TeamPlayer> startingPlayers;
         if (validTeamPlayerIds.containsAll(wantedStartingPlayers)) {
@@ -342,7 +342,7 @@ public class MatchService {
 
         // UUID.fromString should never fail because the validation of UpsertLineupDto guarantees that every single
         // string representing ids of substitute players is a valid uuid
-        List<UUID> wantedSubstitutePlayers = lineupDto.getSubstitutePlayers().stream()
+        List<UUID> wantedSubstitutePlayers = lineupDto.substitutePlayers().stream()
                 .map(UUID::fromString).collect(Collectors.toList());
         List<TeamPlayer> substitutePlayers;
         if (validTeamPlayerIds.containsAll(wantedSubstitutePlayers)) {
@@ -356,7 +356,7 @@ public class MatchService {
         Lineup lineup = homeLineup ? match.getHomeLineup() : match.getAwayLineup();
         lineup.setStartingPlayers(startingPlayers);
         lineup.setSubstitutePlayers(substitutePlayers);
-        lineup.setFormation(lineupDto.getFormation());
+        lineup.setFormation(lineupDto.formation());
         matchRepository.save(match);
     }
 }

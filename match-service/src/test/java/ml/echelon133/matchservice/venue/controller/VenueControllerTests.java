@@ -194,7 +194,7 @@ public class VenueControllerTests {
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
             doReturn(dto).when(venueService).createVenue(
-                    argThat(v -> v.getName().equals(contentDto.getName()) && v.getCapacity().intValue() == contentDto.getCapacity().intValue())
+                    argThat(v -> v.name().equals(contentDto.name()) && v.capacity().intValue() == contentDto.capacity().intValue())
             );
 
             mvc.perform(
@@ -343,7 +343,7 @@ public class VenueControllerTests {
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
             doReturn(dto).when(venueService).updateVenue(
                     eq(id),
-                    argThat(v -> v.getName().equals(contentDto.getName()) && v.getCapacity().intValue() == contentDto.getCapacity().intValue())
+                    argThat(v -> v.name().equals(contentDto.name()) && v.capacity().intValue() == contentDto.capacity().intValue())
             );
 
             mvc.perform(

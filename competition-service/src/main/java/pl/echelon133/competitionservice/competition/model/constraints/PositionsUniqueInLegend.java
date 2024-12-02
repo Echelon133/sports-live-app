@@ -26,9 +26,9 @@ public @interface PositionsUniqueInLegend {
         @Override
         public boolean isValid(Collection<UpsertCompetitionDto.UpsertLegendDto> upsertLegendDtos, ConstraintValidatorContext constraintValidatorContext) {
             var allPositionsCounter= upsertLegendDtos.stream()
-                    .mapToLong(l -> l.getPositions().size()).sum();
+                    .mapToLong(l -> l.positions().size()).sum();
             var uniquePositionsCounter= upsertLegendDtos.stream()
-                    .flatMap(l -> l.getPositions().stream()).collect(Collectors.toSet()).size();
+                    .flatMap(l -> l.positions().stream()).collect(Collectors.toSet()).size();
             return allPositionsCounter == uniquePositionsCounter;
         }
     }

@@ -169,10 +169,10 @@ public class PlayerServiceTests {
                 .position("FORWARD")
                 .countryCode(newCountry)
                 .build();
-        var newDateOfBirth = LocalDate.parse(updateDto.getDateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
+        var newDateOfBirth = LocalDate.parse(updateDto.dateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
         var expectedPlayer = new Player(
-                updateDto.getName(),
-                Position.valueOfIgnoreCase(updateDto.getPosition()),
+                updateDto.name(),
+                Position.valueOfIgnoreCase(updateDto.position()),
                 newDateOfBirth,
                 newCountry
         );
@@ -186,9 +186,9 @@ public class PlayerServiceTests {
                 // values. Using eq() would make this test pass even if the method tried to save the
                 // player without making any changes to it.
                 p.getId().equals(oldPlayer.getId()) &&
-                        p.getName().equals(updateDto.getName()) &&
-                        p.getPosition().name().equals(updateDto.getPosition()) &&
-                        p.getCountryCode().equals(updateDto.getCountryCode()) &&
+                        p.getName().equals(updateDto.name()) &&
+                        p.getPosition().name().equals(updateDto.position()) &&
+                        p.getCountryCode().equals(updateDto.countryCode()) &&
                         p.getDateOfBirth().equals(newDateOfBirth)
                 ))).willReturn(expectedPlayer);
 
@@ -197,10 +197,10 @@ public class PlayerServiceTests {
 
         // then
         assertEquals(oldPlayer.getId(), playerDto.getId());
-        assertEquals(updateDto.getName(), playerDto.getName());
-        assertEquals(updateDto.getPosition(), playerDto.getPosition());
+        assertEquals(updateDto.name(), playerDto.getName());
+        assertEquals(updateDto.position(), playerDto.getPosition());
         assertEquals(newDateOfBirth, playerDto.getDateOfBirth());
-        assertEquals(updateDto.getCountryCode(), playerDto.getCountryCode());
+        assertEquals(updateDto.countryCode(), playerDto.getCountryCode());
     }
 
     @Test
@@ -249,10 +249,10 @@ public class PlayerServiceTests {
                 .position("FORWARD")
                 .countryCode(country)
                 .build();
-        var dateOfBirth = LocalDate.parse(createDto.getDateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
+        var dateOfBirth = LocalDate.parse(createDto.dateOfBirth(), PlayerService.DATE_OF_BIRTH_FORMATTER);
         var expectedPlayer = new Player(
-                createDto.getName(),
-                Position.valueOfIgnoreCase(createDto.getPosition()),
+                createDto.name(),
+                Position.valueOfIgnoreCase(createDto.position()),
                 dateOfBirth,
                 country
         );
@@ -262,9 +262,9 @@ public class PlayerServiceTests {
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a player whose values
                 // are taken from received upsert DTO
-                p.getName().equals(createDto.getName()) &&
-                p.getPosition().name().equals(createDto.getPosition()) &&
-                p.getCountryCode().equals(createDto.getCountryCode()) &&
+                p.getName().equals(createDto.name()) &&
+                p.getPosition().name().equals(createDto.position()) &&
+                p.getCountryCode().equals(createDto.countryCode()) &&
                 p.getDateOfBirth().equals(dateOfBirth)
         ))).willReturn(expectedPlayer);
 

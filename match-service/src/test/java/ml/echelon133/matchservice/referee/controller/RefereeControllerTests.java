@@ -174,7 +174,7 @@ public class RefereeControllerTests {
             var bodyJson = jsonUpsertRefereeDto.write(contentDto).getJson();
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
-            doReturn(dto).when(refereeService).createReferee(argThat(v -> v.getName().equals(contentDto.getName())));
+            doReturn(dto).when(refereeService).createReferee(argThat(v -> v.name().equals(contentDto.name())));
 
             mvc.perform(
                             post("/api/referees")
@@ -297,7 +297,7 @@ public class RefereeControllerTests {
             var bodyJson = jsonUpsertRefereeDto.write(contentDto).getJson();
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
-            doReturn(dto).when(refereeService).updateReferee(eq(id), argThat(v -> v.getName().equals(contentDto.getName())));
+            doReturn(dto).when(refereeService).updateReferee(eq(id), argThat(v -> v.name().equals(contentDto.name())));
 
             mvc.perform(
                             put("/api/referees/" + id)

@@ -171,7 +171,7 @@ public class CoachControllerTests {
             var bodyJson = jsonUpsertCoachDto.write(contentDto).getJson();
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
-            doReturn(dto).when(coachService).createCoach(argThat(v -> v.getName().equals(contentDto.getName())));
+            doReturn(dto).when(coachService).createCoach(argThat(v -> v.name().equals(contentDto.name())));
 
             mvc.perform(
                             post("/api/coaches")
@@ -294,7 +294,7 @@ public class CoachControllerTests {
             var bodyJson = jsonUpsertCoachDto.write(contentDto).getJson();
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
-            doReturn(dto).when(coachService).updateCoach(eq(id), argThat(v -> v.getName().equals(contentDto.getName())));
+            doReturn(dto).when(coachService).updateCoach(eq(id), argThat(v -> v.name().equals(contentDto.name())));
 
             mvc.perform(
                             put("/api/coaches/" + id)

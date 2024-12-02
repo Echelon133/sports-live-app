@@ -24,8 +24,8 @@ public @interface PlayerIdsUnique {
 
         @Override
         public boolean isValid(UpsertLineupDto upsertLineupDto, ConstraintValidatorContext constraintValidatorContext) {
-            var startingPlayers = upsertLineupDto.getStartingPlayers();
-            var substitutePlayers = upsertLineupDto.getSubstitutePlayers();
+            var startingPlayers = upsertLineupDto.startingPlayers();
+            var substitutePlayers = upsertLineupDto.substitutePlayers();
 
             // let @NotNull handle these
             if (startingPlayers == null || substitutePlayers == null) {

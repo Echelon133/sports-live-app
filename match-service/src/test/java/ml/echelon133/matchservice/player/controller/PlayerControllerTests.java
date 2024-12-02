@@ -365,18 +365,18 @@ public class PlayerControllerTests {
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         var expectedDto = TestPlayerDto.builder()
-                .name(contentDto.getName())
-                .position(contentDto.getPosition())
-                .dateOfBirth(LocalDate.parse(contentDto.getDateOfBirth(), DateTimeFormatter.ofPattern(PlayerService.DATE_OF_BIRTH_FORMAT)))
+                .name(contentDto.name())
+                .position(contentDto.position())
+                .dateOfBirth(LocalDate.parse(contentDto.dateOfBirth(), DateTimeFormatter.ofPattern(PlayerService.DATE_OF_BIRTH_FORMAT)))
                 .build();
         var expectedJson = jsonPlayerDto.write(expectedDto).getJson();
 
         // given
         given(playerService.createPlayer(argThat(a ->
-            a.getName().equals(contentDto.getName()) &&
-                    a.getCountryCode().equals(contentDto.getCountryCode()) &&
-                    a.getPosition().equals(contentDto.getPosition()) &&
-                    a.getDateOfBirth().equals(contentDto.getDateOfBirth())
+            a.name().equals(contentDto.name()) &&
+                    a.countryCode().equals(contentDto.countryCode()) &&
+                    a.position().equals(contentDto.position()) &&
+                    a.dateOfBirth().equals(contentDto.dateOfBirth())
         ))).willReturn(expectedDto);
 
         mvc.perform(
@@ -689,10 +689,10 @@ public class PlayerControllerTests {
         var json = jsonUpsertPlayerDto.write(contentDto).getJson();
 
         var expectedDto = TestPlayerDto.builder()
-                .name(contentDto.getName())
-                .position(contentDto.getPosition())
-                .dateOfBirth(LocalDate.parse(contentDto.getDateOfBirth(), DateTimeFormatter.ofPattern(PlayerService.DATE_OF_BIRTH_FORMAT)))
-                .countryCode(contentDto.getCountryCode())
+                .name(contentDto.name())
+                .position(contentDto.position())
+                .dateOfBirth(LocalDate.parse(contentDto.dateOfBirth(), DateTimeFormatter.ofPattern(PlayerService.DATE_OF_BIRTH_FORMAT)))
+                .countryCode(contentDto.countryCode())
                 .build();
         var expectedJson = jsonPlayerDto.write(expectedDto).getJson();
 
@@ -700,10 +700,10 @@ public class PlayerControllerTests {
         given(playerService.updatePlayer(
                 eq(playerId),
                 argThat(a ->
-                a.getName().equals(contentDto.getName()) &&
-                        a.getCountryCode().equals(contentDto.getCountryCode()) &&
-                        a.getPosition().equals(contentDto.getPosition()) &&
-                        a.getDateOfBirth().equals(contentDto.getDateOfBirth())
+                a.name().equals(contentDto.name()) &&
+                a.countryCode().equals(contentDto.countryCode()) &&
+                a.position().equals(contentDto.position()) &&
+                a.dateOfBirth().equals(contentDto.dateOfBirth())
         ))).willReturn(expectedDto);
 
         // when

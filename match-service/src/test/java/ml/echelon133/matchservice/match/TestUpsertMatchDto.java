@@ -50,14 +50,7 @@ public interface TestUpsertMatchDto {
         }
 
         public UpsertMatchDto build() {
-            var upsertMatchDto = new UpsertMatchDto();
-            upsertMatchDto.setHomeTeamId(homeTeamId);
-            upsertMatchDto.setAwayTeamId(awayTeamId);
-            upsertMatchDto.setStartTimeUTC(startTimeUTC);
-            upsertMatchDto.setVenueId(venueId);
-            upsertMatchDto.setRefereeId(refereeId);
-            upsertMatchDto.setCompetitionId(competitionId);
-            return upsertMatchDto;
+            return new UpsertMatchDto(homeTeamId, awayTeamId, startTimeUTC, venueId, refereeId, competitionId);
         }
     }
 }
