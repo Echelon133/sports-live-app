@@ -25,25 +25,27 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, " +
-                    "   m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, " +
-                    "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
-                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
-                    "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
-                    "   m.status_last_modified_utc as statusLastModifiedUTC, " +
-                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
-                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
-                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
-                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted, " +
-                    "CAST(v.id as varchar) as venueId, v.name as venueName, " +
-                    "   v.capacity as venueCapacity, v.deleted as venueDeleted, " +
-                    "CAST(r.id as varchar) as refereeId, r.name as refereeName, r.deleted as refereeDeleted " +
-                    "FROM match m " +
-                    "JOIN team ht ON m.home_team_id = ht.id " +
-                    "JOIN team at ON m.away_team_id = at.id " +
-                    "JOIN venue v ON m.venue_id = v.id " +
-                    "LEFT JOIN referee r ON m.referee_id = r.id " +
-                    "WHERE m.id = :matchId AND m.deleted = false",
+            value = """
+                    SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, \
+                       m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, \
+                       m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, \
+                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
+                       m.home_penalties as homePenalties, m.away_penalties as awayPenalties, \
+                       m.status_last_modified_utc as statusLastModifiedUTC, \
+                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
+                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
+                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
+                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted, \
+                    CAST(v.id as varchar) as venueId, v.name as venueName, \
+                       v.capacity as venueCapacity, v.deleted as venueDeleted, \
+                    CAST(r.id as varchar) as refereeId, r.name as refereeName, r.deleted as refereeDeleted \
+                    FROM match m \
+                    JOIN team ht ON m.home_team_id = ht.id \
+                    JOIN team at ON m.away_team_id = at.id \
+                    JOIN venue v ON m.venue_id = v.id \
+                    LEFT JOIN referee r ON m.referee_id = r.id \
+                    WHERE m.id = :matchId AND m.deleted = false \
+                    """,
             nativeQuery = true
     )
     Optional<MatchDto> findMatchById(UUID matchId);
@@ -68,22 +70,24 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, " +
-                    "   m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, " +
-                    "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
-                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
-                    "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
-                    "   m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, " +
-                    "   m.status_last_modified_utc as statusLastModifiedUTC, " +
-                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
-                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
-                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
-                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted " +
-                    "FROM match m " +
-                    "JOIN team ht ON m.home_team_id = ht.id " +
-                    "JOIN team at ON m.away_team_id = at.id " +
-                    "WHERE m.deleted = false AND m.start_time_utc BETWEEN :startUTC AND :endUTC " +
-                    "ORDER BY m.start_time_utc ASC",
+            value = """
+                    SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, \
+                       m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, \
+                       m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, \
+                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
+                       m.home_penalties as homePenalties, m.away_penalties as awayPenalties, \
+                       m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, \
+                       m.status_last_modified_utc as statusLastModifiedUTC, \
+                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
+                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
+                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
+                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted \
+                    FROM match m \
+                    JOIN team ht ON m.home_team_id = ht.id \
+                    JOIN team at ON m.away_team_id = at.id \
+                    WHERE m.deleted = false AND m.start_time_utc BETWEEN :startUTC AND :endUTC \
+                    ORDER BY m.start_time_utc ASC \
+                    """,
             nativeQuery = true
     )
     List<CompactMatchDto> findAllBetween(LocalDateTime startUTC, LocalDateTime endUTC, Pageable pageable);
@@ -100,23 +104,25 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, " +
-                    "   m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, " +
-                    "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
-                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
-                    "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
-                    "   m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, " +
-                    "   m.status_last_modified_utc as statusLastModifiedUTC, " +
-                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
-                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
-                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
-                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted " +
-                    "FROM match m " +
-                    "JOIN team ht ON m.home_team_id = ht.id " +
-                    "JOIN team at ON m.away_team_id = at.id " +
-                    "WHERE m.deleted = false AND m.competition_id = :competitionId " +
-                    "AND m.status IN :acceptedStatuses " +
-                    "ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC ",
+            value = """
+                    SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, \
+                       m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, \
+                       m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, \
+                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
+                       m.home_penalties as homePenalties, m.away_penalties as awayPenalties, \
+                       m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, \
+                       m.status_last_modified_utc as statusLastModifiedUTC, \
+                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
+                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
+                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
+                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted \
+                    FROM match m \
+                    JOIN team ht ON m.home_team_id = ht.id \
+                    JOIN team at ON m.away_team_id = at.id \
+                    WHERE m.deleted = false AND m.competition_id = :competitionId \
+                    AND m.status IN :acceptedStatuses \
+                    ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC \
+                    """,
             nativeQuery = true
     )
     List<CompactMatchDto> findAllByCompetitionAndStatuses(UUID competitionId, List<String> acceptedStatuses, Pageable pageable);
@@ -133,24 +139,26 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, " +
-                    "   m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, " +
-                    "   m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, " +
-                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
-                    "   m.home_penalties as homePenalties, m.away_penalties as awayPenalties, " +
-                    "   m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, " +
-                    "   m.status_last_modified_utc as statusLastModifiedUTC, " +
-                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
-                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
-                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
-                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted " +
-                    "FROM match m " +
-                    "JOIN team ht ON m.home_team_id = ht.id " +
-                    "JOIN team at ON m.away_team_id = at.id " +
-                    "WHERE m.deleted = false " +
-                    "AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) " +
-                    "AND m.status IN :acceptedStatuses " +
-                    "ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC ",
+            value = """
+                    SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, \
+                       m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, \
+                       m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, \
+                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
+                       m.home_penalties as homePenalties, m.away_penalties as awayPenalties, \
+                       m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, \
+                       m.status_last_modified_utc as statusLastModifiedUTC, \
+                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
+                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
+                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
+                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted \
+                    FROM match m \
+                    JOIN team ht ON m.home_team_id = ht.id \
+                    JOIN team at ON m.away_team_id = at.id \
+                    WHERE m.deleted = false \
+                    AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) \
+                    AND m.status IN :acceptedStatuses \
+                    ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC \
+                    """,
             nativeQuery = true
     )
     List<CompactMatchDto> findAllByTeamIdAndStatuses(UUID teamId, List<String> acceptedStatuses, Pageable pageable);
@@ -163,15 +171,17 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
-                    "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "p.country_code as countryCode " +
-                    "FROM match m " +
-                    "JOIN lineup l ON m.home_lineup_id = l.id " +
-                    "JOIN starting_player stp ON stp.lineup_id = l.id " +
-                    "JOIN team_player tp ON stp.team_player_id = tp.id " +
-                    "JOIN player p ON tp.player_id = p.id " +
-                    "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
+            value = """
+                    SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, \
+                    CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, \
+                    p.country_code as countryCode \
+                    FROM match m \
+                    JOIN lineup l ON m.home_lineup_id = l.id \
+                    JOIN starting_player stp ON stp.lineup_id = l.id \
+                    JOIN team_player tp ON stp.team_player_id = tp.id \
+                    JOIN player p ON tp.player_id = p.id \
+                    WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false \
+                    """,
             nativeQuery = true
     )
     List<TeamPlayerDto> findHomeStartingPlayersByMatchId(UUID matchId);
@@ -184,15 +194,17 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
-                    "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "p.country_code as countryCode " +
-                    "FROM match m " +
-                    "JOIN lineup l ON m.home_lineup_id = l.id " +
-                    "JOIN substitute_player sup ON sup.lineup_id = l.id " +
-                    "JOIN team_player tp ON sup.team_player_id = tp.id " +
-                    "JOIN player p ON tp.player_id = p.id " +
-                    "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
+            value = """
+                    SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, \
+                    CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, \
+                    p.country_code as countryCode \
+                    FROM match m \
+                    JOIN lineup l ON m.home_lineup_id = l.id \
+                    JOIN substitute_player sup ON sup.lineup_id = l.id \
+                    JOIN team_player tp ON sup.team_player_id = tp.id \
+                    JOIN player p ON tp.player_id = p.id \
+                    WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false \
+                    """,
             nativeQuery = true
     )
     List<TeamPlayerDto> findHomeSubstitutePlayersByMatchId(UUID matchId);
@@ -205,15 +217,17 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
-                    "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "p.country_code as countryCode " +
-                    "FROM match m " +
-                    "JOIN lineup l ON m.away_lineup_id = l.id " +
-                    "JOIN starting_player stp ON stp.lineup_id = l.id " +
-                    "JOIN team_player tp ON stp.team_player_id = tp.id " +
-                    "JOIN player p ON tp.player_id = p.id " +
-                    "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
+            value = """
+                    SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, \
+                    CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, \
+                    p.country_code as countryCode \
+                    FROM match m \
+                    JOIN lineup l ON m.away_lineup_id = l.id \
+                    JOIN starting_player stp ON stp.lineup_id = l.id \
+                    JOIN team_player tp ON stp.team_player_id = tp.id \
+                    JOIN player p ON tp.player_id = p.id \
+                    WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false \
+                    """,
             nativeQuery = true
     )
     List<TeamPlayerDto> findAwayStartingPlayersByMatchId(UUID matchId);
@@ -226,15 +240,17 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
-                    "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "p.country_code as countryCode " +
-                    "FROM match m " +
-                    "JOIN lineup l ON m.away_lineup_id = l.id " +
-                    "JOIN substitute_player sup ON sup.lineup_id = l.id " +
-                    "JOIN team_player tp ON sup.team_player_id = tp.id " +
-                    "JOIN player p ON tp.player_id = p.id " +
-                    "WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false",
+            value = """
+                    SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, \
+                    CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, \
+                    p.country_code as countryCode \
+                    FROM match m \
+                    JOIN lineup l ON m.away_lineup_id = l.id \
+                    JOIN substitute_player sup ON sup.lineup_id = l.id \
+                    JOIN team_player tp ON sup.team_player_id = tp.id \
+                    JOIN player p ON tp.player_id = p.id \
+                    WHERE m.deleted = false AND m.id = :matchId AND p.deleted = false \
+                    """,
             nativeQuery = true
     )
     List<TeamPlayerDto> findAwaySubstitutePlayersByMatchId(UUID matchId);
@@ -247,11 +263,13 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
      *      otherwise the optional is empty
      */
     @Query(
-            value = "SELECT home_lineup.formation as homeFormation, away_lineup.formation as awayFormation " +
-                    "FROM match m " +
-                    "JOIN lineup home_lineup ON m.home_lineup_id = home_lineup.id " +
-                    "JOIN lineup away_lineup ON m.away_lineup_id = away_lineup.id " +
-                    "WHERE m.deleted = false AND m.id = :matchId",
+            value = """
+                    SELECT home_lineup.formation as homeFormation, away_lineup.formation as awayFormation \
+                    FROM match m \
+                    JOIN lineup home_lineup ON m.home_lineup_id = home_lineup.id \
+                    JOIN lineup away_lineup ON m.away_lineup_id = away_lineup.id \
+                    WHERE m.deleted = false AND m.id = :matchId \
+                    """,
             nativeQuery = true
     )
     Optional<LineupFormationsDto> findLineupFormationsByMatchId(UUID matchId);

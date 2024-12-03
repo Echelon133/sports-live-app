@@ -46,8 +46,10 @@ public interface CoachRepository extends JpaRepository<Coach, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(id as varchar) as id, name " +
-                    "FROM coach WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
+            value = """
+                    SELECT CAST(id as varchar) as id, name \
+                    FROM coach WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false \
+                    """,
             countQuery = "SELECT COUNT(*) FROM coach WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             nativeQuery = true
     )

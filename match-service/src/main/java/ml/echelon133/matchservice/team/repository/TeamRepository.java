@@ -24,11 +24,13 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, " +
-                    "t.country_code as countryCode, " +
-                    "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
-                    "FROM team t JOIN coach coa ON t.coach_id = coa.id " +
-                    "WHERE t.deleted = false AND t.id = ?1",
+            value = """
+                    SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, \
+                    t.country_code as countryCode, \
+                    CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted \
+                    FROM team t JOIN coach coa ON t.coach_id = coa.id \
+                    WHERE t.deleted = false AND t.id = ?1 \
+                    """,
             nativeQuery = true
     )
     Optional<TeamDto> findTeamById(UUID id);
@@ -52,11 +54,13 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, " +
-                    "t.country_code as countryCode, " +
-                    "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
-                    "FROM team t JOIN coach coa ON t.coach_id = coa.id " +
-                    "WHERE LOWER(t.name) LIKE '%' || LOWER(:phrase) || '%' AND t.deleted = false",
+            value = """
+                    SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, \
+                    t.country_code as countryCode, \
+                    CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted \
+                    FROM team t JOIN coach coa ON t.coach_id = coa.id \
+                    WHERE LOWER(t.name) LIKE '%' || LOWER(:phrase) || '%' AND t.deleted = false \
+                    """,
             countQuery = "SELECT COUNT(*) FROM team WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             nativeQuery = true
     )
@@ -71,11 +75,13 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, " +
-                    "t.country_code as countryCode, " +
-                    "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
-                    "FROM team t JOIN coach coa ON t.coach_id = coa.id " +
-                    "WHERE t.id IN :teamIds AND t.deleted = false",
+            value = """
+                    SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, \
+                    t.country_code as countryCode, \
+                    CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted \
+                    FROM team t JOIN coach coa ON t.coach_id = coa.id \
+                    WHERE t.id IN :teamIds AND t.deleted = false \
+                    """,
             countQuery = "SELECT COUNT(*) FROM team WHERE id IN :teamIds AND deleted = false",
             nativeQuery = true
     )
@@ -92,18 +98,20 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(m.id as varchar) as id, m.result as result, m.start_time_utc as startTimeUTC, " +
-                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
-                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
-                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
-                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
-                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted " +
-                    "FROM match m " +
-                    "JOIN team ht ON m.home_team_id = ht.id " +
-                    "JOIN team at ON m.away_team_id = at.id " +
-                    "WHERE m.deleted = false AND m.competition_id = :competitionId " +
-                    "AND m.status = 'FINISHED' AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) " +
-                    "ORDER BY m.start_time_utc DESC LIMIT 5 ",
+            value = """
+                    SELECT CAST(m.id as varchar) as id, m.result as result, m.start_time_utc as startTimeUTC, \
+                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
+                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
+                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
+                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
+                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted \
+                    FROM match m \
+                    JOIN team ht ON m.home_team_id = ht.id \
+                    JOIN team at ON m.away_team_id = at.id \
+                    WHERE m.deleted = false AND m.competition_id = :competitionId \
+                    AND m.status = 'FINISHED' AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) \
+                    ORDER BY m.start_time_utc DESC LIMIT 5 \
+                    """,
             nativeQuery = true
     )
     List<TeamFormDetailsDto> findFormEvaluationMatches(UUID teamId, UUID competitionId);
@@ -117,18 +125,20 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(m.id as varchar) as id, m.result as result, m.start_time_utc as startTimeUTC, " +
-                    "   m.home_goals as homeGoals, m.away_goals as awayGoals, " +
-                    "CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, " +
-                    "   ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, " +
-                    "CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, " +
-                    "   at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted " +
-                    "FROM match m " +
-                    "JOIN team ht ON m.home_team_id = ht.id " +
-                    "JOIN team at ON m.away_team_id = at.id " +
-                    "WHERE m.deleted = false " +
-                    "AND m.status = 'FINISHED' AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) " +
-                    "ORDER BY m.start_time_utc DESC LIMIT 5 ",
+            value = """
+                    SELECT CAST(m.id as varchar) as id, m.result as result, m.start_time_utc as startTimeUTC, \
+                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
+                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
+                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
+                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
+                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted \
+                    FROM match m \
+                    JOIN team ht ON m.home_team_id = ht.id \
+                    JOIN team at ON m.away_team_id = at.id \
+                    WHERE m.deleted = false \
+                    AND m.status = 'FINISHED' AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) \
+                    ORDER BY m.start_time_utc DESC LIMIT 5 \
+                    """,
             nativeQuery = true
     )
     List<TeamFormDetailsDto> findGeneralFormEvaluationMatches(UUID teamId);
