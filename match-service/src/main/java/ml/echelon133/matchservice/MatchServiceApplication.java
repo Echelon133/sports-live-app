@@ -5,8 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import ml.echelon133.common.constants.DateFormatConstants;
 import ml.echelon133.common.event.MatchEventDetailsMixIn;
 import ml.echelon133.common.event.dto.MatchEventDetails;
-import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
-import ml.echelon133.matchservice.event.model.dto.InsertMatchEventMixIn;
+import ml.echelon133.matchservice.event.model.dto.UpsertMatchEvent;
 import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -29,8 +28,8 @@ public class MatchServiceApplication {
 	public static ObjectMapper objectMapper() {
 		var mapper = new ObjectMapper();
 
-		// add information about serialization/deserialization of InsertMatchEvent's subclasses
-		mapper.addMixIn(InsertMatchEvent.class, InsertMatchEventMixIn.class);
+		// add information about serialization/deserialization of UpsertMatchEvent's subtypes
+		mapper.addMixIn(UpsertMatchEvent.class, UpsertMatchEvent.class);
 
 		// add information about serialization/deserialization of MatchEventDetails' subclasses
 		mapper.addMixIn(MatchEventDetails.class, MatchEventDetailsMixIn.class);

@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.event.service;
 
+import jakarta.transaction.Transactional;
 import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.dto.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
@@ -7,7 +8,7 @@ import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
-import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
+import ml.echelon133.matchservice.event.model.dto.*;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
 import ml.echelon133.matchservice.match.model.LineupDto;
@@ -20,7 +21,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -89,26 +89,18 @@ public class MatchEventService {
      * @throws ResourceNotFoundException thrown when the match with the provided id does not exist or is marked as deleted
      * @throws MatchEventInvalidException thrown when processing of the event is not possible for some reason
      */
-    public void processEvent(UUID matchId, InsertMatchEvent eventDto)
+    public void processEvent(UUID matchId, UpsertMatchEvent eventDto)
             throws ResourceNotFoundException, MatchEventInvalidException {
         var match = matchService.findEntityById(matchId);
-        MatchEvent matchEvent;
 
-        if (eventDto instanceof InsertMatchEvent.StatusDto statusEventDto) {
-            matchEvent = processStatusEvent(match, statusEventDto);
-        } else if (eventDto instanceof InsertMatchEvent.CommentaryDto commentaryEventDto) {
-            matchEvent = processCommentaryEvent(match, commentaryEventDto);
-        } else if (eventDto instanceof InsertMatchEvent.CardDto cardEventDto) {
-            matchEvent = processCardEvent(match, cardEventDto);
-        } else if (eventDto instanceof InsertMatchEvent.GoalDto goalEventDto) {
-            matchEvent = processGoalEvent(match, goalEventDto);
-        } else if (eventDto instanceof InsertMatchEvent.SubstitutionDto substitutionEventDto) {
-            matchEvent = processSubstitutionEvent(match, substitutionEventDto);
-        } else if (eventDto instanceof InsertMatchEvent.PenaltyDto penaltyEventDto) {
-            matchEvent = processPenaltyEvent(match, penaltyEventDto);
-        } else {
-            throw new MatchEventInvalidException("handling of this event is not implemented");
-        }
+        MatchEvent matchEvent = switch (eventDto) {
+            case UpsertStatusEventDto statusEventDto -> processStatusEvent(match, statusEventDto);
+            case UpsertCommentaryEventDto commentaryEventDto -> processCommentaryEvent(match, commentaryEventDto);
+            case UpsertCardEventDto cardEventDto -> processCardEvent(match, cardEventDto);
+            case UpsertGoalEventDto goalEventDto -> processGoalEvent(match, goalEventDto);
+            case UpsertSubstitutionEventDto substitutionEventDto -> processSubstitutionEvent(match, substitutionEventDto);
+            case UpsertPenaltyEventDto penaltyEventDto -> processPenaltyEvent(match, penaltyEventDto);
+        };
 
         matchEventRepository.save(matchEvent);
         matchEventWebsocketService.sendMatchEvent(
@@ -148,9 +140,9 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the status of the match cannot be changed
      */
-    private MatchEvent processStatusEvent(Match match, InsertMatchEvent.StatusDto statusDto) throws MatchEventInvalidException {
+    private MatchEvent processStatusEvent(Match match, UpsertStatusEventDto statusDto) throws MatchEventInvalidException {
         // this `MatchStatus.valueOf` should never fail because the status value is pre-validated
-        var targetStatus = MatchStatus.valueOf(statusDto.getTargetStatus());
+        var targetStatus = MatchStatus.valueOf(statusDto.targetStatus());
         var validTargetStatuses = VALID_STATUS_CHANGES.get(match.getStatus());
 
         if (!validTargetStatuses.contains(targetStatus)) {
@@ -187,7 +179,7 @@ public class MatchEventService {
         }
 
         var eventDetails = new MatchEventDetails.StatusDto(
-                statusDto.getMinute(),
+                statusDto.minute(),
                 match.getCompetitionId(),
                 targetStatus,
                 new SerializedTeam(match.getHomeTeam().getId(), match.getAwayTeam().getId()),
@@ -221,11 +213,11 @@ public class MatchEventService {
      * @param commentaryDto dto containing information about the event
      * @return match event that is ready to be saved
      */
-    private MatchEvent processCommentaryEvent(Match match, InsertMatchEvent.CommentaryDto commentaryDto) {
+    private MatchEvent processCommentaryEvent(Match match, UpsertCommentaryEventDto commentaryDto) {
         var eventDetails = new MatchEventDetails.CommentaryDto(
-                commentaryDto.getMinute(),
+                commentaryDto.minute(),
                 match.getCompetitionId(),
-                commentaryDto.getMessage()
+                commentaryDto.message()
         );
         return new MatchEvent(match, eventDetails);
     }
@@ -284,13 +276,13 @@ public class MatchEventService {
      * @throws ResourceNotFoundException thrown when the player involved in the card event cannot be found in the database
      * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processCardEvent(Match match, InsertMatchEvent.CardDto cardDto)
+    private MatchEvent processCardEvent(Match match, UpsertCardEventDto cardDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the cardedPlayerId is pre-validated
-        var cardedTeamPlayer = teamPlayerService.findEntityById(UUID.fromString(cardDto.getCardedPlayerId()));
+        var cardedTeamPlayer = teamPlayerService.findEntityById(UUID.fromString(cardDto.cardedPlayerId()));
 
         // check if the carded player is placed in the lineup of the match
         throwIfPlayerNotInLineup(match, cardedTeamPlayer);
@@ -298,7 +290,7 @@ public class MatchEventService {
         // initialize the type of the card
         // (if the target color of the card is yellow, for now assume it's the first yellow of the player)
         MatchEventDetails.CardDto.CardType cardType = cardDto
-                .isRedCard() ?
+                .redCard() ?
                 MatchEventDetails.CardDto.CardType.DIRECT_RED :
                 MatchEventDetails.CardDto.CardType.YELLOW;
 
@@ -329,13 +321,13 @@ public class MatchEventService {
 
             // if the player already has a yellow card and receives another one - mark it as a second yellow,
             // otherwise allow direct red cards even if the player already has a yellow card
-            if (singleYellow && !cardDto.isRedCard()) {
+            if (singleYellow && !cardDto.redCard()) {
                 cardType = MatchEventDetails.CardDto.CardType.SECOND_YELLOW;
             }
         }
 
         var eventDetails = new MatchEventDetails.CardDto(
-                cardDto.getMinute(),
+                cardDto.minute(),
                 match.getCompetitionId(),
                 cardedTeamPlayer.getTeam().getId(),
                 cardType,
@@ -386,13 +378,13 @@ public class MatchEventService {
      * @throws ResourceNotFoundException thrown when any player involved in the goal cannot be found in the database
      * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processGoalEvent(Match match, InsertMatchEvent.GoalDto goalDto)
+    private MatchEvent processGoalEvent(Match match, UpsertGoalEventDto goalDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the scoringPlayerId is pre-validated
-        TeamPlayer scoringPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getScoringPlayerId()));
+        TeamPlayer scoringPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.scoringPlayerId()));
         // player who scored has to be on the pitch
         throwIfPlayerNotOnPitch(match, scoringPlayer);
 
@@ -400,14 +392,14 @@ public class MatchEventService {
         // are from the same team
         TeamPlayer assistingPlayer = null;
 
-        if (goalDto.getAssistingPlayerId() != null) {
+        if (goalDto.assistingPlayerId() != null) {
             // own goals cannot have assisting players, so reject the event before any checks that require db access
-            if (goalDto.isOwnGoal()) {
+            if (goalDto.ownGoal()) {
                 throw new MatchEventInvalidException("own goals cannot have a player assisting");
             }
 
             // this `UUID.fromString` should never fail because the assistingPlayerId is pre-validated when not null
-            assistingPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getAssistingPlayerId()));
+            assistingPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.assistingPlayerId()));
 
             // player who assisted has to be on the pitch
             throwIfPlayerNotOnPitch(match, assistingPlayer);
@@ -419,7 +411,7 @@ public class MatchEventService {
         // determine the team whose goals should be incremented
         var scoredByHomeTeam = match.getHomeTeam().equals(scoringPlayer.getTeam());
         // flip the scoring side if the goal is an own goal
-        if (goalDto.isOwnGoal()) {
+        if (goalDto.ownGoal()) {
             scoredByHomeTeam = !scoredByHomeTeam;
         }
         var scoringTeam = scoredByHomeTeam ? match.getHomeTeam() : match.getAwayTeam();
@@ -431,12 +423,12 @@ public class MatchEventService {
         }
 
         var eventDetails = new MatchEventDetails.GoalDto(
-                goalDto.getMinute(),
+                goalDto.minute(),
                 match.getCompetitionId(),
                 scoringTeam.getId(),
                 scoringPlayerInfo,
                 assistingPlayerInfo,
-                goalDto.isOwnGoal()
+                goalDto.ownGoal()
         );
 
         incrementMatchScoreline(match, scoredByHomeTeam);
@@ -462,17 +454,17 @@ public class MatchEventService {
      * @throws ResourceNotFoundException thrown when any player involved in the substitution cannot be found in the database
      * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processSubstitutionEvent(Match match, InsertMatchEvent.SubstitutionDto substitutionDto)
+    private MatchEvent processSubstitutionEvent(Match match, UpsertSubstitutionEventDto substitutionDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the playerInId is pre-validated
-        TeamPlayer playerIn = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.getPlayerInId()));
+        TeamPlayer playerIn = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.playerInId()));
         throwIfPlayerNotInLineup(match, playerIn);
 
         // this `UUID.fromString` should never fail because the playerOutId is pre-validated
-        TeamPlayer playerOut = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.getPlayerOutId()));
+        TeamPlayer playerOut = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.playerOutId()));
         throwIfPlayerNotInLineup(match, playerOut);
 
         // make sure that both players - in and out - are from the same team
@@ -497,7 +489,7 @@ public class MatchEventService {
                 intoSerializedPlayer(playerOut);
 
         var eventDetails = new MatchEventDetails.SubstitutionDto(
-                substitutionDto.getMinute(),
+                substitutionDto.minute(),
                 match.getCompetitionId(),
                 playerIn.getTeam().getId(),
                 playerInInfo,
@@ -535,13 +527,13 @@ public class MatchEventService {
      * @throws ResourceNotFoundException thrown when the player involved in the penalty cannot be found in the database
      * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processPenaltyEvent(Match match, InsertMatchEvent.PenaltyDto penaltyDto)
+    private MatchEvent processPenaltyEvent(Match match, UpsertPenaltyEventDto penaltyDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the shootingPlayerId is pre-validated
-        TeamPlayer shootingPlayer = teamPlayerService.findEntityById(UUID.fromString(penaltyDto.getShootingPlayerId()));
+        TeamPlayer shootingPlayer = teamPlayerService.findEntityById(UUID.fromString(penaltyDto.shootingPlayerId()));
 
         // player shooting must be on the pitch
         throwIfPlayerNotOnPitch(match, shootingPlayer);
@@ -553,17 +545,17 @@ public class MatchEventService {
         var scoredByHomeTeam = match.getHomeTeam().equals(shootingPlayer.getTeam());
 
         // update the scoreline only if the penalty is scored
-        if (penaltyDto.isScored()) {
+        if (penaltyDto.scored()) {
             incrementMatchScoreline(match, scoredByHomeTeam);
         }
 
         var eventDetails = new MatchEventDetails.PenaltyDto(
-                penaltyDto.getMinute(),
+                penaltyDto.minute(),
                 match.getCompetitionId(),
                 shootingPlayer.getTeam().getId(),
                 intoSerializedPlayer(shootingPlayer),
                 !duringPenaltyShootout,
-                penaltyDto.isScored()
+                penaltyDto.scored()
         );
 
         return new MatchEvent(match, eventDetails);

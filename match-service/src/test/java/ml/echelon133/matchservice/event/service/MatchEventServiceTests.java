@@ -9,7 +9,7 @@ import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
-import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
+import ml.echelon133.matchservice.event.model.dto.*;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatch;
@@ -125,7 +125,7 @@ public class MatchEventServiceTests {
         );
     }
 
-    private void assertEventInvalidWhenBallNotInPlay(Match testedMatch, InsertMatchEvent event) {
+    private void assertEventInvalidWhenBallNotInPlay(Match testedMatch, UpsertMatchEvent event) {
         var ballNotInPlay = List.of(
                 MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
                 MatchStatus.POSTPONED, MatchStatus.ABANDONED,
@@ -155,7 +155,7 @@ public class MatchEventServiceTests {
         assertEquals(expectedPenaltyScore, match.getPenaltiesInfo());
     }
 
-    private void assertPlayerNotOnPitch(UUID matchId, InsertMatchEvent testEvent, UUID checkedPlayer) {
+    private void assertPlayerNotOnPitch(UUID matchId, UpsertMatchEvent testEvent, UUID checkedPlayer) {
         String message = assertThrows(MatchEventInvalidException.class, () -> {
             matchEventService.processEvent(matchId, testEvent);
         }).getMessage();
@@ -164,7 +164,7 @@ public class MatchEventServiceTests {
         assertEquals(expectedMessage, message);
     }
 
-    private void assertPlayerIsAlreadyEjected(UUID matchId, InsertMatchEvent testEvent) {
+    private void assertPlayerIsAlreadyEjected(UUID matchId, UpsertMatchEvent testEvent) {
         String message = assertThrows(MatchEventInvalidException.class, () -> {
             matchEventService.processEvent(matchId, testEvent);
         }).getMessage();
@@ -224,7 +224,7 @@ public class MatchEventServiceTests {
     @DisplayName("processEvent throws when the match does not exist")
     public void processEvent_MatchNotFound_Throws() throws ResourceNotFoundException {
         var matchId = UUID.randomUUID();
-        var eventDto = new InsertMatchEvent.StatusDto("1", "asdf");
+        var eventDto = new UpsertStatusEventDto("1", "asdf");
 
         // given
         given(matchService.findEntityById(matchId)).willThrow(new ResourceNotFoundException(Match.class, matchId));
@@ -250,12 +250,12 @@ public class MatchEventServiceTests {
         var teamPlayer2Id = teamPlayer2.getId();
 
         var testEvents = List.of(
-                new InsertMatchEvent.StatusDto("1", MatchStatus.FIRST_HALF.name()),
-                new InsertMatchEvent.CommentaryDto("1", "Some message"),
-                new InsertMatchEvent.CardDto("1", teamPlayer1Id.toString(), false),
-                new InsertMatchEvent.SubstitutionDto("1", teamPlayer2Id.toString(), teamPlayer1Id.toString()),
-                new InsertMatchEvent.GoalDto("1", teamPlayer1Id.toString(), null, false),
-                new InsertMatchEvent.PenaltyDto("1", teamPlayer1Id.toString(), true)
+                new UpsertStatusEventDto("1", MatchStatus.FIRST_HALF.name()),
+                new UpsertCommentaryEventDto("1", "Some message"),
+                new UpsertCardEventDto("1", teamPlayer1Id.toString(), false),
+                new UpsertSubstitutionEventDto("1", teamPlayer2Id.toString(), teamPlayer1Id.toString()),
+                new UpsertGoalEventDto("1", teamPlayer1Id.toString(), null, false),
+                new UpsertPenaltyEventDto("1", teamPlayer1Id.toString(), true)
         );
 
         var teamLineup = TestLineupDto.builder()
@@ -273,7 +273,7 @@ public class MatchEventServiceTests {
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
         // when
-        for (InsertMatchEvent event: testEvents) {
+        for (UpsertMatchEvent event: testEvents) {
             matchEventService.processEvent(matchId, event);
         }
 
@@ -396,7 +396,7 @@ public class MatchEventServiceTests {
         for (MatchStatus attemptedTargetStatus : MatchStatus.values()) {
             // reset the original match status before every attempt
             match.setStatus(testedMatchStatus);
-            var testedEvent = new InsertMatchEvent.StatusDto("1", attemptedTargetStatus.name());
+            var testedEvent = new UpsertStatusEventDto("1", attemptedTargetStatus.name());
 
             try {
                 matchEventService.processEvent(matchId, testedEvent);
@@ -425,13 +425,13 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChanges_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        List<InsertMatchEvent.StatusDto> statusEvents = List.of(
-                new InsertMatchEvent.StatusDto("1", MatchStatus.FIRST_HALF.name()),
-                new InsertMatchEvent.StatusDto("1", MatchStatus.ABANDONED.name()),
-                new InsertMatchEvent.StatusDto("1", MatchStatus.POSTPONED.name())
+        List<UpsertStatusEventDto> statusEvents = List.of(
+                new UpsertStatusEventDto("1", MatchStatus.FIRST_HALF.name()),
+                new UpsertStatusEventDto("1", MatchStatus.ABANDONED.name()),
+                new UpsertStatusEventDto("1", MatchStatus.POSTPONED.name())
         );
 
-        for (InsertMatchEvent.StatusDto statusEvent: statusEvents) {
+        for (UpsertStatusEventDto statusEvent: statusEvents) {
             var match = TestMatch.builder().build();
             var matchId = match.getId();
 
@@ -447,7 +447,7 @@ public class MatchEventServiceTests {
                 return sentGlobalEvent.getMatchId().equals(matchId) &&
                         sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
                         sentGlobalEvent.getResult().equals(MatchResult.NONE) &&
-                        sentGlobalEvent.getTargetStatus().toString().equals(statusEvent.getTargetStatus());
+                        sentGlobalEvent.getTargetStatus().toString().equals(statusEvent.targetStatus());
             }));
         }
     }
@@ -478,7 +478,7 @@ public class MatchEventServiceTests {
                 given(matchService.findEntityById(matchId)).willReturn(match);
 
                 // when
-                var testedEvent = new InsertMatchEvent.StatusDto("1", targetMatchStatus.name());
+                var testedEvent = new UpsertStatusEventDto("1", targetMatchStatus.name());
 
                 try {
                     matchEventService.processEvent(matchId, testedEvent);
@@ -504,7 +504,7 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChangesHomeTeamWins_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+        var finishingStatus = new UpsertStatusEventDto("1", MatchStatus.FINISHED.name());
 
         var match = TestMatch.builder()
                 .status(MatchStatus.SECOND_HALF)
@@ -533,7 +533,7 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChangesAwayTeamWins_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+        var finishingStatus = new UpsertStatusEventDto("1", MatchStatus.FINISHED.name());
 
         var match = TestMatch.builder()
                 .status(MatchStatus.SECOND_HALF)
@@ -562,7 +562,7 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChangesTeamsDraw_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+        var finishingStatus = new UpsertStatusEventDto("1", MatchStatus.FINISHED.name());
 
         var match = TestMatch.builder()
                 .status(MatchStatus.SECOND_HALF)
@@ -605,7 +605,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("90", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -643,7 +643,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("90", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -681,7 +681,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("90", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -719,7 +719,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -757,7 +757,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -794,7 +794,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -825,7 +825,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -863,7 +863,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -900,7 +900,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -918,7 +918,7 @@ public class MatchEventServiceTests {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
         var message = "This is a test message";
-        var testedEvent = new InsertMatchEvent.CommentaryDto("45", message);
+        var testedEvent = new UpsertCommentaryEventDto("45", message);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -938,7 +938,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidCard() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.CardDto("1", UUID.randomUUID().toString(), false);
+        var testEvent = new UpsertCardEventDto("1", UUID.randomUUID().toString(), false);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -963,7 +963,7 @@ public class MatchEventServiceTests {
         );
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -990,7 +990,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // create an empty lineup which ensures that the player won't be in it
         var teamLineup = TestLineupDto.builder().build();
 
@@ -1020,7 +1020,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
 
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
@@ -1052,7 +1052,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1083,7 +1083,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1116,7 +1116,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1164,13 +1164,13 @@ public class MatchEventServiceTests {
         //  * two red cards are given to the away team
         var testEvents = List.of(
                 // 1. second yellow card for homeTeamPlayerA
-                new InsertMatchEvent.CardDto("1", homeTeamPlayerA.getId().toString(), false),
+                new UpsertCardEventDto("1", homeTeamPlayerA.getId().toString(), false),
                 // 2. second yellow card for awayTeamPlayerA
-                new InsertMatchEvent.CardDto("1", awayTeamPlayerA.getId().toString(), false),
+                new UpsertCardEventDto("1", awayTeamPlayerA.getId().toString(), false),
                 // 3. direct red for awayTeamPlayerB
-                new InsertMatchEvent.CardDto("1", awayTeamPlayerB.getId().toString(), true),
+                new UpsertCardEventDto("1", awayTeamPlayerB.getId().toString(), true),
                 // 4. yellow for homeTeamPlayerB
-                new InsertMatchEvent.CardDto("1", homeTeamPlayerB.getId().toString(), false)
+                new UpsertCardEventDto("1", homeTeamPlayerB.getId().toString(), false)
         );
 
         // given
@@ -1219,7 +1219,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1246,7 +1246,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1273,7 +1273,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1300,7 +1300,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1322,7 +1322,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidGoal() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", UUID.randomUUID().toString(), UUID.randomUUID().toString(), false
         );
 
@@ -1344,7 +1344,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(TestTeam.builder().build(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, false);
 
         var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
 
@@ -1368,7 +1368,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, false);
         // create an empty lineup which ensures that the player won't be in it
         var teamLineup = TestLineupDto.builder().build();
 
@@ -1392,7 +1392,7 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1416,7 +1416,7 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1440,7 +1440,7 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1464,7 +1464,7 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // put the scoring player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeSubstitutes(scoringPlayerId).build();
@@ -1489,7 +1489,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), UUID.randomUUID().toString(), true
         );
 
@@ -1524,7 +1524,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(TestTeam.builder().name("Team C").build(), new Player(), Position.GOALKEEPER, 1);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1557,7 +1557,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 8);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1590,7 +1590,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1631,7 +1631,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the scoring and assisting players in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
@@ -1666,7 +1666,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the scoring and assisting players in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
@@ -1701,7 +1701,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the scoring and assisting players in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
@@ -1736,7 +1736,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the assisting player on the bench
         var teamLineup = TestLineupDto.builder()
@@ -1780,7 +1780,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 9);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1827,7 +1827,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
         // only have the scoring player in the lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
@@ -1870,7 +1870,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.DEFENDER, 9);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1916,7 +1916,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
         // only have the scoring player in the lineup
         var teamLineup = TestLineupDto.builder().awayStarting(scoringTeamPlayerId).build();
@@ -1962,7 +1962,7 @@ public class MatchEventServiceTests {
             var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 9);
             var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto(
+            var testEvent = new UpsertGoalEventDto(
                     "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
             );
 
@@ -2013,7 +2013,7 @@ public class MatchEventServiceTests {
             var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
             var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+            var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
             // only have the scoring player in the lineup
             var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
@@ -2060,7 +2060,7 @@ public class MatchEventServiceTests {
             var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.DEFENDER, 9);
             var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto(
+            var testEvent = new UpsertGoalEventDto(
                     "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
             );
 
@@ -2110,7 +2110,7 @@ public class MatchEventServiceTests {
             var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
             var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+            var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
             // only have the scoring player in the lineup
             var teamLineup = TestLineupDto.builder().awayStarting(scoringTeamPlayerId).build();
@@ -2146,7 +2146,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidSubstitution() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.SubstitutionDto(
+        var testEvent = new UpsertSubstitutionEventDto(
                 "1", UUID.randomUUID().toString(), UUID.randomUUID().toString()
         );
 
@@ -2167,7 +2167,7 @@ public class MatchEventServiceTests {
         var teamPlayerIn = new TeamPlayer(TestTeam.builder().build(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerInId = teamPlayerIn.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), UUID.randomUUID().toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), UUID.randomUUID().toString());
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2193,7 +2193,7 @@ public class MatchEventServiceTests {
         var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerInId = teamPlayerIn.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), null);
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), null);
         // create an empty lineup which ensures that the player won't be in it
         var teamLineup = TestLineupDto.builder().build();
 
@@ -2225,7 +2225,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(TestTeam.builder().name("Team C").build(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // only have the playerIn in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(teamPlayerInId).build();
@@ -2261,7 +2261,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 8);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // only have the playerIn in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(teamPlayerInId).build();
@@ -2297,7 +2297,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2335,7 +2335,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2373,7 +2373,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2415,7 +2415,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2457,7 +2457,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2499,7 +2499,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2535,7 +2535,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2571,7 +2571,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2607,7 +2607,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2639,7 +2639,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2681,7 +2681,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2729,7 +2729,7 @@ public class MatchEventServiceTests {
         var teamPlayerOutId = teamPlayerOut.getId();
 
         // assume that playerIn is already on the pitch because of a substitution
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2765,7 +2765,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidPenalty() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", UUID.randomUUID().toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", UUID.randomUUID().toString(), true);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2784,7 +2784,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -2807,7 +2807,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -2829,7 +2829,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -2851,7 +2851,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer on the bench
         var teamLineup = TestLineupDto.builder()
@@ -2876,7 +2876,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -2916,7 +2916,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -2956,7 +2956,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -2996,7 +2996,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3039,7 +3039,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3083,7 +3083,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3127,7 +3127,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3171,7 +3171,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3212,7 +3212,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3252,7 +3252,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3292,7 +3292,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3332,7 +3332,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
