@@ -1,7 +1,6 @@
 package ml.echelon133.matchservice.event.service;
 
 import ml.echelon133.common.event.KafkaTopicNames;
-import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.event.dto.SerializedPlayer;
 import ml.echelon133.common.exception.ResourceNotFoundException;
@@ -13,10 +12,7 @@ import ml.echelon133.matchservice.event.model.dto.*;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatch;
-import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
-import ml.echelon133.matchservice.match.model.Match;
-import ml.echelon133.matchservice.match.model.RedCardInfo;
-import ml.echelon133.matchservice.match.model.ScoreInfo;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
@@ -443,11 +439,10 @@ public class MatchEventServiceTests {
 
             // then
             verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-                var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-                return sentGlobalEvent.getMatchId().equals(matchId) &&
-                        sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                        sentGlobalEvent.getResult().equals(MatchResult.NONE) &&
-                        sentGlobalEvent.getTargetStatus().toString().equals(statusEvent.targetStatus());
+                var sentGlobalEvent = (GlobalStatusEventDto)e;
+                return sentGlobalEvent.matchId().equals(matchId) &&
+                        sentGlobalEvent.result().equals(MatchResult.NONE) &&
+                        sentGlobalEvent.targetStatus().toString().equals(statusEvent.targetStatus());
             }));
         }
     }
@@ -520,11 +515,10 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-            return sentGlobalEvent.getMatchId().equals(matchId) &&
-                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                    sentGlobalEvent.getResult().equals(MatchResult.HOME_WIN) &&
-                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+            var sentGlobalEvent = (GlobalStatusEventDto)e;
+            return sentGlobalEvent.matchId().equals(matchId) &&
+                    sentGlobalEvent.result().equals(MatchResult.HOME_WIN) &&
+                    sentGlobalEvent.targetStatus().equals(MatchStatus.FINISHED);
         }));
     }
 
@@ -549,11 +543,10 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-            return sentGlobalEvent.getMatchId().equals(matchId) &&
-                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                    sentGlobalEvent.getResult().equals(MatchResult.AWAY_WIN) &&
-                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+            var sentGlobalEvent = (GlobalStatusEventDto)e;
+            return sentGlobalEvent.matchId().equals(matchId) &&
+                    sentGlobalEvent.result().equals(MatchResult.AWAY_WIN) &&
+                    sentGlobalEvent.targetStatus().equals(MatchStatus.FINISHED);
         }));
     }
 
@@ -578,11 +571,10 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-            return sentGlobalEvent.getMatchId().equals(matchId) &&
-                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                    sentGlobalEvent.getResult().equals(MatchResult.DRAW) &&
-                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+            var sentGlobalEvent = (GlobalStatusEventDto)e;
+            return sentGlobalEvent.matchId().equals(matchId) &&
+                    sentGlobalEvent.result().equals(MatchResult.DRAW) &&
+                    sentGlobalEvent.targetStatus().equals(MatchStatus.FINISHED);
         }));
     }
 
@@ -1194,18 +1186,16 @@ public class MatchEventServiceTests {
         assertEquals(match.getRedCardInfo(), expectedRedCardInfo);
         // verify one home card is broadcast via the websocket
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var globalRedCardEvent = (GlobalMatchEventDto.RedCardEvent)e;
-            return globalRedCardEvent.getMatchId().equals(matchId) &&
-                    globalRedCardEvent.getType().equals(MatchEventType.CARD) &&
-                    globalRedCardEvent.getSide().equals(GlobalMatchEventDto.EventSide.HOME);
+            var globalRedCardEvent = (GlobalRedCardEventDto)e;
+            return globalRedCardEvent.matchId().equals(matchId) &&
+                    globalRedCardEvent.side().equals(GlobalMatchEvent.EventSide.HOME);
         }));
 
         // verify two away cards are broadcast via the websocket
         verify(matchEventWebsocketService, times(2)).sendGlobalMatchEvent(argThat(e -> {
-            var globalRedCardEvent = (GlobalMatchEventDto.RedCardEvent)e;
-            return globalRedCardEvent.getMatchId().equals(matchId) &&
-                    globalRedCardEvent.getType().equals(MatchEventType.CARD) &&
-                    globalRedCardEvent.getSide().equals(GlobalMatchEventDto.EventSide.AWAY);
+            var globalRedCardEvent = (GlobalRedCardEventDto)e;
+            return globalRedCardEvent.matchId().equals(matchId) &&
+                    globalRedCardEvent.side().equals(GlobalMatchEvent.EventSide.AWAY);
         }));
     }
 
@@ -1758,12 +1748,11 @@ public class MatchEventServiceTests {
         assertGlobalEventNotBroadcast();
     }
 
-    private void assertGlobalGoalEventBroadcast(UUID matchId, GlobalMatchEventDto.EventSide side) {
+    private void assertGlobalGoalEventBroadcast(UUID matchId, GlobalMatchEvent.EventSide side) {
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var globalGoalEvent = (GlobalMatchEventDto.GoalEvent)e;
-            return globalGoalEvent.getMatchId().equals(matchId) &&
-                    globalGoalEvent.getType().equals(MatchEventType.GOAL) &&
-                    globalGoalEvent.getSide().equals(side);
+            var globalGoalEvent = (GlobalGoalEventDto)e;
+            return globalGoalEvent.matchId().equals(matchId) &&
+                    globalGoalEvent.side().equals(side);
         }));
     }
 
@@ -1814,7 +1803,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                     !gDto.isOwnGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
     }
 
     @Test
@@ -1854,7 +1843,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                     gDto.isOwnGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
     }
 
     @Test
@@ -1903,7 +1892,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                     !gDto.isOwnGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
     }
 
     @Test
@@ -1943,7 +1932,7 @@ public class MatchEventServiceTests {
                     gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                     gDto.isOwnGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
     }
 
     @Test
@@ -1996,7 +1985,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                         !gDto.isOwnGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
         }
     }
 
@@ -2040,7 +2029,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                         gDto.isOwnGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
         }
     }
 
@@ -2094,7 +2083,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
                         !gDto.isOwnGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
         }
     }
 
@@ -2137,7 +2126,7 @@ public class MatchEventServiceTests {
                         gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
                         gDto.isOwnGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
         }
     }
 

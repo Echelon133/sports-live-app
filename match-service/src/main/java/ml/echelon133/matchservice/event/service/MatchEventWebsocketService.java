@@ -3,13 +3,16 @@ package ml.echelon133.matchservice.event.service;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ml.echelon133.common.event.dto.MatchEventDto;
-import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
+import ml.echelon133.matchservice.match.model.GlobalMatchEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -27,11 +30,13 @@ public class MatchEventWebsocketService {
     private final static String GLOBAL_MATCH_EVENT_NAMESPACE = "/api/ws/global-match-events";
 
     private final SocketIOServer server;
+    private final ObjectMapper objectMapper;
     private final static Logger logger = LoggerFactory.getLogger(MatchEventWebsocketService.class);
 
     @Autowired
-    public MatchEventWebsocketService(SocketIOServer server) {
+    public MatchEventWebsocketService(SocketIOServer server, ObjectMapper objectMapper) {
         this.server = server;
+        this.objectMapper = objectMapper;
 
         // create a namespace which allows for listening to events happening in a specific match,
         // and bind both connection and disconnection handlers to that namespace
@@ -112,11 +117,24 @@ public class MatchEventWebsocketService {
      *
      * @param globalMatchEventDto dto representing the global event
      */
-    public void sendGlobalMatchEvent(GlobalMatchEventDto globalMatchEventDto) {
+    public void sendGlobalMatchEvent(GlobalMatchEvent globalMatchEventDto) {
+        // @JsonTypeInfo and @JsonSubTypes annotations on the GlobalMatchEvent provide information that
+        // should make "type" property to appear in the output after the serialization,
+        // yet it does not happen, which seems to be a bug in the underlying library, since
+        // the default ObjectMapper used by the SocketIOServer should absolutely be able to "understand"
+        // these annotations
+        //
+        // as a quick fix, we can convert GlobalMatchEvent into a Map by directly using an ObjectMapper
+        // (this conversion correctly adds the "type" property to the output)
+        Map<String, Object> event = objectMapper.convertValue(
+                globalMatchEventDto,
+                new TypeReference<Map<String, Object>>() {}
+        );
+
         var importantGlobalEventsNamespace = server.getNamespace(GLOBAL_MATCH_EVENT_NAMESPACE);
         importantGlobalEventsNamespace
                 .getBroadcastOperations()
-                .sendEvent(GLOBAL_MATCH_EVENT_TYPE, globalMatchEventDto);
+                .sendEvent(GLOBAL_MATCH_EVENT_TYPE, event);
         logger.debug("Sent match event to all clients, namespace {}", importantGlobalEventsNamespace.getName());
     }
 }

@@ -10,9 +10,7 @@ import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
 import ml.echelon133.matchservice.event.model.dto.*;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
-import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
-import ml.echelon133.matchservice.match.model.LineupDto;
-import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
@@ -188,7 +186,7 @@ public class MatchEventService {
         );
 
         // globally broadcast a match changing its status
-        matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.StatusEvent(
+        matchEventWebsocketService.sendGlobalMatchEvent(new GlobalStatusEventDto(
                 match.getId(),
                 targetStatus,
                 match.getResult()
@@ -351,9 +349,9 @@ public class MatchEventService {
             }
 
             // globally broadcast a red card for the side which got it
-            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.RedCardEvent(
+            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalRedCardEventDto(
                     match.getId(),
-                    homeTeamCarded ? GlobalMatchEventDto.EventSide.HOME : GlobalMatchEventDto.EventSide.AWAY)
+                    homeTeamCarded ? GlobalMatchEvent.EventSide.HOME : GlobalMatchEvent.EventSide.AWAY)
             );
         }
 
@@ -807,9 +805,9 @@ public class MatchEventService {
             }
 
             // globally broadcast a goal being scored
-            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.GoalEvent(
+            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalGoalEventDto(
                     match.getId(),
-                    homeGoal ? GlobalMatchEventDto.EventSide.HOME : GlobalMatchEventDto.EventSide.AWAY
+                    homeGoal ? GlobalMatchEvent.EventSide.HOME : GlobalMatchEvent.EventSide.AWAY
             ));
         }
     }
