@@ -103,7 +103,7 @@ public class MatchEventControllerTests {
     public void getEvents_EventsFound_StatusOk() throws Exception {
         var matchId = UUID.randomUUID();
         var matchEvents = List.of(
-                MatchEventDto.from(
+                new MatchEventDto(
                         UUID.randomUUID(),
                         new MatchEventDetails.StatusDto("1", UUID.randomUUID(), MatchStatus.FIRST_HALF, null, null, null)
                 )

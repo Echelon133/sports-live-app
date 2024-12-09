@@ -208,8 +208,8 @@ public class MatchEventServiceTests {
         assertEquals(
                 1,
                 events.stream().filter(e -> {
-                    var innerEvent = (MatchEventDetails.StatusDto)e.getEvent();
-                    return e.getId().equals(statusEvent.getId()) &&
+                    var innerEvent = (MatchEventDetails.StatusDto)e.event();
+                    return e.id().equals(statusEvent.getId()) &&
                             innerEvent.getMinute().equals(statusEvent.getEvent().getMinute()) &&
                             innerEvent.getTargetStatus().equals(targetStatus);
                 }).count()

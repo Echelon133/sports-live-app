@@ -109,7 +109,7 @@ public class MatchEventWebsocketService {
                 .getRoomOperations(matchId.toString())
                 .sendEvent(SPECIFIC_MATCH_EVENT_TYPE, matchEventDto);
         logger.debug("Sent match event {} to all clients in room {}, namespace {}",
-                matchEventDto.getId(), matchId, eventsOfSpecificMatchNamespace.getName());
+                matchEventDto.id(), matchId, eventsOfSpecificMatchNamespace.getName());
     }
 
     /**
