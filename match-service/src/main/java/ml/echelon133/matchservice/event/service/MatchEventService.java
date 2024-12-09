@@ -64,7 +64,7 @@ public class MatchEventService {
      * @return dto converted from an entity
      */
     private static MatchEventDto convertEntityToDto(MatchEvent event) {
-        return MatchEventDto.from(event.getId(), event.getEvent());
+        return new MatchEventDto(event.getId(), event.getEvent());
     }
 
     /**
@@ -229,7 +229,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isCardEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.CardDto e) {
+        if (event.event() instanceof MatchEventDetails.CardDto e) {
             return e.getCardedPlayer().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
@@ -245,7 +245,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isCardEventOfCardType(MatchEventDto event, MatchEventDetails.CardDto.CardType... cardTypes) {
-        if (event.getEvent() instanceof MatchEventDetails.CardDto cDto) {
+        if (event.event() instanceof MatchEventDetails.CardDto cDto) {
             var foundCardType= cDto.getCardType();
             return Arrays.asList(cardTypes).contains(foundCardType);
         } else {
@@ -747,7 +747,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto e) {
+        if (event.event() instanceof MatchEventDetails.SubstitutionDto e) {
             return e.getPlayerOut().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
@@ -763,7 +763,7 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto e) {
+        if (event.event() instanceof MatchEventDetails.SubstitutionDto e) {
             return e.getPlayerIn().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
