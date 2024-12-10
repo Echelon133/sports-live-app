@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.match.model;
 
+import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 
@@ -13,4 +14,9 @@ import java.util.UUID;
  * @param result current result of the match
  */
 public record GlobalStatusEventDto(UUID matchId, MatchStatus targetStatus, MatchResult result) implements GlobalMatchEvent {
+
+    @Override
+    public String type() {
+        return MatchEventType.STATUS.name();
+    }
 }

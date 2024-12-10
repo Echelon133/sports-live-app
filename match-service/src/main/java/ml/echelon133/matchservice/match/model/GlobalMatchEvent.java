@@ -3,6 +3,8 @@ package ml.echelon133.matchservice.match.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import java.util.UUID;
+
 /**
  * Common interface between all records which represent the most important match events broadcast globally via websocket.
  *
@@ -16,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
         visible = true,
         property = "type"
 )
@@ -28,4 +31,7 @@ public sealed interface GlobalMatchEvent permits GlobalGoalEventDto, GlobalRedCa
     enum EventSide {
         HOME, AWAY
     }
+
+    String type();
+    UUID matchId();
 }
