@@ -1,6 +1,7 @@
 package pl.echelon133.competitionservice.competition.service;
 
-import ml.echelon133.common.event.dto.MatchEventDetails;
+import jakarta.transaction.Transactional;
+import ml.echelon133.common.event.dto.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -11,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.listener.MessageListener;
 import pl.echelon133.competitionservice.competition.model.PlayerStats;
 
-import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,22 +34,18 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
 
     @Override
     public void onMessage(@NotNull ConsumerRecord<UUID, MatchEventDetails> record) {
-        logger.debug("Received record {} of event type {}", record.key(), record.value().getType());
+        logger.debug("Received record {}", record.key());
 
         var recordId = record.key();
         var event = record.value();
 
         try {
-            if (event instanceof MatchEventDetails.StatusDto statusEventDto) {
-                processStatusEvent(recordId, statusEventDto);
-            } else if (event instanceof MatchEventDetails.CardDto cardEventDto) {
-                processCardEvent(recordId, cardEventDto);
-            } else if (event instanceof MatchEventDetails.GoalDto goalEventDto) {
-                processGoalEvent(recordId, goalEventDto);
-            } else if (event instanceof MatchEventDetails.PenaltyDto penaltyEventDto) {
-                processPenaltyEvent(recordId, penaltyEventDto);
-            } else {
-                logNoOperation(recordId, "The event does not contain any data about teams or players");
+            switch (event) {
+                case StatusEventDetailsDto statusEvent -> processStatusEvent(recordId, statusEvent);
+                case CardEventDetailsDto cardEvent -> processCardEvent(recordId, cardEvent);
+                case GoalEventDetailsDto goalEvent -> processGoalEvent(recordId, goalEvent);
+                case PenaltyEventDetailsDto penaltyEvent -> processPenaltyEvent(recordId, penaltyEvent);
+                default -> logNoOperation(recordId, "The event does not contain any data about teams or players");
             }
         } catch (ResourceNotFoundException ex) {
             logProcessingFailure(recordId, ex.getMessage());
@@ -57,7 +53,7 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
     }
 
     /**
-     * Processes {@link ml.echelon133.common.event.dto.MatchEventDetails.StatusDto} events received from Kafka.
+     * Processes {@link ml.echelon133.common.event.dto.StatusEventDetailsDto} events received from Kafka.
      *
      * Its task is to update team stats when the match ends. This includes:
      * <ul>
@@ -70,13 +66,13 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
      * @param recordId id of the received record
      * @param event match event containing information about a status event happening in a match
      */
-    private void processStatusEvent(UUID recordId, MatchEventDetails.StatusDto event) throws ResourceNotFoundException {
-        if (!event.getTargetStatus().equals(MatchStatus.FINISHED)) {
+    private void processStatusEvent(UUID recordId, StatusEventDetailsDto event) throws ResourceNotFoundException {
+        if (!event.targetStatus().equals(MatchStatus.FINISHED)) {
             logNoOperation(recordId, "Match status other than `FINISHED` does not require any action");
             return;
         }
 
-        MatchResult result = event.getResult();
+        MatchResult result = event.result();
 
         // if the match status is FINISHED, all match results except for NONE are valid, so
         // if we encounter NONE here, it means that the service which has produced this event
@@ -89,10 +85,10 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
             return;
         }
 
-        var teamInfo = event.getTeams();
+        var teamInfo = event.teams();
         var homeTeamId = teamInfo.homeTeamId();
         var awayTeamId = teamInfo.awayTeamId();
-        var competitionId = event.getCompetitionId();
+        var competitionId = event.competitionId();
 
         var home = teamStatsService.findTeamStats(homeTeamId, competitionId);
         var away = teamStatsService.findTeamStats(awayTeamId, competitionId);
@@ -102,8 +98,8 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         away.incrementMatchesPlayed();
 
         // update `goalsScored` and `goalsConceded` of both teams
-        var homeGoals = event.getMainScore().homeGoals();
-        var awayGoals = event.getMainScore().awayGoals();
+        var homeGoals = event.mainScore().homeGoals();
+        var awayGoals = event.mainScore().awayGoals();
         home.incrementGoalsScoredBy(homeGoals);
         home.incrementGoalsConcededBy(awayGoals);
         away.incrementGoalsScoredBy(awayGoals);
@@ -142,26 +138,26 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
     }
 
     /**
-     * Processes {@link ml.echelon133.common.event.dto.MatchEventDetails.CardDto} events received from Kafka.
+     * Processes {@link ml.echelon133.common.event.dto.CardEventDetailsDto} events received from Kafka.
      *
      * Its task is to update the number of player's yellow/red cards in a particular competition.
      *
      * @param recordId id of the received record
      * @param event match event containing information about a card event happening in a match
      */
-    private void processCardEvent(UUID recordId, MatchEventDetails.CardDto event) throws ResourceNotFoundException {
-        var cardedPlayer = event.getCardedPlayer();
-        var competitionId = event.getCompetitionId();
+    private void processCardEvent(UUID recordId, CardEventDetailsDto event) throws ResourceNotFoundException {
+        var cardedPlayer = event.cardedPlayer();
+        var competitionId = event.competitionId();
         var playerId = cardedPlayer.playerId();
 
         PlayerStats playerStats = playerStatsService.findPlayerStatsOrDefault(
                 playerId,
                 competitionId,
-                event.getTeamId(),
+                event.teamId(),
                 cardedPlayer.name()
         );
 
-        MatchEventDetails.CardDto.CardType t = event.getCardType();
+        CardEventDetailsDto.CardType t = event.cardType();
         String cardType = "";
 
         switch (t) {
@@ -184,7 +180,7 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
     }
 
     /**
-     * Processes {@link ml.echelon133.common.event.dto.MatchEventDetails.GoalDto} events received from Kafka.
+     * Processes {@link ml.echelon133.common.event.dto.GoalEventDetailsDto} events received from Kafka.
      *
      * Its task is to update the number of goals/assists for players involved in a goal in a particular competition.
      * Own goals are ignored, because they do not count as actual goals in statistics.
@@ -192,19 +188,19 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
      * @param recordId id of the received record
      * @param event match event containing information about a goal event happening in a match
      */
-    private void processGoalEvent(UUID recordId, MatchEventDetails.GoalDto event) throws ResourceNotFoundException {
-        if (event.isOwnGoal()) {
+    private void processGoalEvent(UUID recordId, GoalEventDetailsDto event) throws ResourceNotFoundException {
+        if (event.ownGoal()) {
             logNoOperation(recordId, "Own goals do not impact player's goal statistics");
             return;
         }
-        var competitionId = event.getCompetitionId();
+        var competitionId = event.competitionId();
 
-        var scoringPlayer = event.getScoringPlayer();
+        var scoringPlayer = event.scoringPlayer();
         var scoringPlayerId = scoringPlayer.playerId();
         PlayerStats scoringPlayerStats = playerStatsService.findPlayerStatsOrDefault(
                 scoringPlayerId,
                 competitionId,
-                event.getTeamId(),
+                event.teamId(),
                 scoringPlayer.name()
         );
         scoringPlayerStats.incrementGoals();
@@ -215,13 +211,13 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         playerStatsService.save(scoringPlayerStats);
 
         // the goal might have an assisting player
-        if (event.getAssistingPlayer() != null) {
-            var assistingPlayer = event.getAssistingPlayer();
+        if (event.assistingPlayer() != null) {
+            var assistingPlayer = event.assistingPlayer();
             var assistingPlayerId = assistingPlayer.playerId();
             PlayerStats assistingPlayerStats = playerStatsService.findPlayerStatsOrDefault(
                     assistingPlayerId,
                     competitionId,
-                    event.getTeamId(),
+                    event.teamId(),
                     assistingPlayer.name()
             );
             assistingPlayerStats.incrementAssists();
@@ -234,7 +230,7 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
     }
 
     /**
-     * Processes {@link ml.echelon133.common.event.dto.MatchEventDetails.PenaltyDto} events received from Kafka.
+     * Processes {@link ml.echelon133.common.event.dto.PenaltyEventDetailsDto} events received from Kafka.
      *
      * Its task is to update the number of goals for a player who scored a penalty in a particular competition.
      * Missed penalties, or penalties scored in a penalty shootout are ignored.
@@ -242,24 +238,24 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
      * @param recordId id of the received record
      * @param event match event containing information about a penalty event happening in a match
      */
-    private void processPenaltyEvent(UUID recordId, MatchEventDetails.PenaltyDto event) throws ResourceNotFoundException {
-        if (!event.isCountAsGoal()) {
+    private void processPenaltyEvent(UUID recordId, PenaltyEventDetailsDto event) throws ResourceNotFoundException {
+        if (!event.countAsGoal()) {
             logNoOperation(recordId, "Penalty during the penalty shootout does not count as an actual goal");
             return;
         }
 
-        if (!event.isScored()) {
+        if (!event.scored()) {
             logNoOperation(recordId, "Penalty missed");
             return;
         }
 
-        var competitionId = event.getCompetitionId();
-        var shootingPlayer = event.getShootingPlayer();
+        var competitionId = event.competitionId();
+        var shootingPlayer = event.shootingPlayer();
         var shootingPlayerId = shootingPlayer.playerId();
         PlayerStats shootingPlayerStats = playerStatsService.findPlayerStatsOrDefault(
                 shootingPlayerId,
                 competitionId,
-                event.getTeamId(),
+                event.teamId(),
                 shootingPlayer.name()
         );
         shootingPlayerStats.incrementGoals();

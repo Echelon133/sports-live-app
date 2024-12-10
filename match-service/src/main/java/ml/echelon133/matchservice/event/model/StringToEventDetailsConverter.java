@@ -29,7 +29,7 @@ public class StringToEventDetailsConverter implements AttributeConverter<MatchEv
         try {
             result = objectMapper.writeValueAsString(baseEventDto);
         } catch (JsonProcessingException ex) {
-            logger.error("failed serialization of event of type " + baseEventDto.getType());
+            logger.error("failed serialization of event of type " + baseEventDto.getClass());
         }
         return result;
     }

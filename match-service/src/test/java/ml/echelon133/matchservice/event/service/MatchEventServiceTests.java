@@ -1,8 +1,7 @@
 package ml.echelon133.matchservice.event.service;
 
 import ml.echelon133.common.event.KafkaTopicNames;
-import ml.echelon133.common.event.dto.MatchEventDetails;
-import ml.echelon133.common.event.dto.SerializedPlayer;
+import ml.echelon133.common.event.dto.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -95,10 +94,10 @@ public class MatchEventServiceTests {
         given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(matchEvents);
     }
 
-    private MatchEvent createTestCardEvent(Match match, UUID receivingTeamPlayerId, MatchEventDetails.CardDto.CardType type) {
+    private MatchEvent createTestCardEvent(Match match, UUID receivingTeamPlayerId, CardEventDetailsDto.CardType type) {
         return new MatchEvent(
             match,
-            new MatchEventDetails.CardDto(
+            new CardEventDetailsDto(
                     "1",
                     UUID.randomUUID(),
                     null,
@@ -111,7 +110,7 @@ public class MatchEventServiceTests {
     private MatchEvent createTestSubstitutionEvent(Match match, UUID playerInId, UUID playerOutId) {
         return new MatchEvent(
             match,
-            new MatchEventDetails.SubstitutionDto(
+            new SubstitutionEventDetailsDto(
                     "1",
                     UUID.randomUUID(),
                     null,
@@ -195,7 +194,7 @@ public class MatchEventServiceTests {
         var matchId = match.getId();
         var targetStatus = MatchStatus.FIRST_HALF;
         var statusEvent = new MatchEvent(
-                match, new MatchEventDetails.StatusDto("1", match.getCompetitionId(), targetStatus, null, null, null)
+                match, new StatusEventDetailsDto("1", match.getCompetitionId(), targetStatus, null, null, null)
         );
 
         // given
@@ -208,10 +207,10 @@ public class MatchEventServiceTests {
         assertEquals(
                 1,
                 events.stream().filter(e -> {
-                    var innerEvent = (MatchEventDetails.StatusDto)e.event();
+                    var innerEvent = (StatusEventDetailsDto)e.event();
                     return e.id().equals(statusEvent.getId()) &&
-                            innerEvent.getMinute().equals(statusEvent.getEvent().getMinute()) &&
-                            innerEvent.getTargetStatus().equals(targetStatus);
+                            innerEvent.minute().equals(statusEvent.getEvent().minute()) &&
+                            innerEvent.targetStatus().equals(targetStatus);
                 }).count()
         );
     }
@@ -606,10 +605,10 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.HOME_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
+                        sDto.result().equals(expectedResult) &&
                         teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
                         teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
@@ -644,10 +643,10 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.AWAY_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
+                        sDto.result().equals(expectedResult) &&
                         teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
                         teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
@@ -682,10 +681,10 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.DRAW;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
+                        sDto.result().equals(expectedResult) &&
                         teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
                         teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
@@ -720,10 +719,10 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.HOME_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
+                        sDto.result().equals(expectedResult) &&
                         teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
                         teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
@@ -758,10 +757,10 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.AWAY_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
+                        sDto.result().equals(expectedResult) &&
                         teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
                         teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
@@ -826,10 +825,10 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.HOME_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
+                        sDto.result().equals(expectedResult) &&
                         teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
                         teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
@@ -864,10 +863,10 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.AWAY_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
+                        sDto.result().equals(expectedResult) &&
                         teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
                         teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
@@ -920,8 +919,8 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CommentaryDto eventDetails = (MatchEventDetails.CommentaryDto)matchEvent.getEvent();
-            return matchEvent.getMatch().getId().equals(matchId) && eventDetails.getMessage().equals(message);
+            CommentaryEventDetailsDto eventDetails = (CommentaryEventDetailsDto)matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) && eventDetails.message().equals(message);
         }));
     }
 
@@ -1028,9 +1027,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.YELLOW);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.YELLOW);
         }));
     }
 
@@ -1059,9 +1058,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.DIRECT_RED);
         }));
     }
 
@@ -1081,7 +1080,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1092,9 +1091,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.SECOND_YELLOW);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.SECOND_YELLOW);
         }));
     }
 
@@ -1114,7 +1113,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1125,9 +1124,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.DIRECT_RED);
         }));
     }
 
@@ -1167,8 +1166,8 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, homeTeamPlayerA.getId(), MatchEventDetails.CardDto.CardType.YELLOW),
-                createTestCardEvent(match, awayTeamPlayerA.getId(), MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, homeTeamPlayerA.getId(), CardEventDetailsDto.CardType.YELLOW),
+                createTestCardEvent(match, awayTeamPlayerA.getId(), CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(homeTeamPlayerA.getId())).willReturn(homeTeamPlayerA);
@@ -1215,7 +1214,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1242,7 +1241,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1269,7 +1268,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1296,7 +1295,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-            createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+            createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1386,7 +1385,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, scoringPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
@@ -1410,7 +1409,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, scoringPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
@@ -1629,7 +1628,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, assistingPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, assistingPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -1664,7 +1663,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, assistingPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, assistingPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -1796,12 +1795,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
-                    gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    !gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    !gDto.ownGoal();
         }));
         assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
     }
@@ -1836,12 +1835,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer() == null &&
-                    gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer() == null &&
+                    gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    gDto.ownGoal();
         }));
         assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
     }
@@ -1885,12 +1884,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
-                    gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    !gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    !gDto.ownGoal();
         }));
         assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
     }
@@ -1925,12 +1924,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer() == null &&
-                    gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer() == null &&
+                    gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    gDto.ownGoal();
         }));
         assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
     }
@@ -1978,12 +1977,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
-                        gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        !gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        !gDto.ownGoal();
             }));
             assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
         }
@@ -2022,12 +2021,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer() == null &&
-                        gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer() == null &&
+                        gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        gDto.ownGoal();
             }));
             assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
         }
@@ -2076,12 +2075,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
-                        gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        !gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        !gDto.ownGoal();
             }));
             assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
         }
@@ -2119,12 +2118,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer() == null &&
-                        gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer() == null &&
+                        gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        gDto.ownGoal();
             }));
             assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
         }
@@ -2372,7 +2371,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-               createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+               createTestCardEvent(match, teamPlayerInId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2414,7 +2413,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, teamPlayerInId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2498,7 +2497,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, teamPlayerOutId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2534,7 +2533,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, teamPlayerOutId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2649,11 +2648,11 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            SubstitutionEventDetailsDto sDto = (SubstitutionEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().teamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().teamPlayerId().equals(teamPlayerOutId);
+                    sDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.playerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.playerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2681,8 +2680,8 @@ public class MatchEventServiceTests {
         // given
         givenMatchReturnEvents(matchId, List.of(
                 // give both players yellow cards
-                createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.YELLOW),
-                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, teamPlayerInId, CardEventDetailsDto.CardType.YELLOW),
+                createTestCardEvent(match, teamPlayerOutId, CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2696,11 +2695,11 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            SubstitutionEventDetailsDto sDto = (SubstitutionEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().teamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().teamPlayerId().equals(teamPlayerOutId);
+                    sDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.playerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.playerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2741,11 +2740,11 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            SubstitutionEventDetailsDto sDto = (SubstitutionEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().teamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().teamPlayerId().equals(teamPlayerOutId);
+                    sDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.playerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.playerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2777,7 +2776,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, shootingPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, shootingPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
@@ -2800,7 +2799,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, shootingPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, shootingPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
@@ -2887,12 +2886,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -2927,12 +2926,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 
@@ -2967,12 +2966,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -3007,12 +3006,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 
@@ -3050,12 +3049,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        pDto.isScored();
+                        pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        pDto.scored();
             }));
         }
     }
@@ -3094,12 +3093,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        !pDto.isScored();
+                        pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        !pDto.scored();
             }));
         }
     }
@@ -3138,12 +3137,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        pDto.isScored();
+                        pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        pDto.scored();
             }));
         }
     }
@@ -3182,12 +3181,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        !pDto.isScored();
+                        pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        !pDto.scored();
             }));
         }
     }
@@ -3223,12 +3222,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -3263,12 +3262,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 
@@ -3303,12 +3302,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -3343,12 +3342,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 }

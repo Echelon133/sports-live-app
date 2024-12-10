@@ -2,7 +2,6 @@ package ml.echelon133.common.event.dto.kafka;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ml.echelon133.common.event.MatchEventDetailsMixIn;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 
 /**
@@ -18,7 +17,7 @@ public class KafkaObjectMapper {
         static {
             INSTANCE = new ObjectMapper();
             INSTANCE.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-            INSTANCE.addMixIn(MatchEventDetails.class, MatchEventDetailsMixIn.class);
+            INSTANCE.addMixIn(MatchEventDetails.class, MatchEventDetails.class);
         }
     }
 

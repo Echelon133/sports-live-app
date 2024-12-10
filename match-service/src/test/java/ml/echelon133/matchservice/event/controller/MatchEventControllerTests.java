@@ -1,8 +1,8 @@
 package ml.echelon133.matchservice.event.controller;
 
 import jakarta.validation.ConstraintValidator;
-import ml.echelon133.common.event.dto.MatchEventDetails;
 import ml.echelon133.common.event.dto.MatchEventDto;
+import ml.echelon133.common.event.dto.StatusEventDetailsDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.MatchServiceApplication;
@@ -105,7 +105,7 @@ public class MatchEventControllerTests {
         var matchEvents = List.of(
                 new MatchEventDto(
                         UUID.randomUUID(),
-                        new MatchEventDetails.StatusDto("1", UUID.randomUUID(), MatchStatus.FIRST_HALF, null, null, null)
+                        new StatusEventDetailsDto("1", UUID.randomUUID(), MatchStatus.FIRST_HALF, null, null, null)
                 )
         );
         var expectedJson = jsonMatchEventDtos.write(matchEvents).getJson();

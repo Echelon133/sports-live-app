@@ -176,7 +176,7 @@ public class MatchEventService {
             match.setResult(endResult);
         }
 
-        var eventDetails = new MatchEventDetails.StatusDto(
+        var eventDetails = new StatusEventDetailsDto(
                 statusDto.minute(),
                 match.getCompetitionId(),
                 targetStatus,
@@ -212,7 +212,7 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      */
     private MatchEvent processCommentaryEvent(Match match, UpsertCommentaryEventDto commentaryDto) {
-        var eventDetails = new MatchEventDetails.CommentaryDto(
+        var eventDetails = new CommentaryEventDetailsDto(
                 commentaryDto.minute(),
                 match.getCompetitionId(),
                 commentaryDto.message()
@@ -229,8 +229,8 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isCardEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.event() instanceof MatchEventDetails.CardDto e) {
-            return e.getCardedPlayer().teamPlayerId().equals(teamPlayerId);
+        if (event.event() instanceof CardEventDetailsDto e) {
+            return e.cardedPlayer().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -244,9 +244,9 @@ public class MatchEventService {
      * @param cardTypes one or more card types which we want to filter by
      * @return `true` if the described conditions are satisfied
      */
-    private static boolean isCardEventOfCardType(MatchEventDto event, MatchEventDetails.CardDto.CardType... cardTypes) {
-        if (event.event() instanceof MatchEventDetails.CardDto cDto) {
-            var foundCardType= cDto.getCardType();
+    private static boolean isCardEventOfCardType(MatchEventDto event, CardEventDetailsDto.CardType... cardTypes) {
+        if (event.event() instanceof CardEventDetailsDto cDto) {
+            var foundCardType= cDto.cardType();
             return Arrays.asList(cardTypes).contains(foundCardType);
         } else {
             return false;
@@ -272,7 +272,7 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the card cannot be given to a particular player
      * @throws ResourceNotFoundException thrown when the player involved in the card event cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processCardEvent(Match match, UpsertCardEventDto cardDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
@@ -287,10 +287,10 @@ public class MatchEventService {
 
         // initialize the type of the card
         // (if the target color of the card is yellow, for now assume it's the first yellow of the player)
-        MatchEventDetails.CardDto.CardType cardType = cardDto
+        CardEventDetailsDto.CardType cardType = cardDto
                 .redCard() ?
-                MatchEventDetails.CardDto.CardType.DIRECT_RED :
-                MatchEventDetails.CardDto.CardType.YELLOW;
+                CardEventDetailsDto.CardType.DIRECT_RED :
+                CardEventDetailsDto.CardType.YELLOW;
 
         // fetch all card events of the player to prepare for checking if they can even get yet another card
         var playerCardEvents = this.findAllByMatchId(match.getId()).stream()
@@ -301,8 +301,8 @@ public class MatchEventService {
             var secondYellowOrRed = playerCardEvents.stream().anyMatch(
                     e -> isCardEventOfCardType(
                             e,
-                            MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                            MatchEventDetails.CardDto.CardType.DIRECT_RED
+                            CardEventDetailsDto.CardType.SECOND_YELLOW,
+                            CardEventDetailsDto.CardType.DIRECT_RED
                     )
             );
 
@@ -314,17 +314,17 @@ public class MatchEventService {
 
             // check if the player has a single yellow card, which is important in case the target card is yellow
             var singleYellow = playerCardEvents.stream().anyMatch(
-                    e -> isCardEventOfCardType(e, MatchEventDetails.CardDto.CardType.YELLOW)
+                    e -> isCardEventOfCardType(e, CardEventDetailsDto.CardType.YELLOW)
             );
 
             // if the player already has a yellow card and receives another one - mark it as a second yellow,
             // otherwise allow direct red cards even if the player already has a yellow card
             if (singleYellow && !cardDto.redCard()) {
-                cardType = MatchEventDetails.CardDto.CardType.SECOND_YELLOW;
+                cardType = CardEventDetailsDto.CardType.SECOND_YELLOW;
             }
         }
 
-        var eventDetails = new MatchEventDetails.CardDto(
+        var eventDetails = new CardEventDetailsDto(
                 cardDto.minute(),
                 match.getCompetitionId(),
                 cardedTeamPlayer.getTeam().getId(),
@@ -336,8 +336,8 @@ public class MatchEventService {
         // so that this information is available right away without having to run event counting
         // queries for both teams for every fetched match
         var redOrSecondYellow =
-                cardType.equals(MatchEventDetails.CardDto.CardType.DIRECT_RED) ||
-                        cardType.equals(MatchEventDetails.CardDto.CardType.SECOND_YELLOW);
+                cardType.equals(CardEventDetailsDto.CardType.DIRECT_RED) ||
+                        cardType.equals(CardEventDetailsDto.CardType.SECOND_YELLOW);
         if (redOrSecondYellow) {
             var homeTeamId = match.getHomeTeam().getId();
             var cardedPlayerTeamId = cardedTeamPlayer.getTeam().getId();
@@ -374,7 +374,7 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the goal cannot be accepted
      * @throws ResourceNotFoundException thrown when any player involved in the goal cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processGoalEvent(Match match, UpsertGoalEventDto goalDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
@@ -420,7 +420,7 @@ public class MatchEventService {
             assistingPlayerInfo = intoSerializedPlayer(assistingPlayer);
         }
 
-        var eventDetails = new MatchEventDetails.GoalDto(
+        var eventDetails = new GoalEventDetailsDto(
                 goalDto.minute(),
                 match.getCompetitionId(),
                 scoringTeam.getId(),
@@ -450,7 +450,7 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the substitution cannot be completed
      * @throws ResourceNotFoundException thrown when any player involved in the substitution cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processSubstitutionEvent(Match match, UpsertSubstitutionEventDto substitutionDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
@@ -486,7 +486,7 @@ public class MatchEventService {
         SerializedPlayer playerOutInfo =
                 intoSerializedPlayer(playerOut);
 
-        var eventDetails = new MatchEventDetails.SubstitutionDto(
+        var eventDetails = new SubstitutionEventDetailsDto(
                 substitutionDto.minute(),
                 match.getCompetitionId(),
                 playerIn.getTeam().getId(),
@@ -523,7 +523,7 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the penalty cannot be accepted
      * @throws ResourceNotFoundException thrown when the player involved in the penalty cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
     private MatchEvent processPenaltyEvent(Match match, UpsertPenaltyEventDto penaltyDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
@@ -547,7 +547,7 @@ public class MatchEventService {
             incrementMatchScoreline(match, scoredByHomeTeam);
         }
 
-        var eventDetails = new MatchEventDetails.PenaltyDto(
+        var eventDetails = new PenaltyEventDetailsDto(
                 penaltyDto.minute(),
                 match.getCompetitionId(),
                 shootingPlayer.getTeam().getId(),
@@ -654,8 +654,8 @@ public class MatchEventService {
                 .anyMatch(
                         e -> isCardEventOfCardType(
                                 e,
-                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                                CardEventDetailsDto.CardType.SECOND_YELLOW,
+                                CardEventDetailsDto.CardType.DIRECT_RED
                         )
                 );
         if (sentOff) {
@@ -720,8 +720,8 @@ public class MatchEventService {
                 .anyMatch(
                         e -> isCardEventOfCardType(
                                 e,
-                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                                CardEventDetailsDto.CardType.SECOND_YELLOW,
+                                CardEventDetailsDto.CardType.DIRECT_RED
                         )
                 );
         // if the player got two yellows or a red while on the bench, they cannot be subbed on
@@ -747,8 +747,8 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.event() instanceof MatchEventDetails.SubstitutionDto e) {
-            return e.getPlayerOut().teamPlayerId().equals(teamPlayerId);
+        if (event.event() instanceof SubstitutionEventDetailsDto e) {
+            return e.playerOut().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -763,8 +763,8 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.event() instanceof MatchEventDetails.SubstitutionDto e) {
-            return e.getPlayerIn().teamPlayerId().equals(teamPlayerId);
+        if (event.event() instanceof SubstitutionEventDetailsDto e) {
+            return e.playerIn().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
