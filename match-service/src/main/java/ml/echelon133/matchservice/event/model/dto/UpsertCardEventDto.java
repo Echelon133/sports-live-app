@@ -1,6 +1,5 @@
 package ml.echelon133.matchservice.event.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.NotNull;
 import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.matchservice.event.model.dto.constraints.EventMinuteFormat;
@@ -13,7 +12,6 @@ import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
  * @param cardedPlayerId id of the player who receives the card
  * @param redCard `true` if the card is red, otherwise the card is yellow
  */
-@JsonTypeName(value = "CARD")
 public record UpsertCardEventDto(
     @NotNull @EventMinuteFormat String minute,
     @NotNull @TeamPlayerExists String cardedPlayerId,

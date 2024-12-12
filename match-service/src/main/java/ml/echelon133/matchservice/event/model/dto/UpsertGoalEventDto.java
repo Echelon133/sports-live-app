@@ -1,6 +1,5 @@
 package ml.echelon133.matchservice.event.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.NotNull;
 import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.matchservice.event.model.dto.constraints.EventMinuteFormat;
@@ -19,7 +18,6 @@ import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
  * @param assistingPlayerId (optional) id of the assisting player
  * @param ownGoal `true` if the event represents an own goal
  */
-@JsonTypeName(value = "GOAL")
 @GoalPlayerIdsDifferent
 public record UpsertGoalEventDto(
         @NotNull @EventMinuteFormat String minute,
