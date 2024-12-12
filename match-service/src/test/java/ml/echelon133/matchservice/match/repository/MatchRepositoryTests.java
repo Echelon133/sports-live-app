@@ -849,13 +849,14 @@ public class MatchRepositoryTests {
     }
 
     private static void assertLocalDateTimeEquals(LocalDateTime t1, LocalDateTime t2) {
-        // if both are null, then there is no reason to use asserts, if neither is null, then
-        // we need to compare them without using the nanosecond precision
+        // if neither is null, then we need to compare them without using the nanosecond precision
         if (t1 != null && t2 != null) {
             assertEquals(
                     t1.truncatedTo(ChronoUnit.SECONDS),
                     t2.truncatedTo(ChronoUnit.SECONDS)
             );
+        } else {
+            assertEquals(t1, t2);
         }
     }
 
@@ -865,7 +866,7 @@ public class MatchRepositoryTests {
         assertEquals(dto.getStatus(), entity.getStatus().toString());
         assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
         assertEquals(dto.getCompetitionId(), entity.getCompetitionId());
-        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
+        assertLocalDateTimeEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
 
         // home teams equal
         var homeTeamEntity = entity.getHomeTeam();
@@ -941,7 +942,7 @@ public class MatchRepositoryTests {
         assertEquals(dto.getStatus(), entity.getStatus().toString());
         assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
         assertEquals(dto.getCompetitionId(), entity.getCompetitionId());
-        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
+        assertLocalDateTimeEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
 
         // home teams equal
         var homeTeamEntity = entity.getHomeTeam();
