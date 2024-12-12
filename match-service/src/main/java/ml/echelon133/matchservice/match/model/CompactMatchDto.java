@@ -30,7 +30,7 @@ public interface CompactMatchDto {
     @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.homePenalties, target.awayPenalties)}")
     ScoreInfoDto getPenaltiesInfo();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.RedCardInfoDto).from(target.homeRedCards, target.awayRedCards)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.RedCardInfoDto(target.homeRedCards, target.awayRedCards)}")
     RedCardInfoDto getRedCardInfo();
 
     static CompactMatchDtoBuilder builder() {
