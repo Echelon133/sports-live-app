@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
         visible = true,
         property = "type"
 )
@@ -27,10 +28,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 // Ignoring "type" property during deserialization is required to avoid "UnrecognizedPropertyException"
 // caused by the deserializer trying to insert "type" property into the record, without the "knowledge" that
-// this property only exists in the serialized record for the sake of later deserialization, and is no longer needed
-// after that.
+// this property is not stored as a property on a record, and instead is only a constant accessible via
+// an accessor method.
 @JsonIgnoreProperties(value = "type")
 public sealed interface UpsertMatchEvent permits
         UpsertCardEventDto, UpsertCommentaryEventDto, UpsertGoalEventDto,
         UpsertPenaltyEventDto, UpsertStatusEventDto, UpsertSubstitutionEventDto
-{}
+{
+    String type();
+    String minute();
+}

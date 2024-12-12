@@ -3,6 +3,7 @@ package ml.echelon133.matchservice.event.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.NotNull;
+import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.matchservice.event.model.dto.constraints.EventMinuteFormat;
 import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
 
@@ -19,4 +20,9 @@ public record UpsertPenaltyEventDto(
     @NotNull @TeamPlayerExists String shootingPlayerId,
     boolean scored
 ) implements UpsertMatchEvent {
+
+    @Override
+    public String type() {
+        return MatchEventType.PENALTY.name();
+    }
 }

@@ -2,6 +2,7 @@ package ml.echelon133.matchservice.event.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.NotNull;
+import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.matchservice.event.model.dto.constraints.EventMinuteFormat;
 import ml.echelon133.matchservice.event.model.dto.constraints.MatchStatusValid;
 
@@ -17,4 +18,9 @@ public record UpsertStatusEventDto (
     @NotNull @EventMinuteFormat String minute,
     @NotNull @MatchStatusValid String targetStatus
 ) implements UpsertMatchEvent  {
+
+    @Override
+    public String type() {
+        return MatchEventType.STATUS.name();
+    }
 }

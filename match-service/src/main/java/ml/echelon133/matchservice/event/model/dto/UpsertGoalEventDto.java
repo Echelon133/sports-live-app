@@ -2,6 +2,7 @@ package ml.echelon133.matchservice.event.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import jakarta.validation.constraints.NotNull;
+import ml.echelon133.common.event.MatchEventType;
 import ml.echelon133.matchservice.event.model.dto.constraints.EventMinuteFormat;
 import ml.echelon133.matchservice.event.model.dto.constraints.GoalPlayerIdsDifferent;
 import ml.echelon133.matchservice.team.constraints.TeamPlayerExists;
@@ -26,4 +27,9 @@ public record UpsertGoalEventDto(
         @TeamPlayerExists String assistingPlayerId,
         boolean ownGoal
 ) implements UpsertMatchEvent {
+
+    @Override
+    public String type() {
+        return MatchEventType.GOAL.name();
+    }
 }
