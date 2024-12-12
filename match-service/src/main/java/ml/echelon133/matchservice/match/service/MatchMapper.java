@@ -59,15 +59,15 @@ public class MatchMapper {
             );
         }
 
-        ScoreInfoDto halfTimeScoreInfoDto = ScoreInfoDto.from(
+        ScoreInfoDto halfTimeScoreInfoDto = new ScoreInfoDto(
                 halfTimeScoreInfo.getHomeGoals(),
                 halfTimeScoreInfo.getAwayGoals()
         );
-        ScoreInfoDto scoreInfoDto = ScoreInfoDto.from(
+        ScoreInfoDto scoreInfoDto = new ScoreInfoDto(
                 scoreInfo.getHomeGoals(),
                 scoreInfo.getAwayGoals()
         );
-        ScoreInfoDto penaltiesInfoDto = ScoreInfoDto.from(
+        ScoreInfoDto penaltiesInfoDto = new ScoreInfoDto(
                 penaltiesInfo.getHomeGoals(),
                 penaltiesInfo.getAwayGoals()
         );

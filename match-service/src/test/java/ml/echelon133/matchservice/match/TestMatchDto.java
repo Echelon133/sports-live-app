@@ -29,8 +29,8 @@ public interface TestMatchDto {
                 )
                 .venue(VenueDto.from(UUID.randomUUID(), "Test Venue", 1000))
                 .referee(RefereeDto.from(UUID.randomUUID(), "Test Referee"))
-                .halfTimeScoreInfo(ScoreInfoDto.from(0, 0))
-                .scoreInfo(ScoreInfoDto.from(0, 0))
-                .penaltiesInfo(ScoreInfoDto.from(0, 0));
+                .halfTimeScoreInfo(new ScoreInfoDto(0, 0))
+                .scoreInfo(new ScoreInfoDto(0, 0))
+                .penaltiesInfo(new ScoreInfoDto(0, 0));
     }
 }

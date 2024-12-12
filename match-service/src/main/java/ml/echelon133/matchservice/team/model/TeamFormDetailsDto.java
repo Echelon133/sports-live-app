@@ -21,7 +21,7 @@ public interface TeamFormDetailsDto {
     @Value("#{target.awayTeamDeleted ? null : (new ml.echelon133.matchservice.match.model.ShortTeamDto(target.awayTeamId, target.awayTeamName, target.awayTeamCrestUrl))}")
     ShortTeamDto getAwayTeam();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.ScoreInfoDto).from(target.homeGoals, target.awayGoals)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.homeGoals, target.awayGoals)}")
     ScoreInfoDto getScoreInfo();
 
     static TeamFormDetailsDto from(
@@ -35,7 +35,7 @@ public interface TeamFormDetailsDto {
 
             @Override
             public MatchResult getResult() {
-                return MatchResult.getResultBasedOnScore(score.getHomeGoals(), score.getAwayGoals());
+                return MatchResult.getResultBasedOnScore(score.homeGoals(), score.awayGoals());
             }
 
             @Override

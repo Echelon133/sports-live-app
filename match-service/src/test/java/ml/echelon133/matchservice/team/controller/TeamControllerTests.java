@@ -1527,7 +1527,7 @@ public class TeamControllerTests {
                         LocalDateTime.now(),
                         new ShortTeamDto(teamId, "Some team", ""),
                         new ShortTeamDto(UUID.randomUUID(), "Some other team", ""),
-                        ScoreInfoDto.from(3, 2)
+                        new ScoreInfoDto(3, 2)
                 )
         );
         var expectedJson = jsonTeamFormDtos.write(List.of(formEntry)).getJson();
@@ -1558,7 +1558,7 @@ public class TeamControllerTests {
                         LocalDateTime.now(),
                         new ShortTeamDto(teamId, "Some team", ""),
                         new ShortTeamDto(UUID.randomUUID(), "Some other team", ""),
-                        ScoreInfoDto.from(3, 2)
+                        new ScoreInfoDto(3, 2)
                 )
         );
         var expectedJson = jsonTeamFormDtos.write(List.of(formEntry)).getJson();

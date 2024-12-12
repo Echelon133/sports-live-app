@@ -31,13 +31,13 @@ public interface MatchDto {
     @Value("#{(target.refereeDeleted == null || target.refereeDeleted == true) ? null : (T(ml.echelon133.matchservice.referee.model.RefereeDto).from(target.refereeId, target.refereeName))}")
     RefereeDto getReferee();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.ScoreInfoDto).from(target.halfTimeHomeGoals, target.halfTimeAwayGoals)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.halfTimeHomeGoals, target.halfTimeAwayGoals)}")
     ScoreInfoDto getHalfTimeScoreInfo();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.ScoreInfoDto).from(target.homeGoals, target.awayGoals)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.homeGoals, target.awayGoals)}")
     ScoreInfoDto getScoreInfo();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.ScoreInfoDto).from(target.homePenalties, target.awayPenalties)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.homePenalties, target.awayPenalties)}")
     ScoreInfoDto getPenaltiesInfo();
 
     static MatchDtoBuilder builder() {

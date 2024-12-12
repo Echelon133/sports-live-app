@@ -600,8 +600,8 @@ public class TeamRepositoryTests {
         assertEquals(teamB.getId(), matchDetails.getAwayTeam().id());
         assertEquals(teamB.getName(), matchDetails.getAwayTeam().name());
 
-        assertEquals(3, matchDetails.getScoreInfo().getHomeGoals());
-        assertEquals(2, matchDetails.getScoreInfo().getAwayGoals());
+        assertEquals(3, matchDetails.getScoreInfo().homeGoals());
+        assertEquals(2, matchDetails.getScoreInfo().awayGoals());
 
         assertEquals(MatchResult.HOME_WIN, matchDetails.getResult());
     }
@@ -849,8 +849,8 @@ public class TeamRepositoryTests {
         assertEquals(teamB.getId(), matchDetails.getAwayTeam().id());
         assertEquals(teamB.getName(), matchDetails.getAwayTeam().name());
 
-        assertEquals(3, matchDetails.getScoreInfo().getHomeGoals());
-        assertEquals(2, matchDetails.getScoreInfo().getAwayGoals());
+        assertEquals(3, matchDetails.getScoreInfo().homeGoals());
+        assertEquals(2, matchDetails.getScoreInfo().awayGoals());
 
         assertEquals(MatchResult.HOME_WIN, matchDetails.getResult());
     }

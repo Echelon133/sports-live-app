@@ -21,13 +21,13 @@ public interface CompactMatchDto {
     @Value("#{target.awayTeamDeleted ? null : (new ml.echelon133.matchservice.match.model.ShortTeamDto(target.awayTeamId, target.awayTeamName, target.awayTeamCrestUrl))}")
     ShortTeamDto getAwayTeam();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.ScoreInfoDto).from(target.halfTimeHomeGoals, target.halfTimeAwayGoals)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.halfTimeHomeGoals, target.halfTimeAwayGoals)}")
     ScoreInfoDto getHalfTimeScoreInfo();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.ScoreInfoDto).from(target.homeGoals, target.awayGoals)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.homeGoals, target.awayGoals)}")
     ScoreInfoDto getScoreInfo();
 
-    @Value("#{T(ml.echelon133.matchservice.match.model.ScoreInfoDto).from(target.homePenalties, target.awayPenalties)}")
+    @Value("#{new ml.echelon133.matchservice.match.model.ScoreInfoDto(target.homePenalties, target.awayPenalties)}")
     ScoreInfoDto getPenaltiesInfo();
 
     @Value("#{T(ml.echelon133.matchservice.match.model.RedCardInfoDto).from(target.homeRedCards, target.awayRedCards)}")

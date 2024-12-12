@@ -379,15 +379,15 @@ public class TeamServiceTests {
 
         List<TeamFormDetailsDto> formEval = List.of(
                 //      * teamA vs teamB (3:2 - teamA wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(3, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(3, 2)),
                 //      * teamA vs teamB (2:2 - draw)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(2, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(2, 2)),
                 //      * teamB vs teamA (4:4 - draw)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(4, 4)),
+                createTestMatch(teamB, teamA, new ScoreInfoDto(4, 4)),
                 //      * teamA vs teamB (1:4 - teamB wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(1, 4)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(1, 4)),
                 //      * teamB vs teamA (2:0 - teamB wins)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(2, 0))
+                createTestMatch(teamB, teamA, new ScoreInfoDto(2, 0))
         );
 
         // given
@@ -422,15 +422,15 @@ public class TeamServiceTests {
 
         List<TeamFormDetailsDto> formEval = List.of(
                 //      * teamA vs teamB (3:2 - teamA wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(3, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(3, 2)),
                 //      * teamA vs teamB (2:2 - draw)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(2, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(2, 2)),
                 //      * teamB vs teamA (4:4 - draw)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(4, 4)),
+                createTestMatch(teamB, teamA, new ScoreInfoDto(4, 4)),
                 //      * teamA vs teamB (1:4 - teamB wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(1, 4)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(1, 4)),
                 //      * teamB vs teamA (2:0 - teamB wins)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(2, 0))
+                createTestMatch(teamB, teamA, new ScoreInfoDto(2, 0))
         );
 
         // given

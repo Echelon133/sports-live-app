@@ -915,20 +915,20 @@ public class MatchRepositoryTests {
         // half time scores equal
         var halfTimeScoreEntity = entity.getHalfTimeScoreInfo();
         var halfTimeScoreDto = dto.getHalfTimeScoreInfo();
-        assertEquals(halfTimeScoreDto.getHomeGoals(), halfTimeScoreEntity.getHomeGoals());
-        assertEquals(halfTimeScoreDto.getAwayGoals(), halfTimeScoreEntity.getAwayGoals());
+        assertEquals(halfTimeScoreDto.homeGoals(), halfTimeScoreEntity.getHomeGoals());
+        assertEquals(halfTimeScoreDto.awayGoals(), halfTimeScoreEntity.getAwayGoals());
 
         // scores equal
         var scoreEntity = entity.getScoreInfo();
         var scoreDto = dto.getScoreInfo();
-        assertEquals(scoreDto.getHomeGoals(), scoreEntity.getHomeGoals());
-        assertEquals(scoreDto.getAwayGoals(), scoreEntity.getAwayGoals());
+        assertEquals(scoreDto.homeGoals(), scoreEntity.getHomeGoals());
+        assertEquals(scoreDto.awayGoals(), scoreEntity.getAwayGoals());
 
         // penalties equal
         var penaltiesEntity = entity.getPenaltiesInfo();
         var penaltiesDto = dto.getPenaltiesInfo();
-        assertEquals(penaltiesDto.getHomeGoals(), penaltiesEntity.getHomeGoals());
-        assertEquals(penaltiesDto.getAwayGoals(), penaltiesEntity.getAwayGoals());
+        assertEquals(penaltiesDto.homeGoals(), penaltiesEntity.getHomeGoals());
+        assertEquals(penaltiesDto.awayGoals(), penaltiesEntity.getAwayGoals());
 
         // results equal
         var resultDto = (dto.getResult() == null) ? null : MatchResult.valueOf(dto.getResult());
@@ -968,20 +968,20 @@ public class MatchRepositoryTests {
         // half time scores equal
         var halfTimeScoreEntity = entity.getHalfTimeScoreInfo();
         var halfTimeScoreDto = dto.getHalfTimeScoreInfo();
-        assertEquals(halfTimeScoreDto.getHomeGoals(), halfTimeScoreEntity.getHomeGoals());
-        assertEquals(halfTimeScoreDto.getAwayGoals(), halfTimeScoreEntity.getAwayGoals());
+        assertEquals(halfTimeScoreDto.homeGoals(), halfTimeScoreEntity.getHomeGoals());
+        assertEquals(halfTimeScoreDto.awayGoals(), halfTimeScoreEntity.getAwayGoals());
 
         // scores equal
         var scoreEntity = entity.getScoreInfo();
         var scoreDto = dto.getScoreInfo();
-        assertEquals(scoreDto.getHomeGoals(), scoreEntity.getHomeGoals());
-        assertEquals(scoreDto.getAwayGoals(), scoreEntity.getAwayGoals());
+        assertEquals(scoreDto.homeGoals(), scoreEntity.getHomeGoals());
+        assertEquals(scoreDto.awayGoals(), scoreEntity.getAwayGoals());
 
         // penalties equal
         var penaltiesEntity = entity.getPenaltiesInfo();
         var penaltiesDto = dto.getPenaltiesInfo();
-        assertEquals(penaltiesDto.getHomeGoals(), penaltiesEntity.getHomeGoals());
-        assertEquals(penaltiesDto.getAwayGoals(), penaltiesEntity.getAwayGoals());
+        assertEquals(penaltiesDto.homeGoals(), penaltiesEntity.getHomeGoals());
+        assertEquals(penaltiesDto.awayGoals(), penaltiesEntity.getAwayGoals());
 
         // results equal
         var resultDto = (dto.getResult() == null) ? null : MatchResult.valueOf(dto.getResult());
