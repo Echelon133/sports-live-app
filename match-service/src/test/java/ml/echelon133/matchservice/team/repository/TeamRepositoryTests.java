@@ -400,7 +400,7 @@ public class TeamRepositoryTests {
         var matchDetails = result.get(0);
         // the only finished match is match0
         assertEquals(match0.getId(), matchDetails.getId());
-        assertEquals(teamId, matchDetails.getHomeTeam().getId());
+        assertEquals(teamId, matchDetails.getHomeTeam().id());
     }
 
     @Test
@@ -447,20 +447,20 @@ public class TeamRepositoryTests {
         // scenario 1 - team0 plays in competition0
         assertEquals(1, result0.size());
         var match0Details = result0.get(0);
-        assertEquals(team0Id, match0Details.getHomeTeam().getId());
-        assertEquals(team0Name, match0Details.getHomeTeam().getName());
+        assertEquals(team0Id, match0Details.getHomeTeam().id());
+        assertEquals(team0Name, match0Details.getHomeTeam().name());
 
         // scenario 2 - team1 plays in competition0
         assertEquals(1, result1.size());
         var match1Details = result1.get(0);
-        assertEquals(team1Id, match1Details.getHomeTeam().getId());
-        assertEquals(team1Name, match1Details.getHomeTeam().getName());
+        assertEquals(team1Id, match1Details.getHomeTeam().id());
+        assertEquals(team1Name, match1Details.getHomeTeam().name());
 
         // scenario 3 - team2 plays in competition1
         assertEquals(1, result2.size());
         var match2Details = result2.get(0);
-        assertEquals(team2Id, match2Details.getHomeTeam().getId());
-        assertEquals(team2Name, match2Details.getHomeTeam().getName());
+        assertEquals(team2Id, match2Details.getHomeTeam().id());
+        assertEquals(team2Name, match2Details.getHomeTeam().name());
     }
 
     @Test
@@ -594,11 +594,11 @@ public class TeamRepositoryTests {
         var matchDetails = result.get(0);
         assertEquals(match.getId(), matchDetails.getId());
 
-        assertEquals(teamA.getId(), matchDetails.getHomeTeam().getId());
-        assertEquals(teamA.getName(), matchDetails.getHomeTeam().getName());
+        assertEquals(teamA.getId(), matchDetails.getHomeTeam().id());
+        assertEquals(teamA.getName(), matchDetails.getHomeTeam().name());
 
-        assertEquals(teamB.getId(), matchDetails.getAwayTeam().getId());
-        assertEquals(teamB.getName(), matchDetails.getAwayTeam().getName());
+        assertEquals(teamB.getId(), matchDetails.getAwayTeam().id());
+        assertEquals(teamB.getName(), matchDetails.getAwayTeam().name());
 
         assertEquals(3, matchDetails.getScoreInfo().getHomeGoals());
         assertEquals(2, matchDetails.getScoreInfo().getAwayGoals());
@@ -683,7 +683,7 @@ public class TeamRepositoryTests {
         var matchDetails = result.get(0);
         // the only finished match is match0
         assertEquals(match0.getId(), matchDetails.getId());
-        assertEquals(teamId, matchDetails.getHomeTeam().getId());
+        assertEquals(teamId, matchDetails.getHomeTeam().id());
     }
 
     @Test
@@ -843,11 +843,11 @@ public class TeamRepositoryTests {
         var matchDetails = result.get(0);
         assertEquals(match.getId(), matchDetails.getId());
 
-        assertEquals(teamA.getId(), matchDetails.getHomeTeam().getId());
-        assertEquals(teamA.getName(), matchDetails.getHomeTeam().getName());
+        assertEquals(teamA.getId(), matchDetails.getHomeTeam().id());
+        assertEquals(teamA.getName(), matchDetails.getHomeTeam().name());
 
-        assertEquals(teamB.getId(), matchDetails.getAwayTeam().getId());
-        assertEquals(teamB.getName(), matchDetails.getAwayTeam().getName());
+        assertEquals(teamB.getId(), matchDetails.getAwayTeam().id());
+        assertEquals(teamB.getName(), matchDetails.getAwayTeam().name());
 
         assertEquals(3, matchDetails.getScoreInfo().getHomeGoals());
         assertEquals(2, matchDetails.getScoreInfo().getAwayGoals());

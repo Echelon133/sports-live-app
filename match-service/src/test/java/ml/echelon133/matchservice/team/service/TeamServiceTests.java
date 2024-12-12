@@ -370,12 +370,12 @@ public class TeamServiceTests {
         // teamA
         var teamAEntity = TestTeam.builder().build();
         var teamAId = teamAEntity.getId();
-        var teamA = ShortTeamDto.from(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
+        var teamA = new ShortTeamDto(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
 
         // teamB
         var teamBEntity = TestTeam.builder().build();
         var teamBId = teamBEntity.getId();
-        var teamB = ShortTeamDto.from(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
+        var teamB = new ShortTeamDto(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
 
         List<TeamFormDetailsDto> formEval = List.of(
                 //      * teamA vs teamB (3:2 - teamA wins)
@@ -413,12 +413,12 @@ public class TeamServiceTests {
         // teamA
         var teamAEntity = TestTeam.builder().build();
         var teamAId = teamAEntity.getId();
-        var teamA = ShortTeamDto.from(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
+        var teamA = new ShortTeamDto(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
 
         // teamB
         var teamBEntity = TestTeam.builder().build();
         var teamBId = teamBEntity.getId();
-        var teamB = ShortTeamDto.from(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
+        var teamB = new ShortTeamDto(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
 
         List<TeamFormDetailsDto> formEval = List.of(
                 //      * teamA vs teamB (3:2 - teamA wins)

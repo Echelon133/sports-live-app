@@ -1525,8 +1525,8 @@ public class TeamControllerTests {
                 TeamFormDetailsDto.from(
                         UUID.randomUUID(),
                         LocalDateTime.now(),
-                        ShortTeamDto.from(teamId, "Some team", ""),
-                        ShortTeamDto.from(UUID.randomUUID(), "Some other team", ""),
+                        new ShortTeamDto(teamId, "Some team", ""),
+                        new ShortTeamDto(UUID.randomUUID(), "Some other team", ""),
                         ScoreInfoDto.from(3, 2)
                 )
         );
@@ -1556,8 +1556,8 @@ public class TeamControllerTests {
                 TeamFormDetailsDto.from(
                         UUID.randomUUID(),
                         LocalDateTime.now(),
-                        ShortTeamDto.from(teamId, "Some team", ""),
-                        ShortTeamDto.from(UUID.randomUUID(), "Some other team", ""),
+                        new ShortTeamDto(teamId, "Some team", ""),
+                        new ShortTeamDto(UUID.randomUUID(), "Some other team", ""),
                         ScoreInfoDto.from(3, 2)
                 )
         );

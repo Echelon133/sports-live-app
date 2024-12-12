@@ -466,9 +466,9 @@ public class MatchControllerTests {
         var expectedJson = jsonMatchDto.write(expectedDto).getJson();
 
         var contentDto = TestUpsertMatchDto.builder()
-                .homeTeamId(expectedDto.getHomeTeam().getId().toString())
+                .homeTeamId(expectedDto.getHomeTeam().id().toString())
                 .startTimeUTC("2023/01/01 19:00")
-                .awayTeamId(expectedDto.getAwayTeam().getId().toString())
+                .awayTeamId(expectedDto.getAwayTeam().id().toString())
                 .venueId(expectedDto.getVenue().getId().toString())
                 .refereeId(expectedDto.getReferee().getId().toString())
                 .competitionId(expectedDto.getCompetitionId().toString())
@@ -865,9 +865,9 @@ public class MatchControllerTests {
         var expectedJson = jsonMatchDto.write(expectedDto).getJson();
 
         var contentDto = TestUpsertMatchDto.builder()
-                .homeTeamId(expectedDto.getHomeTeam().getId().toString())
+                .homeTeamId(expectedDto.getHomeTeam().id().toString())
                 .startTimeUTC("2023/01/01 19:00")
-                .awayTeamId(expectedDto.getAwayTeam().getId().toString())
+                .awayTeamId(expectedDto.getAwayTeam().id().toString())
                 .venueId(expectedDto.getVenue().getId().toString())
                 .refereeId(expectedDto.getReferee().getId().toString())
                 .competitionId(expectedDto.getCompetitionId().toString())

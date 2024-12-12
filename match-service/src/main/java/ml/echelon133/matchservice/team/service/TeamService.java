@@ -179,8 +179,8 @@ public class TeamService {
             symbol = 'D';
         } else {
             // either HOME_WIN or AWAY_WIN
-            var homeWin = matchResult.equals(MatchResult.HOME_WIN) && matchDetails.getHomeTeam().getId().equals(teamId);
-            var awayWin = matchResult.equals(MatchResult.AWAY_WIN) && matchDetails.getAwayTeam().getId().equals(teamId);
+            var homeWin = matchResult.equals(MatchResult.HOME_WIN) && matchDetails.getHomeTeam().id().equals(teamId);
+            var awayWin = matchResult.equals(MatchResult.AWAY_WIN) && matchDetails.getAwayTeam().id().equals(teamId);
             if (homeWin || awayWin) {
                 symbol = 'W';
             } else {

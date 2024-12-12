@@ -655,15 +655,15 @@ public class MatchRepositoryTests {
         assertEquals(
                 2,
                 team0Result.stream().filter(m ->
-                        m.getHomeTeam().getId().equals(team0Id) ||
-                                m.getAwayTeam().getId().equals(team0Id)
+                        m.getHomeTeam().id().equals(team0Id) ||
+                                m.getAwayTeam().id().equals(team0Id)
                 ).count()
         );
         assertEquals(
                 2,
                 team1Result.stream().filter(m ->
-                        m.getHomeTeam().getId().equals(team1Id) ||
-                                m.getAwayTeam().getId().equals(team1Id)
+                        m.getHomeTeam().id().equals(team1Id) ||
+                                m.getAwayTeam().id().equals(team1Id)
                 ).count()
         );
     }
@@ -873,9 +873,9 @@ public class MatchRepositoryTests {
         if (homeTeamEntity.isDeleted()) {
             assertNull(shortHomeTeamDto);
         } else {
-            assertEquals(shortHomeTeamDto.getId(), homeTeamEntity.getId());
-            assertEquals(shortHomeTeamDto.getName(), homeTeamEntity.getName());
-            assertEquals(shortHomeTeamDto.getCrestUrl(), homeTeamEntity.getCrestUrl());
+            assertEquals(shortHomeTeamDto.id(), homeTeamEntity.getId());
+            assertEquals(shortHomeTeamDto.name(), homeTeamEntity.getName());
+            assertEquals(shortHomeTeamDto.crestUrl(), homeTeamEntity.getCrestUrl());
         }
 
         // away teams equal
@@ -884,9 +884,9 @@ public class MatchRepositoryTests {
         if (awayTeamEntity.isDeleted()) {
             assertNull(shortAwayTeamDto);
         } else {
-            assertEquals(shortAwayTeamDto.getId(), awayTeamEntity.getId());
-            assertEquals(shortAwayTeamDto.getName(), awayTeamEntity.getName());
-            assertEquals(shortAwayTeamDto.getCrestUrl(), awayTeamEntity.getCrestUrl());
+            assertEquals(shortAwayTeamDto.id(), awayTeamEntity.getId());
+            assertEquals(shortAwayTeamDto.name(), awayTeamEntity.getName());
+            assertEquals(shortAwayTeamDto.crestUrl(), awayTeamEntity.getCrestUrl());
         }
 
         // venues equal
@@ -949,9 +949,9 @@ public class MatchRepositoryTests {
         if (homeTeamEntity.isDeleted()) {
             assertNull(shortHomeTeamDto);
         } else {
-            assertEquals(shortHomeTeamDto.getId(), homeTeamEntity.getId());
-            assertEquals(shortHomeTeamDto.getName(), homeTeamEntity.getName());
-            assertEquals(shortHomeTeamDto.getCrestUrl(), homeTeamEntity.getCrestUrl());
+            assertEquals(shortHomeTeamDto.id(), homeTeamEntity.getId());
+            assertEquals(shortHomeTeamDto.name(), homeTeamEntity.getName());
+            assertEquals(shortHomeTeamDto.crestUrl(), homeTeamEntity.getCrestUrl());
         }
 
         // away teams equal
@@ -960,9 +960,9 @@ public class MatchRepositoryTests {
         if (awayTeamEntity.isDeleted()) {
             assertNull(shortAwayTeamDto);
         } else {
-            assertEquals(shortAwayTeamDto.getId(), awayTeamEntity.getId());
-            assertEquals(shortAwayTeamDto.getName(), awayTeamEntity.getName());
-            assertEquals(shortAwayTeamDto.getCrestUrl(), awayTeamEntity.getCrestUrl());
+            assertEquals(shortAwayTeamDto.id(), awayTeamEntity.getId());
+            assertEquals(shortAwayTeamDto.name(), awayTeamEntity.getName());
+            assertEquals(shortAwayTeamDto.crestUrl(), awayTeamEntity.getCrestUrl());
         }
 
         // half time scores equal

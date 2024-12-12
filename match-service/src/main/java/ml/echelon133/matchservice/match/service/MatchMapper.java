@@ -23,7 +23,7 @@ public class MatchMapper {
         ShortTeamDto homeTeamDto = null;
         // only set homeTeam if the entity is not marked as deleted
         if (!homeTeam.isDeleted()) {
-            homeTeamDto = ShortTeamDto.from(
+            homeTeamDto = new ShortTeamDto(
                     homeTeam.getId(),
                     homeTeam.getName(),
                     homeTeam.getCrestUrl()
@@ -33,7 +33,7 @@ public class MatchMapper {
         ShortTeamDto awayTeamDto = null;
         // only set awayTeam if the entity is not marked as deleted
         if (!awayTeam.isDeleted()) {
-            awayTeamDto = ShortTeamDto.from(
+            awayTeamDto = new ShortTeamDto(
                     awayTeam.getId(),
                     awayTeam.getName(),
                     awayTeam.getCrestUrl()

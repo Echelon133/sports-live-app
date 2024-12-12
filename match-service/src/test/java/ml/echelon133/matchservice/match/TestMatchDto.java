@@ -22,10 +22,10 @@ public interface TestMatchDto {
                 .competitionId(UUID.randomUUID())
                 .startTimeUTC(LocalDateTime.of(2023, 1, 1, 20, 0))
                 .homeTeam(
-                        ShortTeamDto.from(UUID.randomUUID(), "Test Team A", "")
+                        new ShortTeamDto(UUID.randomUUID(), "Test Team A", "")
                 )
                 .awayTeam(
-                        ShortTeamDto.from(UUID.randomUUID(), "Test Team B", "")
+                        new ShortTeamDto(UUID.randomUUID(), "Test Team B", "")
                 )
                 .venue(VenueDto.from(UUID.randomUUID(), "Test Venue", 1000))
                 .referee(RefereeDto.from(UUID.randomUUID(), "Test Referee"))
