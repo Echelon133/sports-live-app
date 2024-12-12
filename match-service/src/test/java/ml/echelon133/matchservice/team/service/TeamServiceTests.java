@@ -396,9 +396,9 @@ public class TeamServiceTests {
 
         // when
         var formOfTeamA = teamService.evaluateForm(teamAId, competitionId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
         var formOfTeamB = teamService.evaluateForm(teamBId, competitionId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
 
         // then
         // from the teamA's perspective, their form is WDDLL
@@ -439,9 +439,9 @@ public class TeamServiceTests {
 
         // when
         var formOfTeamA = teamService.evaluateGeneralForm(teamAId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
         var formOfTeamB = teamService.evaluateGeneralForm(teamBId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
 
         // then
         // from the teamA's perspective, their form is WDDLL
