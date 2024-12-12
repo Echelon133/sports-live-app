@@ -96,7 +96,7 @@ public class CompetitionService {
                 .getTeamByTeamIds(requestedTeamIds, Pageable.ofSize(requestedTeamIds.size()))
                 .getContent()
                 .stream()
-                .collect(groupingBy(TeamDetailsDto::getId));
+                .collect(groupingBy(TeamDetailsDto::id));
 
         // only proceed with creating this competition if there are exactly as many fetched team details as requested,
         // otherwise there is a possibility that:
@@ -132,7 +132,7 @@ public class CompetitionService {
                         //      * if it has been found, then the team details object corresponding to it exists and has
                         //          been placed in the lookup map in a list which contains exactly 1 element
                         var teamDetail = allTeamDetails.get(tId).get(0);
-                        return new TeamStats(teamDetail.getId(), teamDetail.getName(), teamDetail.getCrestUrl());
+                        return new TeamStats(teamDetail.id(), teamDetail.name(), teamDetail.crestUrl());
                     }).collect(Collectors.toList());
 
             var group = new Group(groupDto.name(), teams);
