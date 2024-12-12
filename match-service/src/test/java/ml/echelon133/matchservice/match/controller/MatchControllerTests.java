@@ -1,17 +1,14 @@
 package ml.echelon133.matchservice.match.controller;
 
+import jakarta.validation.ConstraintValidator;
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
-import ml.echelon133.matchservice.match.model.LineupDto;
-import ml.echelon133.matchservice.match.model.MatchDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
+import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
 import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
-import ml.echelon133.matchservice.match.model.Match;
-import ml.echelon133.matchservice.match.model.UpsertLineupDto;
-import ml.echelon133.matchservice.match.model.UpsertMatchDto;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.referee.constraints.RefereeExists;
 import ml.echelon133.matchservice.referee.repository.RefereeRepository;
@@ -36,11 +33,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import jakarta.validation.ConstraintValidator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -1189,7 +1188,7 @@ public class MatchControllerTests {
         var matchId = UUID.randomUUID();
 
         // given
-        given(matchService.findMatchLineup(matchId)).willReturn(new LineupDto());
+        given(matchService.findMatchLineup(matchId)).willReturn(TestLineupDto.builder().build());
 
         // when
         mvc.perform(

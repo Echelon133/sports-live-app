@@ -596,11 +596,11 @@ public class MatchEventService {
         }
 
         var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(teamPlayerTeam) ? lineup.getHome() : lineup.getAway();
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(teamPlayerTeam) ? lineup.home() : lineup.away();
 
         var playerInLineup = Stream.concat(
-                teamLineup.getStartingPlayers().stream(),
-                teamLineup.getSubstitutePlayers().stream()
+                teamLineup.startingPlayers().stream(),
+                teamLineup.substitutePlayers().stream()
         ).anyMatch(tPlayer -> tPlayer.getId().equals(teamPlayer.getId()));
 
         if (!playerInLineup) {
@@ -670,11 +670,11 @@ public class MatchEventService {
         }
 
         var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.home() : lineup.away();
 
         boolean substitutedOn = matchEvents.stream().anyMatch(
                 e -> isSubstitutionOnEventOfPlayer(e, player.getId()));
-        boolean startingPlayer = teamLineup.getStartingPlayers().stream().anyMatch(
+        boolean startingPlayer = teamLineup.startingPlayers().stream().anyMatch(
                 teamPlayer -> teamPlayer.getId().equals(player.getId()));
 
         if (!(startingPlayer || substitutedOn)) {
@@ -706,9 +706,9 @@ public class MatchEventService {
         );
 
         var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.home() : lineup.away();
 
-        boolean substitutePlayer= teamLineup.getSubstitutePlayers().stream()
+        boolean substitutePlayer= teamLineup.substitutePlayers().stream()
                 .anyMatch(teamPlayer -> teamPlayer.getId().equals(player.getId()));
         // a player who started the game on the pitch cannot be subbed on in the game
         if (!substitutePlayer) {

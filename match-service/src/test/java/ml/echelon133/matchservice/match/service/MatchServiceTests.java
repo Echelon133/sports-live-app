@@ -915,14 +915,14 @@ public class MatchServiceTests {
         var lineup = matchService.findMatchLineup(matchId);
 
         // then
-        var homeLineup = lineup.getHome();
-        var awayLineup = lineup.getAway();
-        assertEquals(homeStartingPlayer.getId(), homeLineup.getStartingPlayers().get(0).getId());
-        assertEquals(homeSubstitutePlayer.getId(), homeLineup.getSubstitutePlayers().get(0).getId());
-        assertEquals(awayStartingPlayer.getId(), awayLineup.getStartingPlayers().get(0).getId());
-        assertEquals(awaySubstitutePlayer.getId(), awayLineup.getSubstitutePlayers().get(0).getId());
-        assertEquals(homeFormation, homeLineup.getFormation());
-        assertEquals(awayFormation, awayLineup.getFormation());
+        var homeLineup = lineup.home();
+        var awayLineup = lineup.away();
+        assertEquals(homeStartingPlayer.getId(), homeLineup.startingPlayers().get(0).getId());
+        assertEquals(homeSubstitutePlayer.getId(), homeLineup.substitutePlayers().get(0).getId());
+        assertEquals(awayStartingPlayer.getId(), awayLineup.startingPlayers().get(0).getId());
+        assertEquals(awaySubstitutePlayer.getId(), awayLineup.substitutePlayers().get(0).getId());
+        assertEquals(homeFormation, homeLineup.formation());
+        assertEquals(awayFormation, awayLineup.formation());
     }
 
     @Test

@@ -258,14 +258,20 @@ public class MatchService {
      * @return the lineup of the match
      */
     public LineupDto findMatchLineup(UUID matchId) {
-        return new LineupDto(
-            matchRepository.findHomeStartingPlayersByMatchId(matchId),
-            matchRepository.findHomeSubstitutePlayersByMatchId(matchId),
-            matchRepository.findAwayStartingPlayersByMatchId(matchId),
-            matchRepository.findAwaySubstitutePlayersByMatchId(matchId),
-            matchRepository.findLineupFormationsByMatchId(matchId)
-                    .orElse(LineupFormationsDto.from(null, null))
+        var formations = matchRepository
+                .findLineupFormationsByMatchId(matchId)
+                .orElse(LineupFormationsDto.from(null, null));
+        var homeLineup = new LineupDto.TeamLineup(
+                matchRepository.findHomeStartingPlayersByMatchId(matchId),
+                matchRepository.findHomeSubstitutePlayersByMatchId(matchId),
+                formations.getHomeFormation()
         );
+        var awayLineup = new LineupDto.TeamLineup(
+                matchRepository.findAwayStartingPlayersByMatchId(matchId),
+                matchRepository.findAwaySubstitutePlayersByMatchId(matchId),
+                formations.getAwayFormation()
+        );
+        return new LineupDto(homeLineup, awayLineup);
     }
 
     /**
