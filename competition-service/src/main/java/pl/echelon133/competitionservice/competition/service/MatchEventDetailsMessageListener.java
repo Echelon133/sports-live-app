@@ -110,25 +110,25 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         //      * give 1 point for draws
         //      * give 0 points for losses
         switch (result) {
-            case HOME_WIN:
+            case HOME_WIN -> {
                 home.incrementWins();
                 away.incrementLosses();
                 home.incrementPointsBy(3);
-                break;
-            case AWAY_WIN:
+            }
+            case AWAY_WIN -> {
                 home.incrementLosses();
                 away.incrementWins();
                 away.incrementPointsBy(3);
-                break;
-            case DRAW:
+            }
+            case DRAW -> {
                 home.incrementDraws();
                 away.incrementDraws();
                 home.incrementPointsBy(1);
                 away.incrementPointsBy(1);
-                break;
-            default:
-                // unreachable, because any event with match result set to `NONE` is rejected at the top
-                break;
+            }
+            // unreachable, because any event with match result set to `NONE` is rejected at the top
+            default -> {
+            }
         }
         logger.debug(
                 "Record {} increments team stats of teams {} and {} in a competition {}",
@@ -161,15 +161,14 @@ public class MatchEventDetailsMessageListener implements MessageListener<UUID, M
         String cardType = "";
 
         switch (t) {
-            case YELLOW:
+            case YELLOW -> {
                 playerStats.incrementYellowCards();
                 cardType = "yellow";
-                break;
-            case SECOND_YELLOW:
-            case DIRECT_RED:
+            }
+            case SECOND_YELLOW, DIRECT_RED -> {
                 playerStats.incrementRedCards();
                 cardType = "red";
-                break;
+            }
         }
 
         logger.debug(

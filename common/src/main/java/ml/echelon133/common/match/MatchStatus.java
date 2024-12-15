@@ -73,14 +73,9 @@ public enum MatchStatus {
      * @return `true` if the ball is in play, otherwise `false`
      */
     public boolean isBallInPlay() {
-        switch (this) {
-            case FIRST_HALF:
-            case SECOND_HALF:
-            case EXTRA_TIME:
-            case PENALTIES:
-                return true;
-            default:
-                return false;
-        }
+        return switch (this) {
+            case FIRST_HALF, SECOND_HALF, EXTRA_TIME, PENALTIES -> true;
+            default -> false;
+        };
     }
 }
