@@ -180,6 +180,33 @@ public class CompetitionRepositoryTests {
     }
 
     @Test
+    @DisplayName("findAllPinned native query only fetches non-deleted competitions which are marked as pinned")
+    public void findAllPinned_MultipleCombinationsOfCompetitions_OnlyFindsPinnedNonDeletedCompetitions() {
+        // competitions which should NOT be returned by the tested query
+        competitionRepository.saveAll(List.of(
+                // 1. deleted, not pinned
+                TestCompetition.builder().deleted(true).build(),
+                // 2. deleted, pinned
+                TestCompetition.builder().deleted(true).pinned(true).build(),
+                // 3. non-deleted, not pinned
+                TestCompetition.builder().build())
+        );
+
+        // the only competition which should be returned by the query
+        // 4. non-deleted, pinned
+        var expectedCompetition = competitionRepository.save(
+                TestCompetition.builder().name("Competition4").pinned(true).build()
+        );
+
+        // when
+        var result = competitionRepository.findAllPinned();
+
+        // then
+        assertEquals(1, result.size());
+        assertEntityAndDtoEqual(expectedCompetition, result.get(0));
+    }
+
+    @Test
     @DisplayName("findPlayerStats native query finds zero player stats when the competition does not exist")
     public void findPlayerStats_CompetitionNotFound_ContentIsEmpty() {
         var competitionId = UUID.randomUUID();
