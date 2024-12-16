@@ -305,33 +305,33 @@ public class CompetitionServiceTests {
         StandingsDto result = competitionService.findStandings(competitionId);
 
         // then
-        var groupsDto = result.getGroups();
+        var groupsDto = result.groups();
         assertEquals(1, groupsDto.size());
 
         var groupDto = groupsDto.get(0);
-        var teamsDto = groupDto.getTeams();
-        assertEquals(group.getName(), groupDto.getName());
+        var teamsDto = groupDto.teams();
+        assertEquals(group.getName(), groupDto.name());
         assertEquals(1, teamsDto.size());
 
         var teamDto = teamsDto.get(0);
-        assertEquals(team.getTeamId(), teamDto.getTeamId());
-        assertEquals(team.getTeamName(), teamDto.getTeamName());
-        assertEquals(team.getCrestUrl(), teamDto.getCrestUrl());
-        assertEquals(team.getMatchesPlayed(), teamDto.getMatchesPlayed());
-        assertEquals(team.getWins(), teamDto.getWins());
-        assertEquals(team.getDraws(), teamDto.getDraws());
-        assertEquals(team.getLosses(), teamDto.getLosses());
-        assertEquals(team.getGoalsScored(), teamDto.getGoalsScored());
-        assertEquals(team.getGoalsConceded(), teamDto.getGoalsConceded());
-        assertEquals(team.getPoints(), teamDto.getPoints());
+        assertEquals(team.getTeamId(), teamDto.teamId());
+        assertEquals(team.getTeamName(), teamDto.teamName());
+        assertEquals(team.getCrestUrl(), teamDto.crestUrl());
+        assertEquals(team.getMatchesPlayed(), teamDto.matchesPlayed());
+        assertEquals(team.getWins(), teamDto.wins());
+        assertEquals(team.getDraws(), teamDto.draws());
+        assertEquals(team.getLosses(), teamDto.losses());
+        assertEquals(team.getGoalsScored(), teamDto.goalsScored());
+        assertEquals(team.getGoalsConceded(), teamDto.goalsConceded());
+        assertEquals(team.getPoints(), teamDto.points());
 
-        var legendsDto = result.getLegend();
+        var legendsDto = result.legend();
         assertEquals(1, legendsDto.size());
 
         var legendDto = legendsDto.get(0);
-        assertEquals(legend.getPositions(), legendDto.getPositions());
-        assertEquals(legend.getContext(), legendDto.getContext());
-        assertEquals(legend.getSentiment().toString(), legendDto.getSentiment());
+        assertEquals(legend.getPositions(), legendDto.positions());
+        assertEquals(legend.getContext(), legendDto.context());
+        assertEquals(legend.getSentiment().toString(), legendDto.sentiment());
     }
 
     @Test
