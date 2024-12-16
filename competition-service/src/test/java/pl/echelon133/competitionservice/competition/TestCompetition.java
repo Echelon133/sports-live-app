@@ -21,6 +21,7 @@ public interface TestCompetition {
         private List<Group> groups = List.of();
         private List<Legend> legend = List.of();
         private boolean deleted = false;
+        private boolean pinned = false;
 
         private CompetitionBuilder() {}
 
@@ -59,8 +60,14 @@ public interface TestCompetition {
             return this;
         }
 
+        public CompetitionBuilder pinned(boolean pinned) {
+            this.pinned = pinned;
+            return this;
+        }
+
         public Competition build() {
             var competition = new Competition(name, season, logoUrl, groups, legend);
+            competition.setPinned(pinned);
             competition.setId(id);
             competition.setDeleted(deleted);
             return competition;

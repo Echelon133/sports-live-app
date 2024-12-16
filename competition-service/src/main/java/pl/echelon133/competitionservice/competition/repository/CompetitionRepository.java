@@ -1,14 +1,15 @@
 package pl.echelon133.competitionservice.competition.repository;
 
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import pl.echelon133.competitionservice.competition.model.Competition;
+import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,6 +60,22 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
             nativeQuery = true
     )
     Page<CompetitionDto> findAllByNameContaining(String phrase, Pageable pageable);
+
+    /**
+     * Finds all non-deleted competitions which are marked as <i>pinned</i>.
+     *
+     * @return a list of non-deleted competitions which are marked as "pinned"
+     */
+    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
+    @Query(
+            value = """
+                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl \
+                    FROM competition c \
+                    WHERE c.pinned = true AND c.deleted = false \
+                    """,
+            nativeQuery = true
+    )
+    List<CompetitionDto> findAllPinned();
 
     /**
      * Finds all competition-specific statistics of players who play in the specified competition.

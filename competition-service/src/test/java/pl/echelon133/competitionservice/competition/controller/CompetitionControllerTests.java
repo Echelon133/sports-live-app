@@ -220,6 +220,26 @@ public class CompetitionControllerTests {
     }
 
     @Test
+    @DisplayName("GET /api/competitions/pinned returns 200")
+    public void getPinnedCompetitions_NoRequestParameters_StatusOk() throws Exception {
+        var expectedName = "Competition 1";
+        var expectedContent = List.of(CompetitionDto.from(UUID.randomUUID(), expectedName, "test2", "test3"));
+
+        // given
+        given(competitionService.findPinnedCompetitions()).willReturn(expectedContent);
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/pinned")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()", is(1)))
+                .andExpect(jsonPath("$.[0].name", is(expectedName)));
+    }
+
+    @Test
     @DisplayName("POST /api/competitions returns 422 when name is not provided")
     public void createCompetition_NameNotProvided_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertCompetitionDto.builder().name(null).build();

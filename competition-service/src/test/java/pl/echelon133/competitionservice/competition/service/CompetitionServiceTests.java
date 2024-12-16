@@ -4,6 +4,7 @@ import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -111,6 +112,22 @@ public class CompetitionServiceTests {
     }
 
     @Test
+    @DisplayName("findPinnedCompetitions calls the repository method")
+    public void findPinnedCompetitions_NoArguments_CorrectlyCallsRepository() {
+        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
+
+        // given
+        given(competitionRepository.findAllPinned()).willReturn(List.of(expectedDto));
+
+        // when
+        var result = competitionService.findPinnedCompetitions();
+
+        // then
+        assertEquals(1, result.size());
+        assertEquals(expectedDto, result.get(0));
+    }
+
+    @Test
     @DisplayName("createCompetition throws when http client returns more teams than requested")
     public void createCompetition_TeamDetailsFetchSizeGreaterThanExpected_ThrowsRuntimeException() {
         var teamId = UUID.randomUUID();
@@ -182,11 +199,49 @@ public class CompetitionServiceTests {
         assertEquals(expectedMessage, message);
     }
 
-    @Test
-    @DisplayName("createCompetition correctly constructs a competition object when all team details are fetched successfully")
-    public void createCompetition_TeamDetailsAllFetchesSucceed_ConstructsEntityAndSaves() throws CompetitionInvalidException {
-        var groupTeamId = UUID.randomUUID();
+    private static class CompetitionMatcher implements ArgumentMatcher<Competition> {
+        private final Competition expectedCompetition;
 
+        public CompetitionMatcher(Competition expectedCompetition) {
+            this.expectedCompetition = expectedCompetition;
+        }
+
+        @Override
+        public boolean matches(Competition competition) {
+            // cannot use `equals` because our entities' implementation of that method only
+            // compares IDs of objects, so if we want to compare pure data we need to compare
+            // everything "by hand"
+            boolean basicDataCorrect =
+                    competition.getName().equals(expectedCompetition.getName()) &&
+                    competition.getSeason().equals(expectedCompetition.getSeason()) &&
+                    competition.getLogoUrl().equals(expectedCompetition.getLogoUrl()) &&
+                    competition.isPinned() == expectedCompetition.isPinned();
+
+            Group group = competition.getGroups().get(0);
+            Group expectedGroup = expectedCompetition.getGroups().get(0);
+            TeamStats teamStats = group.getTeams().get(0);
+            TeamStats expectedTeamStats = expectedGroup.getTeams().get(0);
+            boolean groupDataCorrect =
+                    group.getName().equals(expectedGroup.getName()) &&
+                    teamStats.getTeamId().equals(expectedTeamStats.getTeamId()) &&
+                    teamStats.getTeamName().equals(expectedTeamStats.getTeamName()) &&
+                    teamStats.getCrestUrl().equals(expectedTeamStats.getCrestUrl());
+
+            Legend legend = competition.getLegend().get(0);
+            Legend expectedLegend = expectedCompetition.getLegend().get(0);
+            boolean legendDataCorrect =
+                    legend.getPositions().equals(expectedLegend.getPositions()) &&
+                    legend.getContext().equals(expectedLegend.getContext()) &&
+                    legend.getSentiment().equals(expectedLegend.getSentiment());
+
+            return basicDataCorrect && groupDataCorrect && legendDataCorrect;
+        }
+    }
+
+    @Test
+    @DisplayName("createCompetition correctly constructs a competition object when all team details are fetched successfully and competition is not pinned")
+    public void createCompetition_NotPinnedCompetitionAndTeamDetailsAllFetchesSucceed_ConstructsEntityAndSaves() throws CompetitionInvalidException {
+        var groupTeamId = UUID.randomUUID();
         var dtoGroup = TestUpsertGroupDto.builder()
                 .name("A")
                 .teams(List.of(groupTeamId.toString()))
@@ -227,37 +282,69 @@ public class CompetitionServiceTests {
         )).willReturn(clientResponse);
         // this simply prevents a NullPointerException, actual checking of the saved value
         // happens in the `verify` at the bottom of this test
-        given(competitionRepository.save(any(Competition.class))).willReturn(expectedCompetition);
+        given(competitionRepository.save(any(Competition.class))).willReturn(new Competition());
 
         // when
         var result = competitionService.createCompetition(dtoCompetition);
 
         // then
-        verify(competitionRepository).save(argThat(competition -> {
-            // cannot use `equals` because our entities' implementation of that method only
-            // compares IDs of objects, so if we want to compare pure data we need to compare
-            // everything "by hand"
-            boolean basicDataCorrect =
-                    competition.getName().equals(expectedCompetition.getName()) &&
-                    competition.getSeason().equals(expectedCompetition.getSeason()) &&
-                    competition.getLogoUrl().equals(expectedCompetition.getLogoUrl());
+        verify(competitionRepository).save(argThat(new CompetitionMatcher(expectedCompetition)));
+        assertNotNull(result);
+    }
 
-            Group group = competition.getGroups().get(0);
-            TeamStats teamStats = group.getTeams().get(0);
-            boolean groupDataCorrect =
-                    group.getName().equals(expectedGroup.getName()) &&
-                    teamStats.getTeamId().equals(expectedTeamStats.getTeamId()) &&
-                    teamStats.getTeamName().equals(expectedTeamStats.getTeamName()) &&
-                    teamStats.getCrestUrl().equals(expectedTeamStats.getCrestUrl());
+    @Test
+    @DisplayName("createCompetition correctly constructs a competition object when all team details are fetched successfully and competition is pinned")
+    public void createCompetition_PinnedCompetitionAndTeamDetailsAllFetchesSucceed_ConstructsEntityAndSaves() throws CompetitionInvalidException {
+        var groupTeamId = UUID.randomUUID();
+        var dtoGroup = TestUpsertGroupDto.builder()
+                .name("A")
+                .teams(List.of(groupTeamId.toString()))
+                .build();
+        var dtoLegend = TestUpsertLegendDto.builder()
+                .positions(Set.of(1))
+                .context("Promotion to Competition A")
+                .sentiment("POSITIVE_A")
+                .build();
+        var dtoCompetition = TestUpsertCompetitionDto.builder()
+                .name("Test Competition B")
+                .season("2024/25")
+                .logoUrl("https://test-site.com/image/logo.png")
+                .groups(List.of(dtoGroup))
+                .legend(List.of(dtoLegend))
+                .pinned(true)
+                .build();
 
-            Legend legend = competition.getLegend().get(0);
-            boolean legendDataCorrect =
-                    legend.getPositions().equals(expectedLegend.getPositions()) &&
-                    legend.getContext().equals(expectedLegend.getContext()) &&
-                    legend.getSentiment().equals(expectedLegend.getSentiment());
+        var expectedTeamStats = new TeamStats(groupTeamId, "Team " + groupTeamId, "Url " + groupTeamId);
+        var expectedGroup = new Group(dtoGroup.name(), List.of(expectedTeamStats));
+        var expectedLegend = new Legend(dtoLegend.positions(), dtoLegend.context(), Legend.LegendSentiment.POSITIVE_A);
+        var expectedCompetition = new Competition(
+                dtoCompetition.name(),
+                dtoCompetition.season(),
+                dtoCompetition.logoUrl(),
+                List.of(expectedGroup),
+                List.of(expectedLegend)
+        );
+        expectedCompetition.setPinned(true);
 
-            return basicDataCorrect && groupDataCorrect && legendDataCorrect;
-        }));
+        var requestedTeamIds = List.of(groupTeamId);
+        var clientResponse = new PageImpl<>(List.of(
+                new TeamDetailsDto(groupTeamId, expectedTeamStats.getTeamName(), expectedTeamStats.getCrestUrl())
+        ));
+
+        // given
+        given(matchServiceClient.getTeamByTeamIds(
+                argThat(l -> l.containsAll(requestedTeamIds) && l.size() == requestedTeamIds.size()),
+                eq(Pageable.ofSize(requestedTeamIds.size()))
+        )).willReturn(clientResponse);
+        // this simply prevents a NullPointerException, actual checking of the saved value
+        // happens in the `verify` at the bottom of this test
+        given(competitionRepository.save(any(Competition.class))).willReturn(new Competition());
+
+        // when
+        var result = competitionService.createCompetition(dtoCompetition);
+
+        // then
+        verify(competitionRepository).save(argThat(new CompetitionMatcher(expectedCompetition)));
         assertNotNull(result);
     }
 
