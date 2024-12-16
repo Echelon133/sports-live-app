@@ -2,10 +2,10 @@ package pl.echelon133.competitionservice.competition.model.constraints;
 
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 
-import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -26,9 +26,9 @@ public @interface TeamsUniqueInGroups {
         @Override
         public boolean isValid(Collection<UpsertCompetitionDto.UpsertGroupDto> upsertGroupDtos, ConstraintValidatorContext constraintValidatorContext) {
             var allIdsCounter = upsertGroupDtos.stream()
-                    .flatMap(g -> g.getTeams().stream()).count();
+                    .flatMap(g -> g.teams().stream()).count();
             var uniqueIdsCounter = upsertGroupDtos.stream()
-                    .flatMap(g -> g.getTeams().stream()).collect(Collectors.toSet()).size();
+                    .flatMap(g -> g.teams().stream()).collect(Collectors.toSet()).size();
             return allIdsCounter == uniqueIdsCounter;
         }
     }

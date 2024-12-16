@@ -1,21 +1,17 @@
 package ml.echelon133.matchservice.event.service;
 
 import ml.echelon133.common.event.KafkaTopicNames;
-import ml.echelon133.common.event.MatchEventType;
-import ml.echelon133.common.event.dto.MatchEventDetails;
+import ml.echelon133.common.event.dto.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
-import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
+import ml.echelon133.matchservice.event.model.dto.*;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
 import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatch;
-import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
-import ml.echelon133.matchservice.match.model.Match;
-import ml.echelon133.matchservice.match.model.RedCardInfo;
-import ml.echelon133.matchservice.match.model.ScoreInfo;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
@@ -98,15 +94,15 @@ public class MatchEventServiceTests {
         given(matchEventRepository.findAllByMatch_IdOrderByDateCreatedAsc(matchId)).willReturn(matchEvents);
     }
 
-    private MatchEvent createTestCardEvent(Match match, UUID receivingTeamPlayerId, MatchEventDetails.CardDto.CardType type) {
+    private MatchEvent createTestCardEvent(Match match, UUID receivingTeamPlayerId, CardEventDetailsDto.CardType type) {
         return new MatchEvent(
             match,
-            new MatchEventDetails.CardDto(
+            new CardEventDetailsDto(
                     "1",
                     UUID.randomUUID(),
                     null,
                     type,
-                    new MatchEventDetails.SerializedPlayerInfo(receivingTeamPlayerId, null, null)
+                    new SerializedPlayer(receivingTeamPlayerId, null, null)
             )
         );
     }
@@ -114,17 +110,17 @@ public class MatchEventServiceTests {
     private MatchEvent createTestSubstitutionEvent(Match match, UUID playerInId, UUID playerOutId) {
         return new MatchEvent(
             match,
-            new MatchEventDetails.SubstitutionDto(
+            new SubstitutionEventDetailsDto(
                     "1",
                     UUID.randomUUID(),
                     null,
-                    new MatchEventDetails.SerializedPlayerInfo(playerInId, null, null),
-                    new MatchEventDetails.SerializedPlayerInfo(playerOutId, null, null)
+                    new SerializedPlayer(playerInId, null, null),
+                    new SerializedPlayer(playerOutId, null, null)
             )
         );
     }
 
-    private void assertEventInvalidWhenBallNotInPlay(Match testedMatch, InsertMatchEvent event) {
+    private void assertEventInvalidWhenBallNotInPlay(Match testedMatch, UpsertMatchEvent event) {
         var ballNotInPlay = List.of(
                 MatchStatus.NOT_STARTED, MatchStatus.HALF_TIME,
                 MatchStatus.POSTPONED, MatchStatus.ABANDONED,
@@ -154,7 +150,7 @@ public class MatchEventServiceTests {
         assertEquals(expectedPenaltyScore, match.getPenaltiesInfo());
     }
 
-    private void assertPlayerNotOnPitch(UUID matchId, InsertMatchEvent testEvent, UUID checkedPlayer) {
+    private void assertPlayerNotOnPitch(UUID matchId, UpsertMatchEvent testEvent, UUID checkedPlayer) {
         String message = assertThrows(MatchEventInvalidException.class, () -> {
             matchEventService.processEvent(matchId, testEvent);
         }).getMessage();
@@ -163,7 +159,7 @@ public class MatchEventServiceTests {
         assertEquals(expectedMessage, message);
     }
 
-    private void assertPlayerIsAlreadyEjected(UUID matchId, InsertMatchEvent testEvent) {
+    private void assertPlayerIsAlreadyEjected(UUID matchId, UpsertMatchEvent testEvent) {
         String message = assertThrows(MatchEventInvalidException.class, () -> {
             matchEventService.processEvent(matchId, testEvent);
         }).getMessage();
@@ -198,7 +194,7 @@ public class MatchEventServiceTests {
         var matchId = match.getId();
         var targetStatus = MatchStatus.FIRST_HALF;
         var statusEvent = new MatchEvent(
-                match, new MatchEventDetails.StatusDto("1", match.getCompetitionId(), targetStatus, null, null, null)
+                match, new StatusEventDetailsDto("1", match.getCompetitionId(), targetStatus, null, null, null)
         );
 
         // given
@@ -211,10 +207,10 @@ public class MatchEventServiceTests {
         assertEquals(
                 1,
                 events.stream().filter(e -> {
-                    var innerEvent = (MatchEventDetails.StatusDto)e.getEvent();
-                    return e.getId().equals(statusEvent.getId()) &&
-                            innerEvent.getMinute().equals(statusEvent.getEvent().getMinute()) &&
-                            innerEvent.getTargetStatus().equals(targetStatus);
+                    var innerEvent = (StatusEventDetailsDto)e.event();
+                    return e.id().equals(statusEvent.getId()) &&
+                            innerEvent.minute().equals(statusEvent.getEvent().minute()) &&
+                            innerEvent.targetStatus().equals(targetStatus);
                 }).count()
         );
     }
@@ -223,7 +219,7 @@ public class MatchEventServiceTests {
     @DisplayName("processEvent throws when the match does not exist")
     public void processEvent_MatchNotFound_Throws() throws ResourceNotFoundException {
         var matchId = UUID.randomUUID();
-        var eventDto = new InsertMatchEvent.StatusDto("1", "asdf");
+        var eventDto = new UpsertStatusEventDto("1", "asdf");
 
         // given
         given(matchService.findEntityById(matchId)).willThrow(new ResourceNotFoundException(Match.class, matchId));
@@ -249,12 +245,12 @@ public class MatchEventServiceTests {
         var teamPlayer2Id = teamPlayer2.getId();
 
         var testEvents = List.of(
-                new InsertMatchEvent.StatusDto("1", MatchStatus.FIRST_HALF.name()),
-                new InsertMatchEvent.CommentaryDto("1", "Some message"),
-                new InsertMatchEvent.CardDto("1", teamPlayer1Id.toString(), false),
-                new InsertMatchEvent.SubstitutionDto("1", teamPlayer2Id.toString(), teamPlayer1Id.toString()),
-                new InsertMatchEvent.GoalDto("1", teamPlayer1Id.toString(), null, false),
-                new InsertMatchEvent.PenaltyDto("1", teamPlayer1Id.toString(), true)
+                new UpsertStatusEventDto("1", MatchStatus.FIRST_HALF.name()),
+                new UpsertCommentaryEventDto("1", "Some message"),
+                new UpsertCardEventDto("1", teamPlayer1Id.toString(), false),
+                new UpsertSubstitutionEventDto("1", teamPlayer2Id.toString(), teamPlayer1Id.toString()),
+                new UpsertGoalEventDto("1", teamPlayer1Id.toString(), null, false),
+                new UpsertPenaltyEventDto("1", teamPlayer1Id.toString(), true)
         );
 
         var teamLineup = TestLineupDto.builder()
@@ -272,7 +268,7 @@ public class MatchEventServiceTests {
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
 
         // when
-        for (InsertMatchEvent event: testEvents) {
+        for (UpsertMatchEvent event: testEvents) {
             matchEventService.processEvent(matchId, event);
         }
 
@@ -395,7 +391,7 @@ public class MatchEventServiceTests {
         for (MatchStatus attemptedTargetStatus : MatchStatus.values()) {
             // reset the original match status before every attempt
             match.setStatus(testedMatchStatus);
-            var testedEvent = new InsertMatchEvent.StatusDto("1", attemptedTargetStatus.name());
+            var testedEvent = new UpsertStatusEventDto("1", attemptedTargetStatus.name());
 
             try {
                 matchEventService.processEvent(matchId, testedEvent);
@@ -424,13 +420,13 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChanges_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        List<InsertMatchEvent.StatusDto> statusEvents = List.of(
-                new InsertMatchEvent.StatusDto("1", MatchStatus.FIRST_HALF.name()),
-                new InsertMatchEvent.StatusDto("1", MatchStatus.ABANDONED.name()),
-                new InsertMatchEvent.StatusDto("1", MatchStatus.POSTPONED.name())
+        List<UpsertStatusEventDto> statusEvents = List.of(
+                new UpsertStatusEventDto("1", MatchStatus.FIRST_HALF.name()),
+                new UpsertStatusEventDto("1", MatchStatus.ABANDONED.name()),
+                new UpsertStatusEventDto("1", MatchStatus.POSTPONED.name())
         );
 
-        for (InsertMatchEvent.StatusDto statusEvent: statusEvents) {
+        for (UpsertStatusEventDto statusEvent: statusEvents) {
             var match = TestMatch.builder().build();
             var matchId = match.getId();
 
@@ -442,11 +438,10 @@ public class MatchEventServiceTests {
 
             // then
             verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-                var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-                return sentGlobalEvent.getMatchId().equals(matchId) &&
-                        sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                        sentGlobalEvent.getResult().equals(MatchResult.NONE) &&
-                        sentGlobalEvent.getTargetStatus().toString().equals(statusEvent.getTargetStatus());
+                var sentGlobalEvent = (GlobalStatusEventDto)e;
+                return sentGlobalEvent.matchId().equals(matchId) &&
+                        sentGlobalEvent.result().equals(MatchResult.NONE) &&
+                        sentGlobalEvent.targetStatus().toString().equals(statusEvent.targetStatus());
             }));
         }
     }
@@ -477,7 +472,7 @@ public class MatchEventServiceTests {
                 given(matchService.findEntityById(matchId)).willReturn(match);
 
                 // when
-                var testedEvent = new InsertMatchEvent.StatusDto("1", targetMatchStatus.name());
+                var testedEvent = new UpsertStatusEventDto("1", targetMatchStatus.name());
 
                 try {
                     matchEventService.processEvent(matchId, testedEvent);
@@ -503,7 +498,7 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChangesHomeTeamWins_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+        var finishingStatus = new UpsertStatusEventDto("1", MatchStatus.FINISHED.name());
 
         var match = TestMatch.builder()
                 .status(MatchStatus.SECOND_HALF)
@@ -519,11 +514,10 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-            return sentGlobalEvent.getMatchId().equals(matchId) &&
-                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                    sentGlobalEvent.getResult().equals(MatchResult.HOME_WIN) &&
-                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+            var sentGlobalEvent = (GlobalStatusEventDto)e;
+            return sentGlobalEvent.matchId().equals(matchId) &&
+                    sentGlobalEvent.result().equals(MatchResult.HOME_WIN) &&
+                    sentGlobalEvent.targetStatus().equals(MatchStatus.FINISHED);
         }));
     }
 
@@ -532,7 +526,7 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChangesAwayTeamWins_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+        var finishingStatus = new UpsertStatusEventDto("1", MatchStatus.FINISHED.name());
 
         var match = TestMatch.builder()
                 .status(MatchStatus.SECOND_HALF)
@@ -548,11 +542,10 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-            return sentGlobalEvent.getMatchId().equals(matchId) &&
-                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                    sentGlobalEvent.getResult().equals(MatchResult.AWAY_WIN) &&
-                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+            var sentGlobalEvent = (GlobalStatusEventDto)e;
+            return sentGlobalEvent.matchId().equals(matchId) &&
+                    sentGlobalEvent.result().equals(MatchResult.AWAY_WIN) &&
+                    sentGlobalEvent.targetStatus().equals(MatchStatus.FINISHED);
         }));
     }
 
@@ -561,7 +554,7 @@ public class MatchEventServiceTests {
     public void processEvent_MatchStatusChangesTeamsDraw_SendsGlobalWebsocketMessage()
             throws ResourceNotFoundException, MatchEventInvalidException {
 
-        var finishingStatus = new InsertMatchEvent.StatusDto("1", MatchStatus.FINISHED.name());
+        var finishingStatus = new UpsertStatusEventDto("1", MatchStatus.FINISHED.name());
 
         var match = TestMatch.builder()
                 .status(MatchStatus.SECOND_HALF)
@@ -577,11 +570,10 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var sentGlobalEvent = (GlobalMatchEventDto.StatusEvent)e;
-            return sentGlobalEvent.getMatchId().equals(matchId) &&
-                    sentGlobalEvent.getType().equals(MatchEventType.STATUS) &&
-                    sentGlobalEvent.getResult().equals(MatchResult.DRAW) &&
-                    sentGlobalEvent.getTargetStatus().equals(MatchStatus.FINISHED);
+            var sentGlobalEvent = (GlobalStatusEventDto)e;
+            return sentGlobalEvent.matchId().equals(matchId) &&
+                    sentGlobalEvent.result().equals(MatchResult.DRAW) &&
+                    sentGlobalEvent.targetStatus().equals(MatchStatus.FINISHED);
         }));
     }
 
@@ -604,7 +596,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("90", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -613,12 +605,12 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.HOME_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        sDto.result().equals(expectedResult) &&
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -642,7 +634,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("90", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -651,12 +643,12 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.AWAY_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        sDto.result().equals(expectedResult) &&
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -680,7 +672,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("90", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("90", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -689,12 +681,12 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.DRAW;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        sDto.result().equals(expectedResult) &&
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -718,7 +710,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -727,12 +719,12 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.HOME_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        sDto.result().equals(expectedResult) &&
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -756,7 +748,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -765,12 +757,12 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.AWAY_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        sDto.result().equals(expectedResult) &&
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -793,7 +785,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -824,7 +816,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -833,12 +825,12 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.HOME_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        sDto.result().equals(expectedResult) &&
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -862,7 +854,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             matchEventService.processEvent(matchId, testedEvent);
@@ -871,12 +863,12 @@ public class MatchEventServiceTests {
             var expectedResult = MatchResult.AWAY_WIN;
             assertEquals(expectedResult, match.getResult());
             verify(matchEventRepository).save(argThat(e -> {
-                MatchEventDetails.StatusDto sDto = (MatchEventDetails.StatusDto) e.getEvent();
-                var teams = sDto.getTeams();
+                StatusEventDetailsDto sDto = (StatusEventDetailsDto) e.getEvent();
+                var teams = sDto.teams();
                 return e.getMatch().getId().equals(matchId) &&
-                        sDto.getResult().equals(expectedResult) &&
-                        teams.getHomeTeamId().equals(match.getHomeTeam().getId()) &&
-                        teams.getAwayTeamId().equals(match.getAwayTeam().getId());
+                        sDto.result().equals(expectedResult) &&
+                        teams.homeTeamId().equals(match.getHomeTeam().getId()) &&
+                        teams.awayTeamId().equals(match.getAwayTeam().getId());
             }));
         }
     }
@@ -899,7 +891,7 @@ public class MatchEventServiceTests {
 
             // given
             given(matchService.findEntityById(matchId)).willReturn(match);
-            var testedEvent = new InsertMatchEvent.StatusDto("120", MatchStatus.FINISHED.name());
+            var testedEvent = new UpsertStatusEventDto("120", MatchStatus.FINISHED.name());
 
             // when
             String message = assertThrows(MatchEventInvalidException.class, () -> {
@@ -917,7 +909,7 @@ public class MatchEventServiceTests {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
         var message = "This is a test message";
-        var testedEvent = new InsertMatchEvent.CommentaryDto("45", message);
+        var testedEvent = new UpsertCommentaryEventDto("45", message);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -927,8 +919,8 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CommentaryDto eventDetails = (MatchEventDetails.CommentaryDto)matchEvent.getEvent();
-            return matchEvent.getMatch().getId().equals(matchId) && eventDetails.getMessage().equals(message);
+            CommentaryEventDetailsDto eventDetails = (CommentaryEventDetailsDto)matchEvent.getEvent();
+            return matchEvent.getMatch().getId().equals(matchId) && eventDetails.message().equals(message);
         }));
     }
 
@@ -937,7 +929,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidCard() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.CardDto("1", UUID.randomUUID().toString(), false);
+        var testEvent = new UpsertCardEventDto("1", UUID.randomUUID().toString(), false);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -962,7 +954,7 @@ public class MatchEventServiceTests {
         );
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -989,7 +981,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // create an empty lineup which ensures that the player won't be in it
         var teamLineup = TestLineupDto.builder().build();
 
@@ -1019,7 +1011,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
 
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
@@ -1035,9 +1027,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.YELLOW);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.YELLOW);
         }));
     }
 
@@ -1051,7 +1043,7 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
@@ -1066,9 +1058,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.DIRECT_RED);
         }));
     }
 
@@ -1082,13 +1074,13 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1099,9 +1091,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.SECOND_YELLOW);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.SECOND_YELLOW);
         }));
     }
 
@@ -1115,13 +1107,13 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1132,9 +1124,9 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) matchEvent.getEvent();
+            CardEventDetailsDto cDto = (CardEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    cDto.getCardType().equals(MatchEventDetails.CardDto.CardType.DIRECT_RED);
+                    cDto.cardType().equals(CardEventDetailsDto.CardType.DIRECT_RED);
         }));
     }
 
@@ -1163,19 +1155,19 @@ public class MatchEventServiceTests {
         //  * two red cards are given to the away team
         var testEvents = List.of(
                 // 1. second yellow card for homeTeamPlayerA
-                new InsertMatchEvent.CardDto("1", homeTeamPlayerA.getId().toString(), false),
+                new UpsertCardEventDto("1", homeTeamPlayerA.getId().toString(), false),
                 // 2. second yellow card for awayTeamPlayerA
-                new InsertMatchEvent.CardDto("1", awayTeamPlayerA.getId().toString(), false),
+                new UpsertCardEventDto("1", awayTeamPlayerA.getId().toString(), false),
                 // 3. direct red for awayTeamPlayerB
-                new InsertMatchEvent.CardDto("1", awayTeamPlayerB.getId().toString(), true),
+                new UpsertCardEventDto("1", awayTeamPlayerB.getId().toString(), true),
                 // 4. yellow for homeTeamPlayerB
-                new InsertMatchEvent.CardDto("1", homeTeamPlayerB.getId().toString(), false)
+                new UpsertCardEventDto("1", homeTeamPlayerB.getId().toString(), false)
         );
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, homeTeamPlayerA.getId(), MatchEventDetails.CardDto.CardType.YELLOW),
-                createTestCardEvent(match, awayTeamPlayerA.getId(), MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, homeTeamPlayerA.getId(), CardEventDetailsDto.CardType.YELLOW),
+                createTestCardEvent(match, awayTeamPlayerA.getId(), CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(homeTeamPlayerA.getId())).willReturn(homeTeamPlayerA);
@@ -1193,18 +1185,16 @@ public class MatchEventServiceTests {
         assertEquals(match.getRedCardInfo(), expectedRedCardInfo);
         // verify one home card is broadcast via the websocket
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var globalRedCardEvent = (GlobalMatchEventDto.RedCardEvent)e;
-            return globalRedCardEvent.getMatchId().equals(matchId) &&
-                    globalRedCardEvent.getType().equals(MatchEventType.CARD) &&
-                    globalRedCardEvent.getSide().equals(GlobalMatchEventDto.EventSide.HOME);
+            var globalRedCardEvent = (GlobalRedCardEventDto)e;
+            return globalRedCardEvent.matchId().equals(matchId) &&
+                    globalRedCardEvent.side().equals(GlobalMatchEvent.EventSide.HOME);
         }));
 
         // verify two away cards are broadcast via the websocket
         verify(matchEventWebsocketService, times(2)).sendGlobalMatchEvent(argThat(e -> {
-            var globalRedCardEvent = (GlobalMatchEventDto.RedCardEvent)e;
-            return globalRedCardEvent.getMatchId().equals(matchId) &&
-                    globalRedCardEvent.getType().equals(MatchEventType.CARD) &&
-                    globalRedCardEvent.getSide().equals(GlobalMatchEventDto.EventSide.AWAY);
+            var globalRedCardEvent = (GlobalRedCardEventDto)e;
+            return globalRedCardEvent.matchId().equals(matchId) &&
+                    globalRedCardEvent.side().equals(GlobalMatchEvent.EventSide.AWAY);
         }));
     }
 
@@ -1218,13 +1208,13 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1245,13 +1235,13 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1272,13 +1262,13 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), false);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), false);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1299,13 +1289,13 @@ public class MatchEventServiceTests {
         var testTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var testTeamPlayerId = testTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.CardDto("1", testTeamPlayerId.toString(), true);
+        var testEvent = new UpsertCardEventDto("1", testTeamPlayerId.toString(), true);
         // put the player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(testTeamPlayerId).build();
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-            createTestCardEvent(match, testTeamPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+            createTestCardEvent(match, testTeamPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(testTeamPlayerId)).willReturn(testTeamPlayer);
@@ -1321,7 +1311,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidGoal() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", UUID.randomUUID().toString(), UUID.randomUUID().toString(), false
         );
 
@@ -1343,7 +1333,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(TestTeam.builder().build(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, false);
 
         var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
 
@@ -1367,7 +1357,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, false);
         // create an empty lineup which ensures that the player won't be in it
         var teamLineup = TestLineupDto.builder().build();
 
@@ -1391,11 +1381,11 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, scoringPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
@@ -1415,11 +1405,11 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, scoringPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, scoringPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(scoringPlayerId)).willReturn(scoringPlayer);
@@ -1439,7 +1429,7 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -1463,7 +1453,7 @@ public class MatchEventServiceTests {
         var scoringPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringPlayerId = scoringPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), null, false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), null, false);
 
         // put the scoring player in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeSubstitutes(scoringPlayerId).build();
@@ -1488,7 +1478,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), UUID.randomUUID().toString(), true
         );
 
@@ -1523,7 +1513,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(TestTeam.builder().name("Team C").build(), new Player(), Position.GOALKEEPER, 1);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1556,7 +1546,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 8);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1589,7 +1579,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1630,7 +1620,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the scoring and assisting players in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
@@ -1638,7 +1628,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, assistingPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, assistingPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -1665,7 +1655,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the scoring and assisting players in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
@@ -1673,7 +1663,7 @@ public class MatchEventServiceTests {
         // given
         given(matchService.findMatchLineup(matchId)).willReturn(teamLineup);
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, assistingPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, assistingPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -1700,7 +1690,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the scoring and assisting players in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringPlayerId, assistingPlayerId).build();
@@ -1735,7 +1725,7 @@ public class MatchEventServiceTests {
         var assistingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var assistingPlayerId = assistingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
+        var testEvent = new UpsertGoalEventDto("1", scoringPlayerId.toString(), assistingPlayerId.toString(), false);
 
         // put the assisting player on the bench
         var teamLineup = TestLineupDto.builder()
@@ -1757,12 +1747,11 @@ public class MatchEventServiceTests {
         assertGlobalEventNotBroadcast();
     }
 
-    private void assertGlobalGoalEventBroadcast(UUID matchId, GlobalMatchEventDto.EventSide side) {
+    private void assertGlobalGoalEventBroadcast(UUID matchId, GlobalMatchEvent.EventSide side) {
         verify(matchEventWebsocketService).sendGlobalMatchEvent(argThat(e -> {
-            var globalGoalEvent = (GlobalMatchEventDto.GoalEvent)e;
-            return globalGoalEvent.getMatchId().equals(matchId) &&
-                    globalGoalEvent.getType().equals(MatchEventType.GOAL) &&
-                    globalGoalEvent.getSide().equals(side);
+            var globalGoalEvent = (GlobalGoalEventDto)e;
+            return globalGoalEvent.matchId().equals(matchId) &&
+                    globalGoalEvent.side().equals(side);
         }));
     }
 
@@ -1779,7 +1768,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 9);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1806,14 +1795,14 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
-                    gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    !gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    !gDto.ownGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
     }
 
     @Test
@@ -1826,7 +1815,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
         // only have the scoring player in the lineup
         var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
@@ -1846,14 +1835,14 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer() == null &&
-                    gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer() == null &&
+                    gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    gDto.ownGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
     }
 
     @Test
@@ -1869,7 +1858,7 @@ public class MatchEventServiceTests {
         var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.DEFENDER, 9);
         var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto(
+        var testEvent = new UpsertGoalEventDto(
                 "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
         );
 
@@ -1895,14 +1884,14 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
-                    gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    !gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                    gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    !gDto.ownGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
     }
 
     @Test
@@ -1915,7 +1904,7 @@ public class MatchEventServiceTests {
         var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+        var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
         // only have the scoring player in the lineup
         var teamLineup = TestLineupDto.builder().awayStarting(scoringTeamPlayerId).build();
@@ -1935,14 +1924,14 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+            GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                    gDto.getAssistingPlayer() == null &&
-                    gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    gDto.isOwnGoal();
+                    gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                    gDto.assistingPlayer() == null &&
+                    gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    gDto.ownGoal();
         }));
-        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+        assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
     }
 
     @Test
@@ -1961,7 +1950,7 @@ public class MatchEventServiceTests {
             var assistingTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 9);
             var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto(
+            var testEvent = new UpsertGoalEventDto(
                     "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
             );
 
@@ -1988,14 +1977,14 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
-                        gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        !gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        !gDto.ownGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
         }
     }
 
@@ -2012,7 +2001,7 @@ public class MatchEventServiceTests {
             var scoringTeamPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
             var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+            var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
             // only have the scoring player in the lineup
             var teamLineup = TestLineupDto.builder().homeStarting(scoringTeamPlayerId).build();
@@ -2032,14 +2021,14 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer() == null &&
-                        gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer() == null &&
+                        gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        gDto.ownGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
         }
     }
 
@@ -2059,7 +2048,7 @@ public class MatchEventServiceTests {
             var assistingTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.DEFENDER, 9);
             var assistingTeamPlayerId = assistingTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto(
+            var testEvent = new UpsertGoalEventDto(
                     "1", scoringTeamPlayerId.toString(), assistingTeamPlayerId.toString(), false
             );
 
@@ -2086,14 +2075,14 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer().getTeamPlayerId().equals(assistingTeamPlayerId) &&
-                        gDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        !gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer().teamPlayerId().equals(assistingTeamPlayerId) &&
+                        gDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        !gDto.ownGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.AWAY);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.AWAY);
         }
     }
 
@@ -2109,7 +2098,7 @@ public class MatchEventServiceTests {
             var scoringTeamPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
             var scoringTeamPlayerId = scoringTeamPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.GoalDto("1", scoringTeamPlayerId.toString(), null, true);
+            var testEvent = new UpsertGoalEventDto("1", scoringTeamPlayerId.toString(), null, true);
 
             // only have the scoring player in the lineup
             var teamLineup = TestLineupDto.builder().awayStarting(scoringTeamPlayerId).build();
@@ -2129,14 +2118,14 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.GoalDto gDto = (MatchEventDetails.GoalDto) matchEvent.getEvent();
+                GoalEventDetailsDto gDto = (GoalEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        gDto.getScoringPlayer().getTeamPlayerId().equals(scoringTeamPlayerId) &&
-                        gDto.getAssistingPlayer() == null &&
-                        gDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        gDto.isOwnGoal();
+                        gDto.scoringPlayer().teamPlayerId().equals(scoringTeamPlayerId) &&
+                        gDto.assistingPlayer() == null &&
+                        gDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        gDto.ownGoal();
             }));
-            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEventDto.EventSide.HOME);
+            assertGlobalGoalEventBroadcast(matchId, GlobalMatchEvent.EventSide.HOME);
         }
     }
 
@@ -2145,7 +2134,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidSubstitution() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.SubstitutionDto(
+        var testEvent = new UpsertSubstitutionEventDto(
                 "1", UUID.randomUUID().toString(), UUID.randomUUID().toString()
         );
 
@@ -2166,7 +2155,7 @@ public class MatchEventServiceTests {
         var teamPlayerIn = new TeamPlayer(TestTeam.builder().build(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerInId = teamPlayerIn.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), UUID.randomUUID().toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), UUID.randomUUID().toString());
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2192,7 +2181,7 @@ public class MatchEventServiceTests {
         var teamPlayerIn = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerInId = teamPlayerIn.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), null);
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), null);
         // create an empty lineup which ensures that the player won't be in it
         var teamLineup = TestLineupDto.builder().build();
 
@@ -2224,7 +2213,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(TestTeam.builder().name("Team C").build(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // only have the playerIn in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(teamPlayerInId).build();
@@ -2260,7 +2249,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.DEFENDER, 8);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // only have the playerIn in the starting home lineup
         var teamLineup = TestLineupDto.builder().homeStarting(teamPlayerInId).build();
@@ -2296,7 +2285,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2334,7 +2323,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2372,7 +2361,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2382,7 +2371,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-               createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+               createTestCardEvent(match, teamPlayerInId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2414,7 +2403,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2424,7 +2413,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, teamPlayerInId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2456,7 +2445,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2498,7 +2487,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2508,7 +2497,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, teamPlayerOutId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2534,7 +2523,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2544,7 +2533,7 @@ public class MatchEventServiceTests {
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, teamPlayerOutId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2570,7 +2559,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2606,7 +2595,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2638,7 +2627,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2659,11 +2648,11 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            SubstitutionEventDetailsDto sDto = (SubstitutionEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+                    sDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.playerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.playerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2680,7 +2669,7 @@ public class MatchEventServiceTests {
         var teamPlayerOut = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var teamPlayerOutId = teamPlayerOut.getId();
 
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2691,8 +2680,8 @@ public class MatchEventServiceTests {
         // given
         givenMatchReturnEvents(matchId, List.of(
                 // give both players yellow cards
-                createTestCardEvent(match, teamPlayerInId, MatchEventDetails.CardDto.CardType.YELLOW),
-                createTestCardEvent(match, teamPlayerOutId, MatchEventDetails.CardDto.CardType.YELLOW)
+                createTestCardEvent(match, teamPlayerInId, CardEventDetailsDto.CardType.YELLOW),
+                createTestCardEvent(match, teamPlayerOutId, CardEventDetailsDto.CardType.YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         bindTeamPlayerIdsToTeamPlayers(Map.of(
@@ -2706,11 +2695,11 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            SubstitutionEventDetailsDto sDto = (SubstitutionEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+                    sDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.playerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.playerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2728,7 +2717,7 @@ public class MatchEventServiceTests {
         var teamPlayerOutId = teamPlayerOut.getId();
 
         // assume that playerIn is already on the pitch because of a substitution
-        var testEvent = new InsertMatchEvent.SubstitutionDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
+        var testEvent = new UpsertSubstitutionEventDto("1", teamPlayerInId.toString(), teamPlayerOutId.toString());
 
         // have both players in the lineup
         var teamLineup = TestLineupDto.builder()
@@ -2751,11 +2740,11 @@ public class MatchEventServiceTests {
 
         // then
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.SubstitutionDto sDto = (MatchEventDetails.SubstitutionDto) matchEvent.getEvent();
+            SubstitutionEventDetailsDto sDto = (SubstitutionEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    sDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    sDto.getPlayerIn().getTeamPlayerId().equals(teamPlayerInId) &&
-                    sDto.getPlayerOut().getTeamPlayerId().equals(teamPlayerOutId);
+                    sDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    sDto.playerIn().teamPlayerId().equals(teamPlayerInId) &&
+                    sDto.playerOut().teamPlayerId().equals(teamPlayerOutId);
         }));
     }
 
@@ -2764,7 +2753,7 @@ public class MatchEventServiceTests {
     public void processEvent_BallNotInPlay_RejectsInvalidPenalty() throws ResourceNotFoundException {
         var match = TestMatch.builder().build();
         var matchId = match.getId();
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", UUID.randomUUID().toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", UUID.randomUUID().toString(), true);
 
         // given
         given(matchService.findEntityById(matchId)).willReturn(match);
@@ -2783,11 +2772,11 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, shootingPlayerId, MatchEventDetails.CardDto.CardType.SECOND_YELLOW)
+                createTestCardEvent(match, shootingPlayerId, CardEventDetailsDto.CardType.SECOND_YELLOW)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
@@ -2806,11 +2795,11 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
-                createTestCardEvent(match, shootingPlayerId, MatchEventDetails.CardDto.CardType.DIRECT_RED)
+                createTestCardEvent(match, shootingPlayerId, CardEventDetailsDto.CardType.DIRECT_RED)
         ));
         given(matchService.findEntityById(matchId)).willReturn(match);
         given(teamPlayerService.findEntityById(shootingPlayerId)).willReturn(shootingPlayer);
@@ -2828,7 +2817,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // given
         givenMatchReturnEvents(matchId, List.of(
@@ -2850,7 +2839,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer on the bench
         var teamLineup = TestLineupDto.builder()
@@ -2875,7 +2864,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -2897,12 +2886,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -2915,7 +2904,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -2937,12 +2926,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 
@@ -2955,7 +2944,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -2977,12 +2966,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -2995,7 +2984,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3017,12 +3006,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 
@@ -3038,7 +3027,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3060,12 +3049,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        pDto.isScored();
+                        pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        pDto.scored();
             }));
         }
     }
@@ -3082,7 +3071,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3104,12 +3093,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        !pDto.isScored();
+                        pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        !pDto.scored();
             }));
         }
     }
@@ -3126,7 +3115,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3148,12 +3137,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        pDto.isScored();
+                        pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        pDto.scored();
             }));
         }
     }
@@ -3170,7 +3159,7 @@ public class MatchEventServiceTests {
             var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
             var shootingPlayerId = shootingPlayer.getId();
 
-            var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+            var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
             // have the shootingPlayer start on the pitch
             var teamLineup = TestLineupDto.builder()
@@ -3192,12 +3181,12 @@ public class MatchEventServiceTests {
             assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
             verify(matchEventRepository).save(argThat(matchEvent -> {
-                MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+                PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
                 return matchEvent.getMatch().getId().equals(matchId) &&
-                        pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                        pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                        pDto.isCountAsGoal() &&
-                        !pDto.isScored();
+                        pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                        pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                        pDto.countAsGoal() &&
+                        !pDto.scored();
             }));
         }
     }
@@ -3211,7 +3200,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3233,12 +3222,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -3251,7 +3240,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getHomeTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3273,12 +3262,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getHomeTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getHomeTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 
@@ -3291,7 +3280,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), true);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), true);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3313,12 +3302,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    pDto.scored();
         }));
     }
 
@@ -3331,7 +3320,7 @@ public class MatchEventServiceTests {
         var shootingPlayer = new TeamPlayer(match.getAwayTeam(), new Player(), Position.GOALKEEPER, 1);
         var shootingPlayerId = shootingPlayer.getId();
 
-        var testEvent = new InsertMatchEvent.PenaltyDto("1", shootingPlayerId.toString(), false);
+        var testEvent = new UpsertPenaltyEventDto("1", shootingPlayerId.toString(), false);
 
         // have the shootingPlayer start on the pitch
         var teamLineup = TestLineupDto.builder()
@@ -3353,12 +3342,12 @@ public class MatchEventServiceTests {
         assertMatchScoreEqual(match, expectedHalfTimeScore, expectedMainScore, expectedPenaltyScore);
 
         verify(matchEventRepository).save(argThat(matchEvent -> {
-            MatchEventDetails.PenaltyDto pDto = (MatchEventDetails.PenaltyDto) matchEvent.getEvent();
+            PenaltyEventDetailsDto pDto = (PenaltyEventDetailsDto) matchEvent.getEvent();
             return matchEvent.getMatch().getId().equals(matchId) &&
-                    pDto.getTeamId().equals(match.getAwayTeam().getId()) &&
-                    pDto.getShootingPlayer().getTeamPlayerId().equals(shootingPlayerId) &&
-                    !pDto.isCountAsGoal() &&
-                    !pDto.isScored();
+                    pDto.teamId().equals(match.getAwayTeam().getId()) &&
+                    pDto.shootingPlayer().teamPlayerId().equals(shootingPlayerId) &&
+                    !pDto.countAsGoal() &&
+                    !pDto.scored();
         }));
     }
 }

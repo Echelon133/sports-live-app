@@ -23,7 +23,7 @@ public class MatchMapper {
         ShortTeamDto homeTeamDto = null;
         // only set homeTeam if the entity is not marked as deleted
         if (!homeTeam.isDeleted()) {
-            homeTeamDto = ShortTeamDto.from(
+            homeTeamDto = new ShortTeamDto(
                     homeTeam.getId(),
                     homeTeam.getName(),
                     homeTeam.getCrestUrl()
@@ -33,7 +33,7 @@ public class MatchMapper {
         ShortTeamDto awayTeamDto = null;
         // only set awayTeam if the entity is not marked as deleted
         if (!awayTeam.isDeleted()) {
-            awayTeamDto = ShortTeamDto.from(
+            awayTeamDto = new ShortTeamDto(
                     awayTeam.getId(),
                     awayTeam.getName(),
                     awayTeam.getCrestUrl()
@@ -59,15 +59,15 @@ public class MatchMapper {
             );
         }
 
-        ScoreInfoDto halfTimeScoreInfoDto = ScoreInfoDto.from(
+        ScoreInfoDto halfTimeScoreInfoDto = new ScoreInfoDto(
                 halfTimeScoreInfo.getHomeGoals(),
                 halfTimeScoreInfo.getAwayGoals()
         );
-        ScoreInfoDto scoreInfoDto = ScoreInfoDto.from(
+        ScoreInfoDto scoreInfoDto = new ScoreInfoDto(
                 scoreInfo.getHomeGoals(),
                 scoreInfo.getAwayGoals()
         );
-        ScoreInfoDto penaltiesInfoDto = ScoreInfoDto.from(
+        ScoreInfoDto penaltiesInfoDto = new ScoreInfoDto(
                 penaltiesInfo.getHomeGoals(),
                 penaltiesInfo.getAwayGoals()
         );

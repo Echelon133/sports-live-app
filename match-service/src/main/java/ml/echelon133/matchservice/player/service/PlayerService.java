@@ -12,7 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -71,15 +71,15 @@ public class PlayerService {
     public PlayerDto updatePlayer(UUID id, UpsertPlayerDto playerDto) throws ResourceNotFoundException {
         var playerToUpdate = findEntityById(id);
 
-        playerToUpdate.setName(playerDto.getName());
+        playerToUpdate.setName(playerDto.name());
 
         // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
-        playerToUpdate.setPosition(Position.valueOfIgnoreCase(playerDto.getPosition()));
+        playerToUpdate.setPosition(Position.valueOfIgnoreCase(playerDto.position()));
 
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
-        playerToUpdate.setDateOfBirth(LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER));
+        playerToUpdate.setDateOfBirth(LocalDate.parse(playerDto.dateOfBirth(), DATE_OF_BIRTH_FORMATTER));
 
-        playerToUpdate.setCountryCode(playerDto.getCountryCode());
+        playerToUpdate.setCountryCode(playerDto.countryCode());
 
         return PlayerMapper.entityToDto(playerRepository.save(playerToUpdate));
     }
@@ -96,12 +96,12 @@ public class PlayerService {
      */
     public PlayerDto createPlayer(UpsertPlayerDto playerDto) throws ResourceNotFoundException {
         // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
-        var position = Position.valueOfIgnoreCase(playerDto.getPosition());
+        var position = Position.valueOfIgnoreCase(playerDto.position());
 
         // this `LocalDate.parse` should never fail because the DateOfBirth value is pre-validated
-        var dateOfBirth = LocalDate.parse(playerDto.getDateOfBirth(), DATE_OF_BIRTH_FORMATTER);
+        var dateOfBirth = LocalDate.parse(playerDto.dateOfBirth(), DATE_OF_BIRTH_FORMATTER);
 
-        var player = new Player(playerDto.getName(), position, dateOfBirth, playerDto.getCountryCode());
+        var player = new Player(playerDto.name(), position, dateOfBirth, playerDto.countryCode());
         return PlayerMapper.entityToDto(playerRepository.save(player));
     }
 

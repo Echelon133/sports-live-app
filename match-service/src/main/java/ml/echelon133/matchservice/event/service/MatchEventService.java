@@ -1,18 +1,16 @@
 package ml.echelon133.matchservice.event.service;
 
+import jakarta.transaction.Transactional;
 import ml.echelon133.common.event.KafkaTopicNames;
-import ml.echelon133.common.event.dto.MatchEventDetails;
-import ml.echelon133.common.event.dto.MatchEventDto;
+import ml.echelon133.common.event.dto.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
 import ml.echelon133.matchservice.event.exceptions.MatchEventInvalidException;
 import ml.echelon133.matchservice.event.model.MatchEvent;
-import ml.echelon133.matchservice.event.model.dto.InsertMatchEvent;
+import ml.echelon133.matchservice.event.model.dto.*;
 import ml.echelon133.matchservice.event.repository.MatchEventRepository;
-import ml.echelon133.matchservice.match.model.GlobalMatchEventDto;
-import ml.echelon133.matchservice.match.model.LineupDto;
-import ml.echelon133.matchservice.match.model.Match;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
@@ -21,7 +19,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -67,7 +64,7 @@ public class MatchEventService {
      * @return dto converted from an entity
      */
     private static MatchEventDto convertEntityToDto(MatchEvent event) {
-        return MatchEventDto.from(event.getId(), event.getEvent());
+        return new MatchEventDto(event.getId(), event.getEvent());
     }
 
     /**
@@ -90,26 +87,18 @@ public class MatchEventService {
      * @throws ResourceNotFoundException thrown when the match with the provided id does not exist or is marked as deleted
      * @throws MatchEventInvalidException thrown when processing of the event is not possible for some reason
      */
-    public void processEvent(UUID matchId, InsertMatchEvent eventDto)
+    public void processEvent(UUID matchId, UpsertMatchEvent eventDto)
             throws ResourceNotFoundException, MatchEventInvalidException {
         var match = matchService.findEntityById(matchId);
-        MatchEvent matchEvent;
 
-        if (eventDto instanceof InsertMatchEvent.StatusDto) {
-            matchEvent = processStatusEvent(match, (InsertMatchEvent.StatusDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.CommentaryDto) {
-            matchEvent = processCommentaryEvent(match, (InsertMatchEvent.CommentaryDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.CardDto) {
-            matchEvent = processCardEvent(match, (InsertMatchEvent.CardDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.GoalDto) {
-            matchEvent = processGoalEvent(match, (InsertMatchEvent.GoalDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.SubstitutionDto) {
-            matchEvent = processSubstitutionEvent(match, (InsertMatchEvent.SubstitutionDto) eventDto);
-        } else if (eventDto instanceof InsertMatchEvent.PenaltyDto) {
-            matchEvent = processPenaltyEvent(match, (InsertMatchEvent.PenaltyDto) eventDto);
-        } else {
-            throw new MatchEventInvalidException("handling of this event is not implemented");
-        }
+        MatchEvent matchEvent = switch (eventDto) {
+            case UpsertStatusEventDto statusEventDto -> processStatusEvent(match, statusEventDto);
+            case UpsertCommentaryEventDto commentaryEventDto -> processCommentaryEvent(match, commentaryEventDto);
+            case UpsertCardEventDto cardEventDto -> processCardEvent(match, cardEventDto);
+            case UpsertGoalEventDto goalEventDto -> processGoalEvent(match, goalEventDto);
+            case UpsertSubstitutionEventDto substitutionEventDto -> processSubstitutionEvent(match, substitutionEventDto);
+            case UpsertPenaltyEventDto penaltyEventDto -> processPenaltyEvent(match, penaltyEventDto);
+        };
 
         matchEventRepository.save(matchEvent);
         matchEventWebsocketService.sendMatchEvent(
@@ -149,9 +138,9 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the status of the match cannot be changed
      */
-    private MatchEvent processStatusEvent(Match match, InsertMatchEvent.StatusDto statusDto) throws MatchEventInvalidException {
+    private MatchEvent processStatusEvent(Match match, UpsertStatusEventDto statusDto) throws MatchEventInvalidException {
         // this `MatchStatus.valueOf` should never fail because the status value is pre-validated
-        var targetStatus = MatchStatus.valueOf(statusDto.getTargetStatus());
+        var targetStatus = MatchStatus.valueOf(statusDto.targetStatus());
         var validTargetStatuses = VALID_STATUS_CHANGES.get(match.getStatus());
 
         if (!validTargetStatuses.contains(targetStatus)) {
@@ -187,17 +176,17 @@ public class MatchEventService {
             match.setResult(endResult);
         }
 
-        var eventDetails = new MatchEventDetails.StatusDto(
-                statusDto.getMinute(),
+        var eventDetails = new StatusEventDetailsDto(
+                statusDto.minute(),
                 match.getCompetitionId(),
                 targetStatus,
-                new MatchEventDetails.SerializedTeamInfo(match.getHomeTeam().getId(), match.getAwayTeam().getId()),
+                new SerializedTeam(match.getHomeTeam().getId(), match.getAwayTeam().getId()),
                 match.getResult(),
-                new MatchEventDetails.SerializedScoreInfo(mainScore.getHomeGoals(), mainScore.getAwayGoals())
+                new SerializedScore(mainScore.getHomeGoals(), mainScore.getAwayGoals())
         );
 
         // globally broadcast a match changing its status
-        matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.StatusEvent(
+        matchEventWebsocketService.sendGlobalMatchEvent(new GlobalStatusEventDto(
                 match.getId(),
                 targetStatus,
                 match.getResult()
@@ -222,11 +211,11 @@ public class MatchEventService {
      * @param commentaryDto dto containing information about the event
      * @return match event that is ready to be saved
      */
-    private MatchEvent processCommentaryEvent(Match match, InsertMatchEvent.CommentaryDto commentaryDto) {
-        var eventDetails = new MatchEventDetails.CommentaryDto(
-                commentaryDto.getMinute(),
+    private MatchEvent processCommentaryEvent(Match match, UpsertCommentaryEventDto commentaryDto) {
+        var eventDetails = new CommentaryEventDetailsDto(
+                commentaryDto.minute(),
                 match.getCompetitionId(),
-                commentaryDto.getMessage()
+                commentaryDto.message()
         );
         return new MatchEvent(match, eventDetails);
     }
@@ -240,9 +229,8 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isCardEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.CardDto) {
-            var e = (MatchEventDetails.CardDto) event.getEvent();
-            return e.getCardedPlayer().getTeamPlayerId().equals(teamPlayerId);
+        if (event.event() instanceof CardEventDetailsDto e) {
+            return e.cardedPlayer().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -256,10 +244,9 @@ public class MatchEventService {
      * @param cardTypes one or more card types which we want to filter by
      * @return `true` if the described conditions are satisfied
      */
-    private static boolean isCardEventOfCardType(MatchEventDto event, MatchEventDetails.CardDto.CardType... cardTypes) {
-        if (event.getEvent() instanceof MatchEventDetails.CardDto) {
-            MatchEventDetails.CardDto cDto = (MatchEventDetails.CardDto) event.getEvent();
-            var foundCardType= cDto.getCardType();
+    private static boolean isCardEventOfCardType(MatchEventDto event, CardEventDetailsDto.CardType... cardTypes) {
+        if (event.event() instanceof CardEventDetailsDto cDto) {
+            var foundCardType= cDto.cardType();
             return Arrays.asList(cardTypes).contains(foundCardType);
         } else {
             return false;
@@ -285,25 +272,25 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the card cannot be given to a particular player
      * @throws ResourceNotFoundException thrown when the player involved in the card event cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processCardEvent(Match match, InsertMatchEvent.CardDto cardDto)
+    private MatchEvent processCardEvent(Match match, UpsertCardEventDto cardDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the cardedPlayerId is pre-validated
-        var cardedTeamPlayer = teamPlayerService.findEntityById(UUID.fromString(cardDto.getCardedPlayerId()));
+        var cardedTeamPlayer = teamPlayerService.findEntityById(UUID.fromString(cardDto.cardedPlayerId()));
 
         // check if the carded player is placed in the lineup of the match
         throwIfPlayerNotInLineup(match, cardedTeamPlayer);
 
         // initialize the type of the card
         // (if the target color of the card is yellow, for now assume it's the first yellow of the player)
-        MatchEventDetails.CardDto.CardType cardType = cardDto
-                .isRedCard() ?
-                MatchEventDetails.CardDto.CardType.DIRECT_RED :
-                MatchEventDetails.CardDto.CardType.YELLOW;
+        CardEventDetailsDto.CardType cardType = cardDto
+                .redCard() ?
+                CardEventDetailsDto.CardType.DIRECT_RED :
+                CardEventDetailsDto.CardType.YELLOW;
 
         // fetch all card events of the player to prepare for checking if they can even get yet another card
         var playerCardEvents = this.findAllByMatchId(match.getId()).stream()
@@ -314,8 +301,8 @@ public class MatchEventService {
             var secondYellowOrRed = playerCardEvents.stream().anyMatch(
                     e -> isCardEventOfCardType(
                             e,
-                            MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                            MatchEventDetails.CardDto.CardType.DIRECT_RED
+                            CardEventDetailsDto.CardType.SECOND_YELLOW,
+                            CardEventDetailsDto.CardType.DIRECT_RED
                     )
             );
 
@@ -327,30 +314,30 @@ public class MatchEventService {
 
             // check if the player has a single yellow card, which is important in case the target card is yellow
             var singleYellow = playerCardEvents.stream().anyMatch(
-                    e -> isCardEventOfCardType(e, MatchEventDetails.CardDto.CardType.YELLOW)
+                    e -> isCardEventOfCardType(e, CardEventDetailsDto.CardType.YELLOW)
             );
 
             // if the player already has a yellow card and receives another one - mark it as a second yellow,
             // otherwise allow direct red cards even if the player already has a yellow card
-            if (singleYellow && !cardDto.isRedCard()) {
-                cardType = MatchEventDetails.CardDto.CardType.SECOND_YELLOW;
+            if (singleYellow && !cardDto.redCard()) {
+                cardType = CardEventDetailsDto.CardType.SECOND_YELLOW;
             }
         }
 
-        var eventDetails = new MatchEventDetails.CardDto(
-                cardDto.getMinute(),
+        var eventDetails = new CardEventDetailsDto(
+                cardDto.minute(),
                 match.getCompetitionId(),
                 cardedTeamPlayer.getTeam().getId(),
                 cardType,
-                intoSerializedPlayerInfo(cardedTeamPlayer)
+                intoSerializedPlayer(cardedTeamPlayer)
         );
 
         // if a card was red (whether direct or not) - increment the counters of team's red cards
         // so that this information is available right away without having to run event counting
         // queries for both teams for every fetched match
         var redOrSecondYellow =
-                cardType.equals(MatchEventDetails.CardDto.CardType.DIRECT_RED) ||
-                        cardType.equals(MatchEventDetails.CardDto.CardType.SECOND_YELLOW);
+                cardType.equals(CardEventDetailsDto.CardType.DIRECT_RED) ||
+                        cardType.equals(CardEventDetailsDto.CardType.SECOND_YELLOW);
         if (redOrSecondYellow) {
             var homeTeamId = match.getHomeTeam().getId();
             var cardedPlayerTeamId = cardedTeamPlayer.getTeam().getId();
@@ -362,9 +349,9 @@ public class MatchEventService {
             }
 
             // globally broadcast a red card for the side which got it
-            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.RedCardEvent(
+            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalRedCardEventDto(
                     match.getId(),
-                    homeTeamCarded ? GlobalMatchEventDto.EventSide.HOME : GlobalMatchEventDto.EventSide.AWAY)
+                    homeTeamCarded ? GlobalMatchEvent.EventSide.HOME : GlobalMatchEvent.EventSide.AWAY)
             );
         }
 
@@ -387,15 +374,15 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the goal cannot be accepted
      * @throws ResourceNotFoundException thrown when any player involved in the goal cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processGoalEvent(Match match, InsertMatchEvent.GoalDto goalDto)
+    private MatchEvent processGoalEvent(Match match, UpsertGoalEventDto goalDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the scoringPlayerId is pre-validated
-        TeamPlayer scoringPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getScoringPlayerId()));
+        TeamPlayer scoringPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.scoringPlayerId()));
         // player who scored has to be on the pitch
         throwIfPlayerNotOnPitch(match, scoringPlayer);
 
@@ -403,14 +390,14 @@ public class MatchEventService {
         // are from the same team
         TeamPlayer assistingPlayer = null;
 
-        if (goalDto.getAssistingPlayerId() != null) {
+        if (goalDto.assistingPlayerId() != null) {
             // own goals cannot have assisting players, so reject the event before any checks that require db access
-            if (goalDto.isOwnGoal()) {
+            if (goalDto.ownGoal()) {
                 throw new MatchEventInvalidException("own goals cannot have a player assisting");
             }
 
             // this `UUID.fromString` should never fail because the assistingPlayerId is pre-validated when not null
-            assistingPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.getAssistingPlayerId()));
+            assistingPlayer = teamPlayerService.findEntityById(UUID.fromString(goalDto.assistingPlayerId()));
 
             // player who assisted has to be on the pitch
             throwIfPlayerNotOnPitch(match, assistingPlayer);
@@ -422,24 +409,24 @@ public class MatchEventService {
         // determine the team whose goals should be incremented
         var scoredByHomeTeam = match.getHomeTeam().equals(scoringPlayer.getTeam());
         // flip the scoring side if the goal is an own goal
-        if (goalDto.isOwnGoal()) {
+        if (goalDto.ownGoal()) {
             scoredByHomeTeam = !scoredByHomeTeam;
         }
         var scoringTeam = scoredByHomeTeam ? match.getHomeTeam() : match.getAwayTeam();
 
-        MatchEventDetails.SerializedPlayerInfo scoringPlayerInfo = intoSerializedPlayerInfo(scoringPlayer);
-        MatchEventDetails.SerializedPlayerInfo assistingPlayerInfo = null;
+        SerializedPlayer scoringPlayerInfo = intoSerializedPlayer(scoringPlayer);
+        SerializedPlayer assistingPlayerInfo = null;
         if (assistingPlayer != null) {
-            assistingPlayerInfo = intoSerializedPlayerInfo(assistingPlayer);
+            assistingPlayerInfo = intoSerializedPlayer(assistingPlayer);
         }
 
-        var eventDetails = new MatchEventDetails.GoalDto(
-                goalDto.getMinute(),
+        var eventDetails = new GoalEventDetailsDto(
+                goalDto.minute(),
                 match.getCompetitionId(),
                 scoringTeam.getId(),
                 scoringPlayerInfo,
                 assistingPlayerInfo,
-                goalDto.isOwnGoal()
+                goalDto.ownGoal()
         );
 
         incrementMatchScoreline(match, scoredByHomeTeam);
@@ -463,19 +450,19 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the substitution cannot be completed
      * @throws ResourceNotFoundException thrown when any player involved in the substitution cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processSubstitutionEvent(Match match, InsertMatchEvent.SubstitutionDto substitutionDto)
+    private MatchEvent processSubstitutionEvent(Match match, UpsertSubstitutionEventDto substitutionDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the playerInId is pre-validated
-        TeamPlayer playerIn = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.getPlayerInId()));
+        TeamPlayer playerIn = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.playerInId()));
         throwIfPlayerNotInLineup(match, playerIn);
 
         // this `UUID.fromString` should never fail because the playerOutId is pre-validated
-        TeamPlayer playerOut = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.getPlayerOutId()));
+        TeamPlayer playerOut = teamPlayerService.findEntityById(UUID.fromString(substitutionDto.playerOutId()));
         throwIfPlayerNotInLineup(match, playerOut);
 
         // make sure that both players - in and out - are from the same team
@@ -493,14 +480,14 @@ public class MatchEventService {
         //      * have been on the pitch from the start or got subbed on during the match
         throwIfPlayerNotOnPitch(match, playerOut);
 
-        MatchEventDetails.SerializedPlayerInfo playerInInfo =
-                intoSerializedPlayerInfo(playerIn);
+        SerializedPlayer playerInInfo =
+                intoSerializedPlayer(playerIn);
 
-        MatchEventDetails.SerializedPlayerInfo playerOutInfo =
-                intoSerializedPlayerInfo(playerOut);
+        SerializedPlayer playerOutInfo =
+                intoSerializedPlayer(playerOut);
 
-        var eventDetails = new MatchEventDetails.SubstitutionDto(
-                substitutionDto.getMinute(),
+        var eventDetails = new SubstitutionEventDetailsDto(
+                substitutionDto.minute(),
                 match.getCompetitionId(),
                 playerIn.getTeam().getId(),
                 playerInInfo,
@@ -536,15 +523,15 @@ public class MatchEventService {
      * @return match event that is ready to be saved
      * @throws MatchEventInvalidException thrown when the penalty cannot be accepted
      * @throws ResourceNotFoundException thrown when the player involved in the penalty cannot be found in the database
-     * (this should never happen as long as the event dto's pre-validation step is being triggered on the controller's side)
+     * (this should never happen as long as the event dto pre-validation step is being triggered on the controller's side)
      */
-    private MatchEvent processPenaltyEvent(Match match, InsertMatchEvent.PenaltyDto penaltyDto)
+    private MatchEvent processPenaltyEvent(Match match, UpsertPenaltyEventDto penaltyDto)
             throws MatchEventInvalidException, ResourceNotFoundException {
 
         throwIfBallNotInPlay(match);
 
         // this `UUID.fromString` should never fail because the shootingPlayerId is pre-validated
-        TeamPlayer shootingPlayer = teamPlayerService.findEntityById(UUID.fromString(penaltyDto.getShootingPlayerId()));
+        TeamPlayer shootingPlayer = teamPlayerService.findEntityById(UUID.fromString(penaltyDto.shootingPlayerId()));
 
         // player shooting must be on the pitch
         throwIfPlayerNotOnPitch(match, shootingPlayer);
@@ -556,17 +543,17 @@ public class MatchEventService {
         var scoredByHomeTeam = match.getHomeTeam().equals(shootingPlayer.getTeam());
 
         // update the scoreline only if the penalty is scored
-        if (penaltyDto.isScored()) {
+        if (penaltyDto.scored()) {
             incrementMatchScoreline(match, scoredByHomeTeam);
         }
 
-        var eventDetails = new MatchEventDetails.PenaltyDto(
-                penaltyDto.getMinute(),
+        var eventDetails = new PenaltyEventDetailsDto(
+                penaltyDto.minute(),
                 match.getCompetitionId(),
                 shootingPlayer.getTeam().getId(),
-                intoSerializedPlayerInfo(shootingPlayer),
+                intoSerializedPlayer(shootingPlayer),
                 !duringPenaltyShootout,
-                penaltyDto.isScored()
+                penaltyDto.scored()
         );
 
         return new MatchEvent(match, eventDetails);
@@ -609,11 +596,11 @@ public class MatchEventService {
         }
 
         var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(teamPlayerTeam) ? lineup.getHome() : lineup.getAway();
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(teamPlayerTeam) ? lineup.home() : lineup.away();
 
         var playerInLineup = Stream.concat(
-                teamLineup.getStartingPlayers().stream(),
-                teamLineup.getSubstitutePlayers().stream()
+                teamLineup.startingPlayers().stream(),
+                teamLineup.substitutePlayers().stream()
         ).anyMatch(tPlayer -> tPlayer.getId().equals(teamPlayer.getId()));
 
         if (!playerInLineup) {
@@ -667,8 +654,8 @@ public class MatchEventService {
                 .anyMatch(
                         e -> isCardEventOfCardType(
                                 e,
-                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                                CardEventDetailsDto.CardType.SECOND_YELLOW,
+                                CardEventDetailsDto.CardType.DIRECT_RED
                         )
                 );
         if (sentOff) {
@@ -683,11 +670,11 @@ public class MatchEventService {
         }
 
         var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.home() : lineup.away();
 
         boolean substitutedOn = matchEvents.stream().anyMatch(
                 e -> isSubstitutionOnEventOfPlayer(e, player.getId()));
-        boolean startingPlayer = teamLineup.getStartingPlayers().stream().anyMatch(
+        boolean startingPlayer = teamLineup.startingPlayers().stream().anyMatch(
                 teamPlayer -> teamPlayer.getId().equals(player.getId()));
 
         if (!(startingPlayer || substitutedOn)) {
@@ -719,9 +706,9 @@ public class MatchEventService {
         );
 
         var lineup = matchService.findMatchLineup(match.getId());
-        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.getHome() : lineup.getAway();
+        LineupDto.TeamLineup teamLineup = match.getHomeTeam().equals(player.getTeam()) ? lineup.home() : lineup.away();
 
-        boolean substitutePlayer= teamLineup.getSubstitutePlayers().stream()
+        boolean substitutePlayer= teamLineup.substitutePlayers().stream()
                 .anyMatch(teamPlayer -> teamPlayer.getId().equals(player.getId()));
         // a player who started the game on the pitch cannot be subbed on in the game
         if (!substitutePlayer) {
@@ -733,8 +720,8 @@ public class MatchEventService {
                 .anyMatch(
                         e -> isCardEventOfCardType(
                                 e,
-                                MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                                MatchEventDetails.CardDto.CardType.DIRECT_RED
+                                CardEventDetailsDto.CardType.SECOND_YELLOW,
+                                CardEventDetailsDto.CardType.DIRECT_RED
                         )
                 );
         // if the player got two yellows or a red while on the bench, they cannot be subbed on
@@ -760,9 +747,8 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOffEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
-            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
-            return e.getPlayerOut().getTeamPlayerId().equals(teamPlayerId);
+        if (event.event() instanceof SubstitutionEventDetailsDto e) {
+            return e.playerOut().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -777,9 +763,8 @@ public class MatchEventService {
      * @return `true` if the described conditions are satisfied
      */
     private static boolean isSubstitutionOnEventOfPlayer(MatchEventDto event, UUID teamPlayerId) {
-        if (event.getEvent() instanceof MatchEventDetails.SubstitutionDto) {
-            var e = (MatchEventDetails.SubstitutionDto) event.getEvent();
-            return e.getPlayerIn().getTeamPlayerId().equals(teamPlayerId);
+        if (event.event() instanceof SubstitutionEventDetailsDto e) {
+            return e.playerIn().teamPlayerId().equals(teamPlayerId);
         } else {
             return false;
         }
@@ -820,9 +805,9 @@ public class MatchEventService {
             }
 
             // globally broadcast a goal being scored
-            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalMatchEventDto.GoalEvent(
+            matchEventWebsocketService.sendGlobalMatchEvent(new GlobalGoalEventDto(
                     match.getId(),
-                    homeGoal ? GlobalMatchEventDto.EventSide.HOME : GlobalMatchEventDto.EventSide.AWAY
+                    homeGoal ? GlobalMatchEvent.EventSide.HOME : GlobalMatchEvent.EventSide.AWAY
             ));
         }
     }
@@ -834,8 +819,8 @@ public class MatchEventService {
      * @param teamPlayer an entity to convert
      * @return converted entity
      */
-    private MatchEventDetails.SerializedPlayerInfo intoSerializedPlayerInfo(TeamPlayer teamPlayer) {
-        return new MatchEventDetails.SerializedPlayerInfo(
+    private SerializedPlayer intoSerializedPlayer(TeamPlayer teamPlayer) {
+        return new SerializedPlayer(
             teamPlayer.getId(),
             teamPlayer.getPlayer().getId(),
             teamPlayer.getPlayer().getName()

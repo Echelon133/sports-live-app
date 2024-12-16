@@ -915,14 +915,14 @@ public class MatchServiceTests {
         var lineup = matchService.findMatchLineup(matchId);
 
         // then
-        var homeLineup = lineup.getHome();
-        var awayLineup = lineup.getAway();
-        assertEquals(homeStartingPlayer.getId(), homeLineup.getStartingPlayers().get(0).getId());
-        assertEquals(homeSubstitutePlayer.getId(), homeLineup.getSubstitutePlayers().get(0).getId());
-        assertEquals(awayStartingPlayer.getId(), awayLineup.getStartingPlayers().get(0).getId());
-        assertEquals(awaySubstitutePlayer.getId(), awayLineup.getSubstitutePlayers().get(0).getId());
-        assertEquals(homeFormation, homeLineup.getFormation());
-        assertEquals(awayFormation, awayLineup.getFormation());
+        var homeLineup = lineup.home();
+        var awayLineup = lineup.away();
+        assertEquals(homeStartingPlayer.getId(), homeLineup.startingPlayers().get(0).getId());
+        assertEquals(homeSubstitutePlayer.getId(), homeLineup.substitutePlayers().get(0).getId());
+        assertEquals(awayStartingPlayer.getId(), awayLineup.startingPlayers().get(0).getId());
+        assertEquals(awaySubstitutePlayer.getId(), awayLineup.substitutePlayers().get(0).getId());
+        assertEquals(homeFormation, homeLineup.formation());
+        assertEquals(awayFormation, awayLineup.formation());
     }
 
     @Test
@@ -935,7 +935,7 @@ public class MatchServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateHomeLineup(matchId, new UpsertLineupDto());
+            matchService.updateHomeLineup(matchId, new UpsertLineupDto(null, null, null));
         }).getMessage();
 
         // then
@@ -953,7 +953,7 @@ public class MatchServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateHomeLineup(matchId, new UpsertLineupDto());
+            matchService.updateHomeLineup(matchId, new UpsertLineupDto(null, null, null));
         }).getMessage();
 
         // then
@@ -986,7 +986,7 @@ public class MatchServiceTests {
         // when
         String message = assertThrows(LineupPlayerInvalidException.class, () -> {
             matchService.updateHomeLineup(matchId, new UpsertLineupDto(
-                    startingHomeTeamPlayers, List.of()
+                    startingHomeTeamPlayers, List.of(), null
             ));
         }).getMessage();
 
@@ -1020,7 +1020,7 @@ public class MatchServiceTests {
         // when
         String message = assertThrows(LineupPlayerInvalidException.class, () -> {
             matchService.updateHomeLineup(matchId, new UpsertLineupDto(
-                    List.of(), substituteHomeTeamPlayers
+                    List.of(), substituteHomeTeamPlayers, null
             ));
         }).getMessage();
 
@@ -1089,7 +1089,7 @@ public class MatchServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateAwayLineup(matchId, new UpsertLineupDto());
+            matchService.updateAwayLineup(matchId, new UpsertLineupDto(null, null, null));
         }).getMessage();
 
         // then
@@ -1107,7 +1107,7 @@ public class MatchServiceTests {
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
-            matchService.updateAwayLineup(matchId, new UpsertLineupDto());
+            matchService.updateAwayLineup(matchId, new UpsertLineupDto(null, null, null));
         }).getMessage();
 
         // then
@@ -1140,7 +1140,7 @@ public class MatchServiceTests {
         // when
         String message = assertThrows(LineupPlayerInvalidException.class, () -> {
             matchService.updateAwayLineup(matchId, new UpsertLineupDto(
-                    startingAwayTeamPlayers, List.of()
+                    startingAwayTeamPlayers, List.of(), null
             ));
         }).getMessage();
 
@@ -1174,7 +1174,7 @@ public class MatchServiceTests {
         // when
         String message = assertThrows(LineupPlayerInvalidException.class, () -> {
             matchService.updateAwayLineup(matchId, new UpsertLineupDto(
-                    List.of(), substituteAwayTeamPlayers
+                    List.of(), substituteAwayTeamPlayers, null
             ));
         }).getMessage();
 

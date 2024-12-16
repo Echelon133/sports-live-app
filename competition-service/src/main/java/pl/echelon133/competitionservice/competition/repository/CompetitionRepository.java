@@ -22,9 +22,11 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl " +
-                    "FROM competition c " +
-                    "WHERE c.id = :competitionId AND c.deleted = false",
+            value = """
+                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl \
+                    FROM competition c \
+                    WHERE c.id = :competitionId AND c.deleted = false \
+                    """,
             nativeQuery = true
     )
     Optional<CompetitionDto> findCompetitionById(UUID competitionId);
@@ -48,9 +50,11 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl " +
-                    "FROM competition c " +
-                    "WHERE LOWER(c.name) LIKE '%' || LOWER(:phrase) || '%' AND c.deleted = false",
+            value = """
+                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl \
+                    FROM competition c \
+                    WHERE LOWER(c.name) LIKE '%' || LOWER(:phrase) || '%' AND c.deleted = false \
+                    """,
             countQuery = "SELECT COUNT(*) FROM competition WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             nativeQuery = true
     )
@@ -65,15 +69,14 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
      * @return a page containing player statistics
      */
     @Query(
-            value = "SELECT CAST(ps.player_id as varchar) as playerId, CAST(ps.team_id as varchar) as teamId, " +
-                    "ps.name as name, ps.goals as goals, ps.assists as assists, ps.yellow_cards as yellowCards, ps.red_cards as redCards " +
-                    "FROM player_stats ps " +
-                    "WHERE ps.competition_id = :competitionId " +
-                    "ORDER BY ps.goals DESC, ps.assists DESC",
-            countQuery =
-                    "SELECT COUNT(*) " +
-                    "FROM player_stats ps " +
-                    "WHERE ps.competition_id = :competitionId ",
+            value = """
+                    SELECT CAST(ps.player_id as varchar) as playerId, CAST(ps.team_id as varchar) as teamId, \
+                    ps.name as name, ps.goals as goals, ps.assists as assists, ps.yellow_cards as yellowCards, ps.red_cards as redCards \
+                    FROM player_stats ps \
+                    WHERE ps.competition_id = :competitionId \
+                    ORDER BY ps.goals DESC, ps.assists DESC \
+                    """,
+            countQuery = "SELECT COUNT(*) FROM player_stats ps WHERE ps.competition_id = :competitionId",
             nativeQuery = true
     )
     Page<PlayerStatsDto> findPlayerStats(UUID competitionId, Pageable pageable);

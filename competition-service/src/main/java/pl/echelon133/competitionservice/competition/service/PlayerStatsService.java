@@ -10,7 +10,7 @@ import pl.echelon133.competitionservice.competition.model.PlayerStats;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
 import pl.echelon133.competitionservice.competition.repository.PlayerStatsRepository;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.UUID;
 
 @Service

@@ -124,12 +124,12 @@ public class VenueServiceTests {
     public void createVenue_ValidDto_CorrectlySavesAndReturns() {
         var idToSave = UUID.randomUUID();
         var initialDto = new UpsertVenueDto("Alianz Arena", 75024);
-        var entity = new Venue(initialDto.getName(), initialDto.getCapacity());
+        var entity = new Venue(initialDto.name(), initialDto.capacity());
         entity.setId(idToSave);
 
         // given
         given(venueRepository.save(argThat(v ->
-                v.getName().equals(initialDto.getName()) && v.getCapacity().equals(initialDto.getCapacity())
+                v.getName().equals(initialDto.name()) && v.getCapacity().equals(initialDto.capacity())
         ))).willReturn(entity);
 
         // when

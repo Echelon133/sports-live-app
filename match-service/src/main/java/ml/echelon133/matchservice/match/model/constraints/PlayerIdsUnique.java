@@ -2,10 +2,10 @@ package ml.echelon133.matchservice.match.model.constraints;
 
 import ml.echelon133.matchservice.match.model.UpsertLineupDto;
 
-import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -24,8 +24,8 @@ public @interface PlayerIdsUnique {
 
         @Override
         public boolean isValid(UpsertLineupDto upsertLineupDto, ConstraintValidatorContext constraintValidatorContext) {
-            var startingPlayers = upsertLineupDto.getStartingPlayers();
-            var substitutePlayers = upsertLineupDto.getSubstitutePlayers();
+            var startingPlayers = upsertLineupDto.startingPlayers();
+            var substitutePlayers = upsertLineupDto.substitutePlayers();
 
             // let @NotNull handle these
             if (startingPlayers == null || substitutePlayers == null) {

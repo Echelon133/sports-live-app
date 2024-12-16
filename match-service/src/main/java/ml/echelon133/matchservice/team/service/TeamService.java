@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -71,13 +71,13 @@ public class TeamService {
                 .filter(p -> !p.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Team.class, id));
 
-        teamToUpdate.setName(teamDto.getName());
-        teamToUpdate.setCrestUrl(teamDto.getCrestUrl());
+        teamToUpdate.setName(teamDto.name());
+        teamToUpdate.setCrestUrl(teamDto.crestUrl());
 
-        teamToUpdate.setCountryCode(teamDto.getCountryCode());
+        teamToUpdate.setCountryCode(teamDto.countryCode());
 
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
-        var coachId = UUID.fromString(teamDto.getCoachId());
+        var coachId = UUID.fromString(teamDto.coachId());
         var coach = coachService.findEntityById(coachId);
         teamToUpdate.setCoach(coach);
 
@@ -96,10 +96,10 @@ public class TeamService {
      */
     public TeamDto createTeam(UpsertTeamDto teamDto) throws ResourceNotFoundException {
         // this `UUID.fromString` should never fail because the CoachId value is pre-validated
-        var coachId = UUID.fromString(teamDto.getCoachId());
+        var coachId = UUID.fromString(teamDto.coachId());
         var coach = coachService.findEntityById(coachId);
 
-        var team = new Team(teamDto.getName(), teamDto.getCrestUrl(), teamDto.getCountryCode(), coach);
+        var team = new Team(teamDto.name(), teamDto.crestUrl(), teamDto.countryCode(), coach);
         return TeamMapper.entityToDto(teamRepository.save(team));
     }
 
@@ -179,8 +179,8 @@ public class TeamService {
             symbol = 'D';
         } else {
             // either HOME_WIN or AWAY_WIN
-            var homeWin = matchResult.equals(MatchResult.HOME_WIN) && matchDetails.getHomeTeam().getId().equals(teamId);
-            var awayWin = matchResult.equals(MatchResult.AWAY_WIN) && matchDetails.getAwayTeam().getId().equals(teamId);
+            var homeWin = matchResult.equals(MatchResult.HOME_WIN) && matchDetails.getHomeTeam().id().equals(teamId);
+            var awayWin = matchResult.equals(MatchResult.AWAY_WIN) && matchDetails.getAwayTeam().id().equals(teamId);
             if (homeWin || awayWin) {
                 symbol = 'W';
             } else {

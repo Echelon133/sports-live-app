@@ -1,17 +1,14 @@
 package ml.echelon133.matchservice.match.controller;
 
+import jakarta.validation.ConstraintValidator;
 import ml.echelon133.common.exception.ResourceNotFoundException;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
-import ml.echelon133.matchservice.match.model.LineupDto;
-import ml.echelon133.matchservice.match.model.MatchDto;
 import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
+import ml.echelon133.matchservice.match.TestLineupDto;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
 import ml.echelon133.matchservice.match.controller.validators.MatchCriteriaValidator;
-import ml.echelon133.matchservice.match.model.Match;
-import ml.echelon133.matchservice.match.model.UpsertLineupDto;
-import ml.echelon133.matchservice.match.model.UpsertMatchDto;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.referee.constraints.RefereeExists;
 import ml.echelon133.matchservice.referee.repository.RefereeRepository;
@@ -36,11 +33,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import javax.validation.ConstraintValidator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -467,9 +466,9 @@ public class MatchControllerTests {
         var expectedJson = jsonMatchDto.write(expectedDto).getJson();
 
         var contentDto = TestUpsertMatchDto.builder()
-                .homeTeamId(expectedDto.getHomeTeam().getId().toString())
+                .homeTeamId(expectedDto.getHomeTeam().id().toString())
                 .startTimeUTC("2023/01/01 19:00")
-                .awayTeamId(expectedDto.getAwayTeam().getId().toString())
+                .awayTeamId(expectedDto.getAwayTeam().id().toString())
                 .venueId(expectedDto.getVenue().getId().toString())
                 .refereeId(expectedDto.getReferee().getId().toString())
                 .competitionId(expectedDto.getCompetitionId().toString())
@@ -482,12 +481,12 @@ public class MatchControllerTests {
         given(venueRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(refereeRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(matchService.createMatch(argThat(m ->
-                m.getHomeTeamId().equals(contentDto.getHomeTeamId()) &&
-                m.getAwayTeamId().equals(contentDto.getAwayTeamId()) &&
-                m.getVenueId().equals(contentDto.getVenueId()) &&
-                m.getRefereeId().equals(contentDto.getRefereeId()) &&
-                m.getCompetitionId().equals(contentDto.getCompetitionId()) &&
-                m.getStartTimeUTC().equals(contentDto.getStartTimeUTC())
+                m.homeTeamId().equals(contentDto.homeTeamId()) &&
+                m.awayTeamId().equals(contentDto.awayTeamId()) &&
+                m.venueId().equals(contentDto.venueId()) &&
+                m.refereeId().equals(contentDto.refereeId()) &&
+                m.competitionId().equals(contentDto.competitionId()) &&
+                m.startTimeUTC().equals(contentDto.startTimeUTC())
         ))).willReturn(expectedDto);
 
         // when
@@ -866,9 +865,9 @@ public class MatchControllerTests {
         var expectedJson = jsonMatchDto.write(expectedDto).getJson();
 
         var contentDto = TestUpsertMatchDto.builder()
-                .homeTeamId(expectedDto.getHomeTeam().getId().toString())
+                .homeTeamId(expectedDto.getHomeTeam().id().toString())
                 .startTimeUTC("2023/01/01 19:00")
-                .awayTeamId(expectedDto.getAwayTeam().getId().toString())
+                .awayTeamId(expectedDto.getAwayTeam().id().toString())
                 .venueId(expectedDto.getVenue().getId().toString())
                 .refereeId(expectedDto.getReferee().getId().toString())
                 .competitionId(expectedDto.getCompetitionId().toString())
@@ -883,12 +882,12 @@ public class MatchControllerTests {
         given(matchService.updateMatch(
                 eq(matchId),
                 argThat(m ->
-                    m.getHomeTeamId().equals(contentDto.getHomeTeamId()) &&
-                    m.getAwayTeamId().equals(contentDto.getAwayTeamId()) &&
-                    m.getVenueId().equals(contentDto.getVenueId()) &&
-                    m.getRefereeId().equals(contentDto.getRefereeId()) &&
-                    m.getCompetitionId().equals(contentDto.getCompetitionId()) &&
-                    m.getStartTimeUTC().equals(contentDto.getStartTimeUTC()))
+                    m.homeTeamId().equals(contentDto.homeTeamId()) &&
+                    m.awayTeamId().equals(contentDto.awayTeamId()) &&
+                    m.venueId().equals(contentDto.venueId()) &&
+                    m.refereeId().equals(contentDto.refereeId()) &&
+                    m.competitionId().equals(contentDto.competitionId()) &&
+                    m.startTimeUTC().equals(contentDto.startTimeUTC()))
         )).willReturn(expectedDto);
 
         // when
@@ -1189,7 +1188,7 @@ public class MatchControllerTests {
         var matchId = UUID.randomUUID();
 
         // given
-        given(matchService.findMatchLineup(matchId)).willReturn(new LineupDto());
+        given(matchService.findMatchLineup(matchId)).willReturn(TestLineupDto.builder().build());
 
         // when
         mvc.perform(
@@ -1209,7 +1208,7 @@ public class MatchControllerTests {
     public void updateHomeLineup_StartingPlayersNotProvided_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
         var json = jsonUpsertLineupDto.write(
-                new UpsertLineupDto(null, null)
+                new UpsertLineupDto(null, null, null)
         ).getJson();
 
         mvc.perform(
@@ -1228,7 +1227,7 @@ public class MatchControllerTests {
     public void updateHomeLineup_SubstitutePlayersNotProvided_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
         var json = jsonUpsertLineupDto.write(
-                new UpsertLineupDto(null, null)
+                new UpsertLineupDto(null, null, null)
         ).getJson();
 
         mvc.perform(
@@ -1254,7 +1253,7 @@ public class MatchControllerTests {
         for (int howManyPlayers : numbersOfStartingPlayers) {
             List<String> startingPlayerIds = generateRandomStringIds(howManyPlayers);
             var json = jsonUpsertLineupDto.write(
-                    new UpsertLineupDto(startingPlayerIds, List.of())
+                    new UpsertLineupDto(startingPlayerIds, List.of(), null)
             ).getJson();
 
             mvc.perform(
@@ -1279,7 +1278,7 @@ public class MatchControllerTests {
         startingPlayers.add("some-invalid-uuid");
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, List.of()
+                startingPlayers, List.of(), null
         )).getJson();
 
         // given
@@ -1307,7 +1306,7 @@ public class MatchControllerTests {
         substitutePlayers.add("some-invalid-uuid");
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                List.of(), substitutePlayers
+                List.of(), substitutePlayers, null
         )).getJson();
 
         // given
@@ -1334,7 +1333,7 @@ public class MatchControllerTests {
         List<String> duplicateStartingPlayers = Collections.nCopies(11, teamPlayerId);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                duplicateStartingPlayers, List.of()
+                duplicateStartingPlayers, List.of(), null
         )).getJson();
 
         // when
@@ -1358,7 +1357,7 @@ public class MatchControllerTests {
         List<String> duplicateSubstitutePlayers = Collections.nCopies(11, teamPlayerId);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                List.of(), duplicateSubstitutePlayers
+                List.of(), duplicateSubstitutePlayers, null
         )).getJson();
 
         // when
@@ -1388,7 +1387,7 @@ public class MatchControllerTests {
         substitutePlayers.add(duplicatePlayerId);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, substitutePlayers
+                startingPlayers, substitutePlayers, null
         )).getJson();
 
         // given
@@ -1417,7 +1416,7 @@ public class MatchControllerTests {
         startingPlayers.add(notFoundTeamPlayerId.toString());
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, List.of()
+                startingPlayers, List.of(), null
         )).getJson();
 
         // given
@@ -1450,7 +1449,7 @@ public class MatchControllerTests {
         substitutePlayers.add(notFoundTeamPlayerId.toString());
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                List.of(), substitutePlayers
+                List.of(), substitutePlayers, null
         )).getJson();
 
         // given
@@ -1481,7 +1480,7 @@ public class MatchControllerTests {
         List<String> substitutePlayers = generateRandomStringIds(5);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, substitutePlayers
+                startingPlayers, substitutePlayers, null
         )).getJson();
 
         // given
@@ -1489,7 +1488,7 @@ public class MatchControllerTests {
         doThrow(new ResourceNotFoundException(Match.class, matchId)).when(matchService)
                 .updateHomeLineup(
                         eq(matchId),
-                        argThat(dto -> dto.getStartingPlayers().size() == 11 && dto.getSubstitutePlayers().size() == 5)
+                        argThat(dto -> dto.startingPlayers().size() == 11 && dto.substitutePlayers().size() == 5)
                 );
 
         // when
@@ -1582,7 +1581,7 @@ public class MatchControllerTests {
         List<String> substitutePlayers = generateRandomStringIds(5);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, substitutePlayers
+                startingPlayers, substitutePlayers, null
         )).getJson();
 
         // given
@@ -1603,7 +1602,7 @@ public class MatchControllerTests {
     public void updateAwayLineup_StartingPlayersNotProvided_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
         var json = jsonUpsertLineupDto.write(
-                new UpsertLineupDto(null, null)
+                new UpsertLineupDto(null, null, null)
         ).getJson();
 
         mvc.perform(
@@ -1622,7 +1621,7 @@ public class MatchControllerTests {
     public void updateAwayLineup_SubstitutePlayersNotProvided_StatusUnprocessableEntity() throws Exception {
         var matchId = UUID.randomUUID();
         var json = jsonUpsertLineupDto.write(
-                new UpsertLineupDto(null, null)
+                new UpsertLineupDto(null, null, null)
         ).getJson();
 
         mvc.perform(
@@ -1648,7 +1647,7 @@ public class MatchControllerTests {
         for (int howManyPlayers : numbersOfStartingPlayers) {
             List<String> startingPlayerIds = generateRandomStringIds(howManyPlayers);
             var json = jsonUpsertLineupDto.write(
-                    new UpsertLineupDto(startingPlayerIds, List.of())
+                    new UpsertLineupDto(startingPlayerIds, List.of(), null)
             ).getJson();
 
             mvc.perform(
@@ -1673,7 +1672,7 @@ public class MatchControllerTests {
         startingPlayers.add("some-invalid-uuid");
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, List.of()
+                startingPlayers, List.of(), null
         )).getJson();
 
         // given
@@ -1701,7 +1700,7 @@ public class MatchControllerTests {
         substitutePlayers.add("some-invalid-uuid");
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                List.of(), substitutePlayers
+                List.of(), substitutePlayers, null
         )).getJson();
 
         // given
@@ -1728,7 +1727,7 @@ public class MatchControllerTests {
         List<String> duplicateStartingPlayers = Collections.nCopies(11, teamPlayerId);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                duplicateStartingPlayers, List.of()
+                duplicateStartingPlayers, List.of(), null
         )).getJson();
 
         // when
@@ -1752,7 +1751,7 @@ public class MatchControllerTests {
         List<String> duplicateSubstitutePlayers = Collections.nCopies(11, teamPlayerId);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                List.of(), duplicateSubstitutePlayers
+                List.of(), duplicateSubstitutePlayers, null
         )).getJson();
 
         // when
@@ -1782,7 +1781,7 @@ public class MatchControllerTests {
         substitutePlayers.add(duplicatePlayerId);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, substitutePlayers
+                startingPlayers, substitutePlayers, null
         )).getJson();
 
         // given
@@ -1811,7 +1810,7 @@ public class MatchControllerTests {
         startingPlayers.add(notFoundTeamPlayerId.toString());
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, List.of()
+                startingPlayers, List.of(), null
         )).getJson();
 
         // given
@@ -1844,7 +1843,7 @@ public class MatchControllerTests {
         substitutePlayers.add(notFoundTeamPlayerId.toString());
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                List.of(), substitutePlayers
+                List.of(), substitutePlayers, null
         )).getJson();
 
         // given
@@ -1874,7 +1873,7 @@ public class MatchControllerTests {
         List<String> startingPlayers = generateRandomStringIds(11);
         List<String> substitutePlayers = generateRandomStringIds(5);
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, substitutePlayers
+                startingPlayers, substitutePlayers, null
         )).getJson();
 
         // given
@@ -1882,7 +1881,7 @@ public class MatchControllerTests {
         doThrow(new ResourceNotFoundException(Match.class, matchId)).when(matchService)
                 .updateAwayLineup(
                         eq(matchId),
-                        argThat(dto -> dto.getStartingPlayers().size() == 11 && dto.getSubstitutePlayers().size() == 5)
+                        argThat(dto -> dto.startingPlayers().size() == 11 && dto.substitutePlayers().size() == 5)
                 );
 
         // when
@@ -1975,7 +1974,7 @@ public class MatchControllerTests {
         List<String> substitutePlayers = generateRandomStringIds(5);
 
         var json = jsonUpsertLineupDto.write(new UpsertLineupDto(
-                startingPlayers, substitutePlayers
+                startingPlayers, substitutePlayers, null
         )).getJson();
 
         // given

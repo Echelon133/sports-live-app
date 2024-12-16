@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.UUID;
 
 @Service
@@ -71,8 +71,8 @@ public class VenueService {
                 .filter(v -> !v.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Venue.class, id));
 
-        venueToUpdate.setName(venueDto.getName());
-        venueToUpdate.setCapacity(venueDto.getCapacity());
+        venueToUpdate.setName(venueDto.name());
+        venueToUpdate.setCapacity(venueDto.capacity());
 
         return entityToDto(venueRepository.save(venueToUpdate));
     }
@@ -89,7 +89,7 @@ public class VenueService {
     public VenueDto createVenue(UpsertVenueDto venueDto) {
         return entityToDto(
                 venueRepository
-                        .save(new Venue(venueDto.getName(), venueDto.getCapacity()))
+                        .save(new Venue(venueDto.name(), venueDto.capacity()))
         );
     }
 

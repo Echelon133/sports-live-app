@@ -194,7 +194,7 @@ public class VenueControllerTests {
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
             doReturn(dto).when(venueService).createVenue(
-                    argThat(v -> v.getName().equals(contentDto.getName()) && v.getCapacity().intValue() == contentDto.getCapacity().intValue())
+                    argThat(v -> v.name().equals(contentDto.name()) && v.capacity().intValue() == contentDto.capacity().intValue())
             );
 
             mvc.perform(
@@ -343,7 +343,7 @@ public class VenueControllerTests {
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
             doReturn(dto).when(venueService).updateVenue(
                     eq(id),
-                    argThat(v -> v.getName().equals(contentDto.getName()) && v.getCapacity().intValue() == contentDto.getCapacity().intValue())
+                    argThat(v -> v.name().equals(contentDto.name()) && v.capacity().intValue() == contentDto.capacity().intValue())
             );
 
             mvc.perform(
@@ -375,8 +375,9 @@ public class VenueControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<VenueDto> expectedPage = Page.empty();
+        Page<VenueDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(venueService.findVenuesByName(

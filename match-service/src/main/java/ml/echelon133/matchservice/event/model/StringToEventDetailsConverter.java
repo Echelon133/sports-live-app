@@ -9,8 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 
 @Converter
 public class StringToEventDetailsConverter implements AttributeConverter<MatchEventDetails, String> {
@@ -29,7 +29,7 @@ public class StringToEventDetailsConverter implements AttributeConverter<MatchEv
         try {
             result = objectMapper.writeValueAsString(baseEventDto);
         } catch (JsonProcessingException ex) {
-            logger.error("failed serialization of event of type " + baseEventDto.getType());
+            logger.error("failed serialization of event of type " + baseEventDto.getClass());
         }
         return result;
     }

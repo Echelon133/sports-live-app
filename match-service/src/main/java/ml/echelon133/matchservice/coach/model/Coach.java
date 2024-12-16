@@ -2,8 +2,8 @@ package ml.echelon133.matchservice.coach.model;
 
 import ml.echelon133.common.entity.BaseEntity;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
 
 @Entity
 public class Coach extends BaseEntity {

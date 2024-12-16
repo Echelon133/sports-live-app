@@ -21,13 +21,15 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, " +
-                    "CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, " +
-                    "p.country_code as countryCode " +
-                    "FROM team_player tp " +
-                    "JOIN team t ON tp.team_id = t.id " +
-                    "JOIN player p ON tp.player_id = p.id " +
-                    "WHERE tp.deleted = false AND tp.team_id = :teamId AND t.deleted = false AND p.deleted = false",
+            value = """
+                    SELECT CAST(tp.id as varchar) as id, tp.position as position, tp.number as number, \
+                    CAST(p.id as varchar) as playerId, p.name as name, p.date_of_birth as dateOfBirth, \
+                    p.country_code as countryCode \
+                    FROM team_player tp \
+                    JOIN team t ON tp.team_id = t.id \
+                    JOIN player p ON tp.player_id = p.id \
+                    WHERE tp.deleted = false AND tp.team_id = :teamId AND t.deleted = false AND p.deleted = false \
+                    """,
             nativeQuery = true
     )
     List<TeamPlayerDto> findAllPlayersByTeamId(UUID teamId);
@@ -40,14 +42,16 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, " +
-                    "t.country_code as countryCode, " +
-                    "CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted " +
-                    "FROM team t " +
-                    "JOIN coach coa ON t.coach_id = coa.id " +
-                    "JOIN team_player tp ON tp.team_id = t.id " +
-                    "JOIN player p ON tp.player_id = p.id " +
-                    "WHERE tp.deleted = false AND t.deleted = false AND tp.player_id = :playerId AND p.deleted = false",
+            value = """
+                    SELECT CAST(t.id as varchar) as id, t.name as name, t.crest_url as crestUrl, \
+                    t.country_code as countryCode, \
+                    CAST(coa.id as varchar) as coachId, coa.name as coachName, coa.deleted as coachDeleted \
+                    FROM team t \
+                    JOIN coach coa ON t.coach_id = coa.id \
+                    JOIN team_player tp ON tp.team_id = t.id \
+                    JOIN player p ON tp.player_id = p.id \
+                    WHERE tp.deleted = false AND t.deleted = false AND tp.player_id = :playerId AND p.deleted = false \
+                    """,
             nativeQuery = true
     )
     List<TeamDto> findAllTeamsOfPlayerByPlayerId(UUID playerId);
@@ -69,11 +73,13 @@ public interface TeamPlayerRepository extends JpaRepository<TeamPlayer, UUID> {
      * @return true if the number is already taken, otherwise false
      */
     @Query(
-            value = "SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END " +
-                    "FROM team_player tp " +
-                    "JOIN team t ON tp.team_id = t.id " +
-                    "JOIN player p ON tp.player_id = p.id " +
-                    "WHERE tp.team_id = :teamId AND tp.number = :numberToCheck AND p.deleted = false AND t.deleted = false",
+            value = """
+                    SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END \
+                    FROM team_player tp \
+                    JOIN team t ON tp.team_id = t.id \
+                    JOIN player p ON tp.player_id = p.id \
+                    WHERE tp.team_id = :teamId AND tp.number = :numberToCheck AND p.deleted = false AND t.deleted = false \
+                    """,
             nativeQuery = true
     )
     boolean teamHasPlayerWithNumber(UUID teamId, Integer numberToCheck);

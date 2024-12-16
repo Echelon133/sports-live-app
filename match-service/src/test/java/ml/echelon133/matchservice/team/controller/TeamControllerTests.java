@@ -34,7 +34,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import javax.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidator;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -373,17 +373,17 @@ public class TeamControllerTests {
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         var expectedDto = TestTeamDto.builder()
-                .name(contentDto.getName())
+                .name(contentDto.name())
                 .build();
         var expectedJson = jsonTeamDto.write(expectedDto).getJson();
 
         // given
         given(coachRepository.existsByIdAndDeletedFalse(any())).willReturn(true);
         given(teamService.createTeam(argThat(a ->
-                a.getName().equals(contentDto.getName()) &&
-                        a.getCrestUrl().equals(contentDto.getCrestUrl()) &&
-                        a.getCountryCode().equals(contentDto.getCountryCode()) &&
-                        a.getCoachId().equals(contentDto.getCoachId())
+                a.name().equals(contentDto.name()) &&
+                        a.crestUrl().equals(contentDto.crestUrl()) &&
+                        a.countryCode().equals(contentDto.countryCode()) &&
+                        a.coachId().equals(contentDto.coachId())
         ))).willReturn(expectedDto);
 
         mvc.perform(
@@ -668,7 +668,7 @@ public class TeamControllerTests {
         var json = jsonUpsertTeamDto.write(contentDto).getJson();
 
         var expectedDto = TestTeamDto.builder()
-                .name(contentDto.getName())
+                .name(contentDto.name())
                 .build();
         var expectedJson = jsonTeamDto.write(expectedDto).getJson();
 
@@ -677,10 +677,10 @@ public class TeamControllerTests {
         given(teamService.updateTeam(
                 eq(teamId),
                 argThat(a ->
-                        a.getName().equals(contentDto.getName()) &&
-                                a.getCrestUrl().equals(contentDto.getCrestUrl()) &&
-                                a.getCountryCode().equals(contentDto.getCountryCode()) &&
-                                a.getCoachId().equals(contentDto.getCoachId())
+                        a.name().equals(contentDto.name()) &&
+                                a.crestUrl().equals(contentDto.crestUrl()) &&
+                                a.countryCode().equals(contentDto.countryCode()) &&
+                                a.coachId().equals(contentDto.coachId())
                 ))).willReturn(expectedDto);
 
         // when
@@ -732,8 +732,9 @@ public class TeamControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<TeamDto> expectedPage = Page.empty();
+        Page<TeamDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(teamService.findTeamsByName(
@@ -786,8 +787,9 @@ public class TeamControllerTests {
     public void getTeamsByCriteria_TeamIdsProvidedWithDefaultPageable_StatusOk() throws Exception {
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<TeamDto> expectedPage = Page.empty();
+        Page<TeamDto> expectedPage = Page.empty(expectedPageable);
 
         var requestedTeamId = UUID.randomUUID();
 
@@ -872,9 +874,9 @@ public class TeamControllerTests {
         given(teamPlayerService.createTeamPlayer(
                 eq(teamId),
                 argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getNumber().equals(contentDto.getNumber()) &&
-                                a.getPosition().equals(contentDto.getPosition())
+                        a.playerId().equals(playerId.toString()) &&
+                                a.number().equals(contentDto.number()) &&
+                                a.position().equals(contentDto.position())
                 )
         )).willThrow(new ResourceNotFoundException(Team.class, teamId));
 
@@ -1082,9 +1084,9 @@ public class TeamControllerTests {
         given(teamPlayerService.createTeamPlayer(
                 eq(teamId),
                 argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getNumber().equals(contentDto.getNumber()) &&
-                                a.getPosition().equals(contentDto.getPosition())
+                        a.playerId().equals(playerId.toString()) &&
+                                a.number().equals(contentDto.number()) &&
+                                a.position().equals(contentDto.position())
                 )
         )).willThrow(new NumberAlreadyTakenException(teamId, number));
 
@@ -1139,8 +1141,8 @@ public class TeamControllerTests {
         var expectedDto = TestTeamPlayerDto
                 .builder()
                 .playerId(playerId)
-                .position(contentDto.getPosition())
-                .number(contentDto.getNumber()).build();
+                .position(contentDto.position())
+                .number(contentDto.number()).build();
         var expectedJson = jsonTeamPlayerDto.write(expectedDto).getJson();
 
         // given
@@ -1148,9 +1150,9 @@ public class TeamControllerTests {
         given(teamPlayerService.createTeamPlayer(
                 eq(teamId),
                 argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getPosition().equals(contentDto.getPosition()) &&
-                                a.getNumber().equals(contentDto.getNumber())
+                        a.playerId().equals(playerId.toString()) &&
+                                a.position().equals(contentDto.position()) &&
+                                a.number().equals(contentDto.number())
                 )
         )).willReturn(expectedDto);
 
@@ -1200,9 +1202,9 @@ public class TeamControllerTests {
                 eq(teamPlayerId),
                 eq(teamId),
                 argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getNumber().equals(contentDto.getNumber()) &&
-                                a.getPosition().equals(contentDto.getPosition())
+                        a.playerId().equals(playerId.toString()) &&
+                                a.number().equals(contentDto.number()) &&
+                                a.position().equals(contentDto.position())
                 )
         )).willThrow(new ResourceNotFoundException(Team.class, teamId));
 
@@ -1452,9 +1454,9 @@ public class TeamControllerTests {
                 eq(teamPlayerId),
                 eq(teamId),
                 argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getNumber().equals(contentDto.getNumber()) &&
-                                a.getPosition().equals(contentDto.getPosition())
+                        a.playerId().equals(playerId.toString()) &&
+                                a.number().equals(contentDto.number()) &&
+                                a.position().equals(contentDto.position())
                 )
         )).willThrow(new NumberAlreadyTakenException(teamId, number));
 
@@ -1484,8 +1486,8 @@ public class TeamControllerTests {
         var expectedDto = TestTeamPlayerDto
                 .builder()
                 .playerId(playerId)
-                .position(contentDto.getPosition())
-                .number(contentDto.getNumber()).build();
+                .position(contentDto.position())
+                .number(contentDto.number()).build();
         var expectedJson = jsonTeamPlayerDto.write(expectedDto).getJson();
 
         // given
@@ -1494,9 +1496,9 @@ public class TeamControllerTests {
                 eq(teamPlayerId),
                 eq(teamId),
                 argThat(a ->
-                        a.getPlayerId().equals(playerId.toString()) &&
-                                a.getPosition().equals(contentDto.getPosition()) &&
-                                a.getNumber().equals(contentDto.getNumber())
+                        a.playerId().equals(playerId.toString()) &&
+                                a.position().equals(contentDto.position()) &&
+                                a.number().equals(contentDto.number())
                 )
         )).willReturn(expectedDto);
 
@@ -1523,9 +1525,9 @@ public class TeamControllerTests {
                 TeamFormDetailsDto.from(
                         UUID.randomUUID(),
                         LocalDateTime.now(),
-                        ShortTeamDto.from(teamId, "Some team", ""),
-                        ShortTeamDto.from(UUID.randomUUID(), "Some other team", ""),
-                        ScoreInfoDto.from(3, 2)
+                        new ShortTeamDto(teamId, "Some team", ""),
+                        new ShortTeamDto(UUID.randomUUID(), "Some other team", ""),
+                        new ScoreInfoDto(3, 2)
                 )
         );
         var expectedJson = jsonTeamFormDtos.write(List.of(formEntry)).getJson();
@@ -1554,9 +1556,9 @@ public class TeamControllerTests {
                 TeamFormDetailsDto.from(
                         UUID.randomUUID(),
                         LocalDateTime.now(),
-                        ShortTeamDto.from(teamId, "Some team", ""),
-                        ShortTeamDto.from(UUID.randomUUID(), "Some other team", ""),
-                        ScoreInfoDto.from(3, 2)
+                        new ShortTeamDto(teamId, "Some team", ""),
+                        new ShortTeamDto(UUID.randomUUID(), "Some other team", ""),
+                        new ScoreInfoDto(3, 2)
                 )
         );
         var expectedJson = jsonTeamFormDtos.write(List.of(formEntry)).getJson();

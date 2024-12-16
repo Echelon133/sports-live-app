@@ -19,9 +19,6 @@ spring:
       discovery:
         all-namespaces: true
   jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQL10Dialect
     hibernate:
       ddl-auto: update
     show-sql: false

@@ -16,7 +16,7 @@ import pl.echelon133.competitionservice.competition.model.StandingsDto;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.UUID;
 

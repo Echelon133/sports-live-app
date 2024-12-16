@@ -22,9 +22,11 @@ public interface PlayerRepository extends JpaRepository<Player, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(p.id as varchar) as id, p.name as name, p.position as position, p.date_of_birth as dateOfBirth, " +
-                    "p.country_code as countryCode " +
-                    "FROM player p WHERE p.deleted = false AND p.id = ?1",
+            value = """
+                    SELECT CAST(p.id as varchar) as id, p.name as name, p.position as position, p.date_of_birth as dateOfBirth, \
+                    p.country_code as countryCode \
+                    FROM player p WHERE p.deleted = false AND p.id = ?1 \
+                    """,
             nativeQuery = true
     )
     Optional<PlayerDto> findPlayerById(UUID id);
@@ -48,9 +50,11 @@ public interface PlayerRepository extends JpaRepository<Player, UUID> {
      */
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
-            value = "SELECT CAST(p.id as varchar) as id, p.name as name, p.position as position, p.date_of_birth as dateOfBirth, " +
-                    "p.country_code as countryCode " +
-                    "FROM player p WHERE LOWER(p.name) LIKE '%' || LOWER(:phrase) || '%' AND p.deleted = false",
+            value = """
+                    SELECT CAST(p.id as varchar) as id, p.name as name, p.position as position, p.date_of_birth as dateOfBirth, \
+                    p.country_code as countryCode \
+                    FROM player p WHERE LOWER(p.name) LIKE '%' || LOWER(:phrase) || '%' AND p.deleted = false \
+                    """,
             countQuery = "SELECT COUNT(*) FROM player WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
             nativeQuery = true
     )

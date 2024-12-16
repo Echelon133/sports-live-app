@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.UUID;
 
 @Service
@@ -71,7 +71,7 @@ public class RefereeService {
                 .filter(v -> !v.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException(Referee.class, id));
 
-        refereeToUpdate.setName(refereeDto.getName());
+        refereeToUpdate.setName(refereeDto.name());
 
         return entityToDto(refereeRepository.save(refereeToUpdate));
     }
@@ -88,7 +88,7 @@ public class RefereeService {
     public RefereeDto createReferee(UpsertRefereeDto refereeDto) {
         return entityToDto(
                 refereeRepository
-                        .save(new Referee(refereeDto.getName()))
+                        .save(new Referee(refereeDto.name()))
         );
     }
 

@@ -1,11 +1,11 @@
 package ml.echelon133.matchservice.coach.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ml.echelon133.matchservice.coach.model.CoachDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
+import ml.echelon133.matchservice.coach.model.Coach;
+import ml.echelon133.matchservice.coach.model.CoachDto;
 import ml.echelon133.matchservice.coach.model.UpsertCoachDto;
 import ml.echelon133.matchservice.coach.service.CoachService;
-import ml.echelon133.matchservice.coach.model.Coach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,9 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @ExtendWith(MockitoExtension.class)
 public class CoachControllerTests {
@@ -173,7 +171,7 @@ public class CoachControllerTests {
             var bodyJson = jsonUpsertCoachDto.write(contentDto).getJson();
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
-            doReturn(dto).when(coachService).createCoach(argThat(v -> v.getName().equals(contentDto.getName())));
+            doReturn(dto).when(coachService).createCoach(argThat(v -> v.name().equals(contentDto.name())));
 
             mvc.perform(
                             post("/api/coaches")
@@ -296,7 +294,7 @@ public class CoachControllerTests {
             var bodyJson = jsonUpsertCoachDto.write(contentDto).getJson();
 
             // use doReturn, because regular given/when does not work when re-declaring a single argThat matcher
-            doReturn(dto).when(coachService).updateCoach(eq(id), argThat(v -> v.getName().equals(contentDto.getName())));
+            doReturn(dto).when(coachService).updateCoach(eq(id), argThat(v -> v.name().equals(contentDto.name())));
 
             mvc.perform(
                             put("/api/coaches/" + id)
@@ -327,8 +325,9 @@ public class CoachControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<CoachDto> expectedPage = Page.empty();
+        Page<CoachDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(coachService.findCoachesByName(

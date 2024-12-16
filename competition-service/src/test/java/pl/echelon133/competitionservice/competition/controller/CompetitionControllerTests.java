@@ -169,8 +169,9 @@ public class CompetitionControllerTests {
         var pValue = "test";
         var defaultPageNumber = 0;
         var defaultPageSize = 20;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<CompetitionDto> expectedPage = Page.empty();
+        Page<CompetitionDto> expectedPage = Page.empty(expectedPageable);
 
         //given
         given(competitionService.findCompetitionsByName(
@@ -1157,11 +1158,11 @@ public class CompetitionControllerTests {
         var contentDto = TestUpsertCompetitionDto.builder().build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
-        var teamIdToFail = UUID.fromString(contentDto.getGroups().get(0).getTeams().get(0));
+        var teamIdToFail = UUID.fromString(contentDto.groups().get(0).teams().get(0));
 
         // given
         given(competitionService.createCompetition(
-                argThat(c -> c.getGroups().get(0).getTeams().contains(teamIdToFail.toString()))
+                argThat(c -> c.groups().get(0).teams().contains(teamIdToFail.toString()))
         )).willThrow(new CompetitionInvalidException("failed to fetch resource with id " + teamIdToFail));
 
         // then
@@ -1186,7 +1187,7 @@ public class CompetitionControllerTests {
         var competitionId = UUID.randomUUID();
 
         // given
-        given(competitionService.createCompetition(argThat(c -> c.getName().equals(contentDto.getName()))))
+        given(competitionService.createCompetition(argThat(c -> c.name().equals(contentDto.name()))))
                 .willReturn(competitionId);
 
         var expectedJson = String.format("{\"id\":\"%s\"}", competitionId);
@@ -1255,8 +1256,9 @@ public class CompetitionControllerTests {
         var competitionId = UUID.randomUUID();
         var defaultPageNumber = 0;
         var defaultPageSize = 25;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
 
-        Page<PlayerStatsDto> expectedPage = Page.empty();
+        Page<PlayerStatsDto> expectedPage = Page.empty(expectedPageable);
 
         // given
         given(competitionService.findPlayerStatsByCompetition(

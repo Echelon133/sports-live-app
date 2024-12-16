@@ -2,10 +2,10 @@ package pl.echelon133.competitionservice.competition.model.constraints;
 
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 
-import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -26,8 +26,8 @@ public @interface LegendPositionsInRange {
         @Override
         public boolean isValid(UpsertCompetitionDto upsertCompetitionDto, ConstraintValidatorContext constraintValidatorContext) {
             var minimumLegalPosition = 1; // a team cannot have a 0th or a negative position in a group
-            var maximumLegalPosition = upsertCompetitionDto.getGroups().stream()
-                    .map(s -> s.getTeams().size())
+            var maximumLegalPosition = upsertCompetitionDto.groups().stream()
+                    .map(s -> s.teams().size())
                     .max(Comparator.naturalOrder());
 
             // this can only happen if there aren't any groups, or the groups do not have any teams,
@@ -37,8 +37,8 @@ public @interface LegendPositionsInRange {
                 return true;
             }
 
-            var allPositionReferences = upsertCompetitionDto.getLegend().stream()
-                    .flatMap(l -> l.getPositions().stream())
+            var allPositionReferences = upsertCompetitionDto.legend().stream()
+                    .flatMap(l -> l.positions().stream())
                     .collect(Collectors.toSet());
 
             return allPositionReferences.stream()

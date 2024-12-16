@@ -2,6 +2,7 @@ package ml.echelon133.common.exception;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -9,7 +10,6 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import javax.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -107,9 +107,8 @@ public abstract class AbstractExceptionHandler extends ResponseEntityExceptionHa
         return error.asResponseEntity();
     }
 
-    @NotNull
     @Override
-    protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+    protected ResponseEntity<Object> handleMissingServletRequestParameter(MissingServletRequestParameterException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         // handle the same way as RequestParamsInvalidException handles its exceptions
         String errorMessage = String.format("query parameter '%s' not provided", ex.getParameterName());
         ErrorMessage error = new ErrorMessage(HttpStatus.BAD_REQUEST, request, errorMessage);

@@ -4,7 +4,7 @@ import ml.echelon133.common.entity.BaseEntity;
 import ml.echelon133.matchservice.player.model.Player;
 import ml.echelon133.matchservice.player.model.Position;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(

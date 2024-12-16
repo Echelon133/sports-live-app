@@ -125,11 +125,11 @@ public class RefereeServiceTests {
     public void createReferee_ValidDto_CorrectlySavesAndReturns() {
         var idToSave = UUID.randomUUID();
         var initialDto = new UpsertRefereeDto("Test");
-        var entity = new Referee(initialDto.getName());
+        var entity = new Referee(initialDto.name());
         entity.setId(idToSave);
 
         // given
-        given(refereeRepository.save(argThat(v -> v.getName().equals(initialDto.getName())))).willReturn(entity);
+        given(refereeRepository.save(argThat(v -> v.getName().equals(initialDto.name())))).willReturn(entity);
 
         // when
         RefereeDto savedDto = refereeService.createReferee(initialDto);

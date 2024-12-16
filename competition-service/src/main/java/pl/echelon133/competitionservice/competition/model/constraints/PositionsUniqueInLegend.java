@@ -2,10 +2,10 @@ package pl.echelon133.competitionservice.competition.model.constraints;
 
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 
-import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Payload;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -26,9 +26,9 @@ public @interface PositionsUniqueInLegend {
         @Override
         public boolean isValid(Collection<UpsertCompetitionDto.UpsertLegendDto> upsertLegendDtos, ConstraintValidatorContext constraintValidatorContext) {
             var allPositionsCounter= upsertLegendDtos.stream()
-                    .mapToLong(l -> l.getPositions().size()).sum();
+                    .mapToLong(l -> l.positions().size()).sum();
             var uniquePositionsCounter= upsertLegendDtos.stream()
-                    .flatMap(l -> l.getPositions().stream()).collect(Collectors.toSet()).size();
+                    .flatMap(l -> l.positions().stream()).collect(Collectors.toSet()).size();
             return allPositionsCounter == uniquePositionsCounter;
         }
     }

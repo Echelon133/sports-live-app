@@ -20,6 +20,8 @@ public interface TestLineupDto {
         private List<TeamPlayerDto> homeSubstitutes = List.of();
         private List<TeamPlayerDto> awayStarting = List.of();
         private List<TeamPlayerDto> awaySubstitutes = List.of();
+        private String homeFormation = "";
+        private String awayFormation = "";
 
         private LineupDtoBuilder() {}
 
@@ -48,8 +50,21 @@ public interface TestLineupDto {
             return this;
         }
 
+        public LineupDtoBuilder homeFormation(String homeFormation) {
+            this.homeFormation = homeFormation;
+            return this;
+        }
+
+        public LineupDtoBuilder awayFormation(String awayFormation) {
+            this.awayFormation = awayFormation;
+            return this;
+        }
+
         public LineupDto build() {
-            return new LineupDto(homeStarting, homeSubstitutes, awayStarting, awaySubstitutes);
+            return new LineupDto(
+                new LineupDto.TeamLineup(homeStarting, homeSubstitutes, homeFormation),
+                new LineupDto.TeamLineup(awayStarting, awaySubstitutes, awayFormation)
+            );
         }
     }
 }

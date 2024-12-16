@@ -24,6 +24,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -654,15 +655,15 @@ public class MatchRepositoryTests {
         assertEquals(
                 2,
                 team0Result.stream().filter(m ->
-                        m.getHomeTeam().getId().equals(team0Id) ||
-                                m.getAwayTeam().getId().equals(team0Id)
+                        m.getHomeTeam().id().equals(team0Id) ||
+                                m.getAwayTeam().id().equals(team0Id)
                 ).count()
         );
         assertEquals(
                 2,
                 team1Result.stream().filter(m ->
-                        m.getHomeTeam().getId().equals(team1Id) ||
-                                m.getAwayTeam().getId().equals(team1Id)
+                        m.getHomeTeam().id().equals(team1Id) ||
+                                m.getAwayTeam().id().equals(team1Id)
                 ).count()
         );
     }
@@ -847,13 +848,25 @@ public class MatchRepositoryTests {
         );
     }
 
+    private static void assertLocalDateTimeEquals(LocalDateTime t1, LocalDateTime t2) {
+        // if neither is null, then we need to compare them without using the nanosecond precision
+        if (t1 != null && t2 != null) {
+            assertEquals(
+                    t1.truncatedTo(ChronoUnit.SECONDS),
+                    t2.truncatedTo(ChronoUnit.SECONDS)
+            );
+        } else {
+            assertEquals(t1, t2);
+        }
+    }
+
     private static void assertEntityAndDtoEqual(Match entity, MatchDto dto) {
         // simple fields equal
         assertEquals(dto.getId(), entity.getId());
         assertEquals(dto.getStatus(), entity.getStatus().toString());
-        assertEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
+        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
         assertEquals(dto.getCompetitionId(), entity.getCompetitionId());
-        assertEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
+        assertLocalDateTimeEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
 
         // home teams equal
         var homeTeamEntity = entity.getHomeTeam();
@@ -861,9 +874,9 @@ public class MatchRepositoryTests {
         if (homeTeamEntity.isDeleted()) {
             assertNull(shortHomeTeamDto);
         } else {
-            assertEquals(shortHomeTeamDto.getId(), homeTeamEntity.getId());
-            assertEquals(shortHomeTeamDto.getName(), homeTeamEntity.getName());
-            assertEquals(shortHomeTeamDto.getCrestUrl(), homeTeamEntity.getCrestUrl());
+            assertEquals(shortHomeTeamDto.id(), homeTeamEntity.getId());
+            assertEquals(shortHomeTeamDto.name(), homeTeamEntity.getName());
+            assertEquals(shortHomeTeamDto.crestUrl(), homeTeamEntity.getCrestUrl());
         }
 
         // away teams equal
@@ -872,9 +885,9 @@ public class MatchRepositoryTests {
         if (awayTeamEntity.isDeleted()) {
             assertNull(shortAwayTeamDto);
         } else {
-            assertEquals(shortAwayTeamDto.getId(), awayTeamEntity.getId());
-            assertEquals(shortAwayTeamDto.getName(), awayTeamEntity.getName());
-            assertEquals(shortAwayTeamDto.getCrestUrl(), awayTeamEntity.getCrestUrl());
+            assertEquals(shortAwayTeamDto.id(), awayTeamEntity.getId());
+            assertEquals(shortAwayTeamDto.name(), awayTeamEntity.getName());
+            assertEquals(shortAwayTeamDto.crestUrl(), awayTeamEntity.getCrestUrl());
         }
 
         // venues equal
@@ -903,20 +916,20 @@ public class MatchRepositoryTests {
         // half time scores equal
         var halfTimeScoreEntity = entity.getHalfTimeScoreInfo();
         var halfTimeScoreDto = dto.getHalfTimeScoreInfo();
-        assertEquals(halfTimeScoreDto.getHomeGoals(), halfTimeScoreEntity.getHomeGoals());
-        assertEquals(halfTimeScoreDto.getAwayGoals(), halfTimeScoreEntity.getAwayGoals());
+        assertEquals(halfTimeScoreDto.homeGoals(), halfTimeScoreEntity.getHomeGoals());
+        assertEquals(halfTimeScoreDto.awayGoals(), halfTimeScoreEntity.getAwayGoals());
 
         // scores equal
         var scoreEntity = entity.getScoreInfo();
         var scoreDto = dto.getScoreInfo();
-        assertEquals(scoreDto.getHomeGoals(), scoreEntity.getHomeGoals());
-        assertEquals(scoreDto.getAwayGoals(), scoreEntity.getAwayGoals());
+        assertEquals(scoreDto.homeGoals(), scoreEntity.getHomeGoals());
+        assertEquals(scoreDto.awayGoals(), scoreEntity.getAwayGoals());
 
         // penalties equal
         var penaltiesEntity = entity.getPenaltiesInfo();
         var penaltiesDto = dto.getPenaltiesInfo();
-        assertEquals(penaltiesDto.getHomeGoals(), penaltiesEntity.getHomeGoals());
-        assertEquals(penaltiesDto.getAwayGoals(), penaltiesEntity.getAwayGoals());
+        assertEquals(penaltiesDto.homeGoals(), penaltiesEntity.getHomeGoals());
+        assertEquals(penaltiesDto.awayGoals(), penaltiesEntity.getAwayGoals());
 
         // results equal
         var resultDto = (dto.getResult() == null) ? null : MatchResult.valueOf(dto.getResult());
@@ -927,9 +940,9 @@ public class MatchRepositoryTests {
         // simple fields equal
         assertEquals(dto.getId(), entity.getId());
         assertEquals(dto.getStatus(), entity.getStatus().toString());
-        assertEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
+        assertLocalDateTimeEquals(dto.getStatusLastModifiedUTC(), entity.getStatusLastModifiedUTC());
         assertEquals(dto.getCompetitionId(), entity.getCompetitionId());
-        assertEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
+        assertLocalDateTimeEquals(dto.getStartTimeUTC(), entity.getStartTimeUTC());
 
         // home teams equal
         var homeTeamEntity = entity.getHomeTeam();
@@ -937,9 +950,9 @@ public class MatchRepositoryTests {
         if (homeTeamEntity.isDeleted()) {
             assertNull(shortHomeTeamDto);
         } else {
-            assertEquals(shortHomeTeamDto.getId(), homeTeamEntity.getId());
-            assertEquals(shortHomeTeamDto.getName(), homeTeamEntity.getName());
-            assertEquals(shortHomeTeamDto.getCrestUrl(), homeTeamEntity.getCrestUrl());
+            assertEquals(shortHomeTeamDto.id(), homeTeamEntity.getId());
+            assertEquals(shortHomeTeamDto.name(), homeTeamEntity.getName());
+            assertEquals(shortHomeTeamDto.crestUrl(), homeTeamEntity.getCrestUrl());
         }
 
         // away teams equal
@@ -948,28 +961,28 @@ public class MatchRepositoryTests {
         if (awayTeamEntity.isDeleted()) {
             assertNull(shortAwayTeamDto);
         } else {
-            assertEquals(shortAwayTeamDto.getId(), awayTeamEntity.getId());
-            assertEquals(shortAwayTeamDto.getName(), awayTeamEntity.getName());
-            assertEquals(shortAwayTeamDto.getCrestUrl(), awayTeamEntity.getCrestUrl());
+            assertEquals(shortAwayTeamDto.id(), awayTeamEntity.getId());
+            assertEquals(shortAwayTeamDto.name(), awayTeamEntity.getName());
+            assertEquals(shortAwayTeamDto.crestUrl(), awayTeamEntity.getCrestUrl());
         }
 
         // half time scores equal
         var halfTimeScoreEntity = entity.getHalfTimeScoreInfo();
         var halfTimeScoreDto = dto.getHalfTimeScoreInfo();
-        assertEquals(halfTimeScoreDto.getHomeGoals(), halfTimeScoreEntity.getHomeGoals());
-        assertEquals(halfTimeScoreDto.getAwayGoals(), halfTimeScoreEntity.getAwayGoals());
+        assertEquals(halfTimeScoreDto.homeGoals(), halfTimeScoreEntity.getHomeGoals());
+        assertEquals(halfTimeScoreDto.awayGoals(), halfTimeScoreEntity.getAwayGoals());
 
         // scores equal
         var scoreEntity = entity.getScoreInfo();
         var scoreDto = dto.getScoreInfo();
-        assertEquals(scoreDto.getHomeGoals(), scoreEntity.getHomeGoals());
-        assertEquals(scoreDto.getAwayGoals(), scoreEntity.getAwayGoals());
+        assertEquals(scoreDto.homeGoals(), scoreEntity.getHomeGoals());
+        assertEquals(scoreDto.awayGoals(), scoreEntity.getAwayGoals());
 
         // penalties equal
         var penaltiesEntity = entity.getPenaltiesInfo();
         var penaltiesDto = dto.getPenaltiesInfo();
-        assertEquals(penaltiesDto.getHomeGoals(), penaltiesEntity.getHomeGoals());
-        assertEquals(penaltiesDto.getAwayGoals(), penaltiesEntity.getAwayGoals());
+        assertEquals(penaltiesDto.homeGoals(), penaltiesEntity.getHomeGoals());
+        assertEquals(penaltiesDto.awayGoals(), penaltiesEntity.getAwayGoals());
 
         // results equal
         var resultDto = (dto.getResult() == null) ? null : MatchResult.valueOf(dto.getResult());

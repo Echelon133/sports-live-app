@@ -1,6 +1,6 @@
 package ml.echelon133.matchservice.match.model;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 
 @Embeddable
 public class ScoreInfo {

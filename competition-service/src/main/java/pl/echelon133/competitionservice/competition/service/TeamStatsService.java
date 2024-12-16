@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import pl.echelon133.competitionservice.competition.model.TeamStats;
 import pl.echelon133.competitionservice.competition.repository.TeamStatsRepository;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 

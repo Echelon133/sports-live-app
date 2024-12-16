@@ -1,7 +1,7 @@
 package pl.echelon133.competitionservice.competition.service;
 
 import ml.echelon133.common.event.KafkaTopicNames;
-import ml.echelon133.common.event.dto.MatchEventDetails;
+import ml.echelon133.common.event.dto.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchResult;
 import ml.echelon133.common.match.MatchStatus;
@@ -103,22 +103,22 @@ public class MatchEventDetailsMessageListenerTests {
         // match events which do not require any database updates
         var noopEvents = List.of(
                 // Commentary events do not contain any information about teams/players
-                new MatchEventDetails.CommentaryDto("1", null, "test"),
+                new CommentaryEventDetailsDto("1", null, "test"),
                 // all non-"FINISHED" Status events do not cause database updates
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.NOT_STARTED, null, null, null),
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.FIRST_HALF, null, null, null),
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.HALF_TIME, null, null, null),
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.SECOND_HALF, null, null, null),
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.EXTRA_TIME, null, null, null),
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.PENALTIES, null, null, null),
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.ABANDONED, null, null, null),
-                new MatchEventDetails.StatusDto("1", null, MatchStatus.POSTPONED, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.NOT_STARTED, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.FIRST_HALF, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.HALF_TIME, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.SECOND_HALF, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.EXTRA_TIME, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.PENALTIES, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.ABANDONED, null, null, null),
+                new StatusEventDetailsDto("1", null, MatchStatus.POSTPONED, null, null, null),
                 // Penalty events describing missed penalties do not cause database updates
-                new MatchEventDetails.PenaltyDto("1", null, null, null, true, false),
+                new PenaltyEventDetailsDto("1", null, null, null, true, false),
                 // Penalty events describing scored penalties (but during the penalty shootout) do not cause database updates
-                new MatchEventDetails.PenaltyDto("1", null, null, null, false, true),
+                new PenaltyEventDetailsDto("1", null, null, null, false, true),
                 // Substitution events do not cause database updates
-                new MatchEventDetails.SubstitutionDto("1", null, null, null, null)
+                new SubstitutionEventDetailsDto("1", null, null, null, null)
         );
         var noopConsumerRecords= createTestConsumerRecords(
                 noopEvents.toArray(MatchEventDetails[]::new)
@@ -159,13 +159,13 @@ public class MatchEventDetailsMessageListenerTests {
         expectedAwayTeamStats.incrementGoalsConcededBy(homeGoals);
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.StatusDto(
+                new StatusEventDetailsDto(
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
-                        new MatchEventDetails.SerializedScoreInfo(homeGoals, awayGoals)
+                        new SerializedScore(homeGoals, awayGoals)
                 )
         );
 
@@ -211,13 +211,13 @@ public class MatchEventDetailsMessageListenerTests {
         expectedAwayTeamStats.incrementGoalsConcededBy(homeGoals);
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.StatusDto(
+                new StatusEventDetailsDto(
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.HOME_WIN,
-                        new MatchEventDetails.SerializedScoreInfo(homeGoals, awayGoals)
+                        new SerializedScore(homeGoals, awayGoals)
                 )
         );
 
@@ -263,13 +263,13 @@ public class MatchEventDetailsMessageListenerTests {
         expectedAwayTeamStats.incrementGoalsConcededBy(homeGoals);
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.StatusDto(
+                new StatusEventDetailsDto(
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.AWAY_WIN,
-                        new MatchEventDetails.SerializedScoreInfo(homeGoals, awayGoals)
+                        new SerializedScore(homeGoals, awayGoals)
                 )
         );
 
@@ -300,13 +300,13 @@ public class MatchEventDetailsMessageListenerTests {
         int awayGoals = 3;
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.StatusDto(
+                new StatusEventDetailsDto(
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.NONE, // can only happen as a business logic error
-                        new MatchEventDetails.SerializedScoreInfo(homeGoals, awayGoals)
+                        new SerializedScore(homeGoals, awayGoals)
                 )
         );
 
@@ -327,13 +327,13 @@ public class MatchEventDetailsMessageListenerTests {
         int awayGoals = 3;
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.StatusDto(
+                new StatusEventDetailsDto(
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
-                        new MatchEventDetails.SerializedScoreInfo(homeGoals, awayGoals)
+                        new SerializedScore(homeGoals, awayGoals)
                 )
         );
 
@@ -358,13 +358,13 @@ public class MatchEventDetailsMessageListenerTests {
         int awayGoals = 3;
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.StatusDto(
+                new StatusEventDetailsDto(
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
-                        new MatchEventDetails.SerializedScoreInfo(homeGoals, awayGoals)
+                        new SerializedScore(homeGoals, awayGoals)
                 )
         );
 
@@ -390,13 +390,13 @@ public class MatchEventDetailsMessageListenerTests {
         int awayGoals = 3;
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.StatusDto(
+                new StatusEventDetailsDto(
                         "90",
                         competitionId,
                         MatchStatus.FINISHED,
-                        new MatchEventDetails.SerializedTeamInfo(homeTeamId, awayTeamId),
+                        new SerializedTeam(homeTeamId, awayTeamId),
                         MatchResult.DRAW,
-                        new MatchEventDetails.SerializedScoreInfo(homeGoals, awayGoals)
+                        new SerializedScore(homeGoals, awayGoals)
                 )
         );
 
@@ -426,12 +426,12 @@ public class MatchEventDetailsMessageListenerTests {
         expectedPlayerStats.incrementYellowCards();
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.CardDto(
+                new CardEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        MatchEventDetails.CardDto.CardType.YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        CardEventDetailsDto.CardType.YELLOW,
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -462,12 +462,12 @@ public class MatchEventDetailsMessageListenerTests {
         expectedPlayerStats.incrementRedCards();
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.CardDto(
+                new CardEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        MatchEventDetails.CardDto.CardType.SECOND_YELLOW,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        CardEventDetailsDto.CardType.SECOND_YELLOW,
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -498,12 +498,12 @@ public class MatchEventDetailsMessageListenerTests {
         expectedPlayerStats.incrementRedCards();
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.CardDto(
+                new CardEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        CardEventDetailsDto.CardType.DIRECT_RED,
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -529,12 +529,12 @@ public class MatchEventDetailsMessageListenerTests {
         var playerName = "Test Name";
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.CardDto(
+                new CardEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        MatchEventDetails.CardDto.CardType.DIRECT_RED,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        CardEventDetailsDto.CardType.DIRECT_RED,
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         )
                 )
@@ -560,11 +560,11 @@ public class MatchEventDetailsMessageListenerTests {
         var playerName = "Test Name";
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.GoalDto(
+                new GoalEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         null,
@@ -593,11 +593,11 @@ public class MatchEventDetailsMessageListenerTests {
         expectedPlayerStats.incrementGoals();
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.GoalDto(
+                new GoalEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         null,
@@ -637,14 +637,14 @@ public class MatchEventDetailsMessageListenerTests {
         expectedAssistingPlayerStats.incrementAssists();
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.GoalDto(
+                new GoalEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, scoringPlayerId, scoringPlayerName
                         ),
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, assistingPlayerId, assistingPlayerName
                         ),
                         false
@@ -678,11 +678,11 @@ public class MatchEventDetailsMessageListenerTests {
         var playerName = "Test Name";
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.GoalDto(
+                new GoalEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         null,
@@ -715,11 +715,11 @@ public class MatchEventDetailsMessageListenerTests {
         expectedPlayerStats.incrementGoals();
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.PenaltyDto(
+                new PenaltyEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         true,
@@ -747,11 +747,11 @@ public class MatchEventDetailsMessageListenerTests {
         var playerName = "Test Name";
 
         var record = createTestConsumerRecord(0,
-                new MatchEventDetails.PenaltyDto(
+                new PenaltyEventDetailsDto(
                         "1",
                         competitionId,
                         teamId,
-                        new MatchEventDetails.SerializedPlayerInfo(
+                        new SerializedPlayer(
                                 null, playerId, playerName
                         ),
                         true,

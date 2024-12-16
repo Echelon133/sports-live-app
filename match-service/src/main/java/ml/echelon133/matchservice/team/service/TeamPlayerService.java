@@ -14,7 +14,7 @@ import ml.echelon133.matchservice.team.repository.TeamRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -96,8 +96,8 @@ public class TeamPlayerService {
 
         // check the player's number as quickly as possible, because if the number is taken then
         // there is no point in fetching other data
-        if (teamPlayerRepository.teamHasPlayerWithNumber(teamId, teamPlayerDto.getNumber())) {
-            throw new NumberAlreadyTakenException(teamId, teamPlayerDto.getNumber());
+        if (teamPlayerRepository.teamHasPlayerWithNumber(teamId, teamPlayerDto.number())) {
+            throw new NumberAlreadyTakenException(teamId, teamPlayerDto.number());
         }
 
         // find player's team
@@ -107,13 +107,13 @@ public class TeamPlayerService {
                 .orElseThrow(() -> new ResourceNotFoundException(Team.class, teamId));
 
         // this `UUID.fromString` should never fail because the PlayerId value is pre-validated
-        var playerId = UUID.fromString(teamPlayerDto.getPlayerId());
+        var playerId = UUID.fromString(teamPlayerDto.playerId());
         var player = playerService.findEntityById(playerId);
 
         // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
-        var position = Position.valueOfIgnoreCase(teamPlayerDto.getPosition());
+        var position = Position.valueOfIgnoreCase(teamPlayerDto.position());
 
-        var teamPlayer = new TeamPlayer(team, player, position, teamPlayerDto.getNumber());
+        var teamPlayer = new TeamPlayer(team, player, position, teamPlayerDto.number());
         return TeamPlayerMapper.entityToDto(teamPlayerRepository.save(teamPlayer));
     }
 
@@ -152,20 +152,20 @@ public class TeamPlayerService {
         }
 
         // if the player's number is already taken, we cannot continue
-        if (teamPlayerRepository.teamHasPlayerWithNumber(teamId, teamPlayerDto.getNumber())) {
-            throw new NumberAlreadyTakenException(teamId, teamPlayerDto.getNumber());
+        if (teamPlayerRepository.teamHasPlayerWithNumber(teamId, teamPlayerDto.number())) {
+            throw new NumberAlreadyTakenException(teamId, teamPlayerDto.number());
         }
 
         // this `UUID.fromString` should never fail because the PlayerId value is pre-validated
-        var playerId = UUID.fromString(teamPlayerDto.getPlayerId());
+        var playerId = UUID.fromString(teamPlayerDto.playerId());
         var player = playerService.findEntityById(playerId);
 
         // this `Position.valueOfIgnoreCase` should never fail because the Position value is pre-validated
-        var position = Position.valueOfIgnoreCase(teamPlayerDto.getPosition());
+        var position = Position.valueOfIgnoreCase(teamPlayerDto.position());
 
         teamPlayer.setPlayer(player);
         teamPlayer.setPosition(position);
-        teamPlayer.setNumber(teamPlayerDto.getNumber());
+        teamPlayer.setNumber(teamPlayerDto.number());
         return TeamPlayerMapper.entityToDto(teamPlayerRepository.save(teamPlayer));
     }
 

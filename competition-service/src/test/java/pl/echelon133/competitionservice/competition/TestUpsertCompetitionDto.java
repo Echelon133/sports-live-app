@@ -51,13 +51,7 @@ public interface TestUpsertCompetitionDto {
         }
 
         public UpsertCompetitionDto build() {
-            var dto = new UpsertCompetitionDto();
-            dto.setName(name);
-            dto.setSeason(season);
-            dto.setLogoUrl(logoUrl);
-            dto.setGroups(groups);
-            dto.setLegend(legend);
-            return dto;
+            return new UpsertCompetitionDto(name, season, logoUrl, groups, legend);
         }
     }
 }

@@ -2,7 +2,7 @@ package ml.echelon133.matchservice.venue.model;
 
 import ml.echelon133.common.entity.BaseEntity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 public class Venue extends BaseEntity {

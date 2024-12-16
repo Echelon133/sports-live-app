@@ -3,7 +3,7 @@ package ml.echelon133.matchservice.match.model;
 import ml.echelon133.common.entity.BaseEntity;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 

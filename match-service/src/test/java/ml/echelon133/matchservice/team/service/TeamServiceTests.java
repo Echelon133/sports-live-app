@@ -207,8 +207,8 @@ public class TeamServiceTests {
         var expectedTeam = TestTeam
                 .builder()
                 .id(oldTeam.getId())
-                .name(updateDto.getName())
-                .crestUrl(updateDto.getCrestUrl())
+                .name(updateDto.name())
+                .crestUrl(updateDto.crestUrl())
                 .countryCode(newCountry)
                 .coach(newCoach)
                 .build();
@@ -222,10 +222,10 @@ public class TeamServiceTests {
                 // values. Using eq() would make this test pass even if the method tried to save the
                 // team without making any changes to it.
                 t.getId().equals(oldTeam.getId()) &&
-                        t.getName().equals(updateDto.getName()) &&
-                        t.getCrestUrl().equals(updateDto.getCrestUrl()) &&
-                        t.getCountryCode().equals(updateDto.getCountryCode()) &&
-                        t.getCoach().getId().toString().equals(updateDto.getCoachId())
+                        t.getName().equals(updateDto.name()) &&
+                        t.getCrestUrl().equals(updateDto.crestUrl()) &&
+                        t.getCountryCode().equals(updateDto.countryCode()) &&
+                        t.getCoach().getId().toString().equals(updateDto.coachId())
         ))).willReturn(expectedTeam);
 
         // when
@@ -233,10 +233,10 @@ public class TeamServiceTests {
 
         // then
         assertEquals(oldTeam.getId(), teamDto.getId());
-        assertEquals(updateDto.getName(), teamDto.getName());
-        assertEquals(updateDto.getCountryCode(), teamDto.getCountryCode());
-        assertEquals(updateDto.getCoachId(), teamDto.getCoach().getId().toString());
-        assertEquals(updateDto.getCrestUrl(), teamDto.getCrestUrl());
+        assertEquals(updateDto.name(), teamDto.getName());
+        assertEquals(updateDto.countryCode(), teamDto.getCountryCode());
+        assertEquals(updateDto.coachId(), teamDto.getCoach().getId().toString());
+        assertEquals(updateDto.crestUrl(), teamDto.getCrestUrl());
     }
 
     @Test
@@ -329,8 +329,8 @@ public class TeamServiceTests {
                 .build();
         var expectedTeam = TestTeam
                 .builder()
-                .name(createDto.getName())
-                .crestUrl(createDto.getCrestUrl())
+                .name(createDto.name())
+                .crestUrl(createDto.crestUrl())
                 .countryCode(country)
                 .coach(coach)
                 .build();
@@ -341,10 +341,10 @@ public class TeamServiceTests {
                 // Regular eq() only compares by entity's ID, which means that we need to use argThat()
                 // if we want to make sure that the code actually tries to save a team whose values
                 // are taken from received upsert DTO
-                t.getName().equals(createDto.getName()) &&
-                        t.getCrestUrl().equals(createDto.getCrestUrl()) &&
-                        t.getCountryCode().equals(createDto.getCountryCode()) &&
-                        t.getCoach().getId().toString().equals(createDto.getCoachId())
+                t.getName().equals(createDto.name()) &&
+                        t.getCrestUrl().equals(createDto.crestUrl()) &&
+                        t.getCountryCode().equals(createDto.countryCode()) &&
+                        t.getCoach().getId().toString().equals(createDto.coachId())
         ))).willReturn(expectedTeam);
 
         // when
@@ -370,24 +370,24 @@ public class TeamServiceTests {
         // teamA
         var teamAEntity = TestTeam.builder().build();
         var teamAId = teamAEntity.getId();
-        var teamA = ShortTeamDto.from(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
+        var teamA = new ShortTeamDto(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
 
         // teamB
         var teamBEntity = TestTeam.builder().build();
         var teamBId = teamBEntity.getId();
-        var teamB = ShortTeamDto.from(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
+        var teamB = new ShortTeamDto(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
 
         List<TeamFormDetailsDto> formEval = List.of(
                 //      * teamA vs teamB (3:2 - teamA wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(3, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(3, 2)),
                 //      * teamA vs teamB (2:2 - draw)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(2, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(2, 2)),
                 //      * teamB vs teamA (4:4 - draw)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(4, 4)),
+                createTestMatch(teamB, teamA, new ScoreInfoDto(4, 4)),
                 //      * teamA vs teamB (1:4 - teamB wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(1, 4)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(1, 4)),
                 //      * teamB vs teamA (2:0 - teamB wins)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(2, 0))
+                createTestMatch(teamB, teamA, new ScoreInfoDto(2, 0))
         );
 
         // given
@@ -396,9 +396,9 @@ public class TeamServiceTests {
 
         // when
         var formOfTeamA = teamService.evaluateForm(teamAId, competitionId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
         var formOfTeamB = teamService.evaluateForm(teamBId, competitionId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
 
         // then
         // from the teamA's perspective, their form is WDDLL
@@ -413,24 +413,24 @@ public class TeamServiceTests {
         // teamA
         var teamAEntity = TestTeam.builder().build();
         var teamAId = teamAEntity.getId();
-        var teamA = ShortTeamDto.from(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
+        var teamA = new ShortTeamDto(teamAId, teamAEntity.getName(), teamAEntity.getCrestUrl());
 
         // teamB
         var teamBEntity = TestTeam.builder().build();
         var teamBId = teamBEntity.getId();
-        var teamB = ShortTeamDto.from(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
+        var teamB = new ShortTeamDto(teamBId, teamBEntity.getName(), teamBEntity.getCrestUrl());
 
         List<TeamFormDetailsDto> formEval = List.of(
                 //      * teamA vs teamB (3:2 - teamA wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(3, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(3, 2)),
                 //      * teamA vs teamB (2:2 - draw)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(2, 2)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(2, 2)),
                 //      * teamB vs teamA (4:4 - draw)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(4, 4)),
+                createTestMatch(teamB, teamA, new ScoreInfoDto(4, 4)),
                 //      * teamA vs teamB (1:4 - teamB wins)
-                createTestMatch(teamA, teamB, ScoreInfoDto.from(1, 4)),
+                createTestMatch(teamA, teamB, new ScoreInfoDto(1, 4)),
                 //      * teamB vs teamA (2:0 - teamB wins)
-                createTestMatch(teamB, teamA, ScoreInfoDto.from(2, 0))
+                createTestMatch(teamB, teamA, new ScoreInfoDto(2, 0))
         );
 
         // given
@@ -439,9 +439,9 @@ public class TeamServiceTests {
 
         // when
         var formOfTeamA = teamService.evaluateGeneralForm(teamAId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
         var formOfTeamB = teamService.evaluateGeneralForm(teamBId)
-                .stream().map(TeamFormDto::getForm).collect(Collectors.toList());
+                .stream().map(TeamFormDto::form).collect(Collectors.toList());
 
         // then
         // from the teamA's perspective, their form is WDDLL
