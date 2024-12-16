@@ -64,6 +64,15 @@ public class CompetitionService {
     }
 
     /**
+     * Finds all non-deleted competitions which are marked as <i>pinned</i>.
+     *
+     * @return a list of non-deleted competitions which are marked as "pinned"
+     */
+    public List<CompetitionDto> findPinnedCompetitions() {
+        return competitionRepository.findAllPinned();
+    }
+
+    /**
      * Creates a competition's entry in the database.
      *
      * The values in {@link UpsertCompetitionDto} have to be pre-validated before being used here,
@@ -79,6 +88,7 @@ public class CompetitionService {
                 competitionDto.season(),
                 competitionDto.logoUrl()
         );
+        competition.setPinned(competitionDto.pinned());
 
         List<Group> groups = new ArrayList<>(competitionDto.groups().size());
 
