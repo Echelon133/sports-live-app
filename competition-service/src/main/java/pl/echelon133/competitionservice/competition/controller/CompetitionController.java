@@ -1,6 +1,6 @@
 package pl.echelon133.competitionservice.competition.controller;
 
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
+import jakarta.validation.Valid;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
@@ -11,12 +11,13 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
+import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 import pl.echelon133.competitionservice.competition.model.StandingsDto;
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
-import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -44,6 +45,11 @@ public class CompetitionController {
     @GetMapping
     public Page<CompetitionDto> getCompetitionsByName(Pageable pageable, @RequestParam String name) {
         return competitionService.findCompetitionsByName(name, pageable);
+    }
+
+    @GetMapping("/pinned")
+    public List<CompetitionDto> getPinnedCompetitions() {
+        return competitionService.findPinnedCompetitions();
     }
 
     @PostMapping
