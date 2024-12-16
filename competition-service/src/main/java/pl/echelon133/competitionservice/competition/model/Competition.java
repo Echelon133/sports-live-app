@@ -26,6 +26,8 @@ public class Competition extends BaseEntity {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Legend> legend;
 
+    private boolean pinned;
+
     public Competition() {}
     public Competition(String name, String season, String logoUrl) {
         this.name = name;
@@ -76,5 +78,13 @@ public class Competition extends BaseEntity {
 
     public void setLegend(List<Legend> legend) {
         this.legend = legend;
+    }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
     }
 }

@@ -22,6 +22,7 @@ public interface TestUpsertCompetitionDto {
         private List<UpsertCompetitionDto.UpsertLegendDto> legend = List.of(
                 TestUpsertLegendDto.builder().build()
         );
+        private boolean pinned;
 
         private UpsertCompetitionDtoBuilder() {}
 
@@ -50,8 +51,13 @@ public interface TestUpsertCompetitionDto {
             return this;
         }
 
+        public UpsertCompetitionDtoBuilder pinned(boolean pinned) {
+            this.pinned = pinned;
+            return this;
+        }
+
         public UpsertCompetitionDto build() {
-            return new UpsertCompetitionDto(name, season, logoUrl, groups, legend);
+            return new UpsertCompetitionDto(name, season, logoUrl, groups, legend, pinned);
         }
     }
 }
