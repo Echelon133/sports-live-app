@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.Length;
+import org.hibernate.validator.constraints.Range;
 import org.hibernate.validator.constraints.URL;
 import org.hibernate.validator.constraints.UUID;
 import pl.echelon133.competitionservice.competition.model.constraints.LegendPositionsInRange;
@@ -35,6 +36,7 @@ public record UpsertCompetitionDto(
 
     public record UpsertLeaguePhaseDto(
         @Size(min = 1, max = 10) @TeamsUniqueInGroups List<@Valid UpsertGroupDto> groups,
-        @Size(max = 6) @PositionsUniqueInLegend List<@Valid UpsertLegendDto> legend
+        @Size(max = 6) @PositionsUniqueInLegend List<@Valid UpsertLegendDto> legend,
+        @Range(min = 1, max = 50, message = "expected between {min} and {max} rounds in the league phase") int maxRounds
     ) {}
 }

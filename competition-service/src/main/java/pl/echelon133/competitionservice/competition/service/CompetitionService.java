@@ -165,7 +165,7 @@ public class CompetitionService {
                             )
             ).collect(Collectors.toList());
 
-            competition.setLeaguePhase(new LeaguePhase(groups, legend));
+            competition.setLeaguePhase(new LeaguePhase(groups, legend, competitionDto.leaguePhase().maxRounds()));
         }
 
         return competitionRepository.save(competition).getId();
