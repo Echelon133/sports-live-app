@@ -19,8 +19,7 @@ public record UpsertCompetitionDto(
     @NotNull @Length(min = 1, max = 50) String name,
     @NotNull @Length(min = 1, max = 30) String season,
     @NotNull @URL @Length(min = 15, max = 500) String logoUrl,
-    @Size(min = 1, max = 10) @TeamsUniqueInGroups List<@Valid UpsertGroupDto> groups,
-    @Size(max = 6) @PositionsUniqueInLegend List<@Valid UpsertLegendDto> legend,
+    @NotNull @Valid UpsertCompetitionDto.UpsertLeaguePhaseDto leaguePhase,
     boolean pinned
 ) {
     public record UpsertGroupDto(
@@ -32,5 +31,10 @@ public record UpsertCompetitionDto(
         @Size(min = 1, max = 16) Set<Integer> positions,
         @NotNull @Length(min = 1, max = 200) String context,
         @NotNull @SentimentValue String sentiment
+    ) {}
+
+    public record UpsertLeaguePhaseDto(
+        @Size(min = 1, max = 10) @TeamsUniqueInGroups List<@Valid UpsertGroupDto> groups,
+        @Size(max = 6) @PositionsUniqueInLegend List<@Valid UpsertLegendDto> legend
     ) {}
 }

@@ -25,8 +25,12 @@ public @interface LegendPositionsInRange {
 
         @Override
         public boolean isValid(UpsertCompetitionDto upsertCompetitionDto, ConstraintValidatorContext constraintValidatorContext) {
+            if (upsertCompetitionDto.leaguePhase() == null) {
+                return true;
+            }
+
             var minimumLegalPosition = 1; // a team cannot have a 0th or a negative position in a group
-            var maximumLegalPosition = upsertCompetitionDto.groups().stream()
+            var maximumLegalPosition = upsertCompetitionDto.leaguePhase().groups().stream()
                     .map(s -> s.teams().size())
                     .max(Comparator.naturalOrder());
 
@@ -37,7 +41,7 @@ public @interface LegendPositionsInRange {
                 return true;
             }
 
-            var allPositionReferences = upsertCompetitionDto.legend().stream()
+            var allPositionReferences = upsertCompetitionDto.leaguePhase().legend().stream()
                     .flatMap(l -> l.positions().stream())
                     .collect(Collectors.toSet());
 

@@ -1,12 +1,9 @@
 package pl.echelon133.competitionservice.competition.model;
 
-import ml.echelon133.common.entity.BaseEntity;
-
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
-import jakarta.persistence.OneToMany;
-import java.util.List;
+import ml.echelon133.common.entity.BaseEntity;
 
 @Entity
 public class Competition extends BaseEntity {
@@ -20,11 +17,8 @@ public class Competition extends BaseEntity {
     @Column(name = "logo_url", nullable = false, length = 500)
     private String logoUrl;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Group> groups;
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Legend> legend;
+    @Embedded
+    private LeaguePhase leaguePhase;
 
     private boolean pinned;
 
@@ -33,11 +27,12 @@ public class Competition extends BaseEntity {
         this.name = name;
         this.season = season;
         this.logoUrl = logoUrl;
+        this.leaguePhase = null;
     }
-    public Competition(String name, String season, String logoUrl, List<Group> groups, List<Legend> legend) {
+
+    public Competition(String name, String season, String logoUrl, LeaguePhase leaguePhase) {
         this(name, season, logoUrl);
-        this.groups = groups;
-        this.legend = legend;
+        this.leaguePhase = leaguePhase;
     }
 
     public String getName() {
@@ -64,20 +59,12 @@ public class Competition extends BaseEntity {
         this.logoUrl = logoUrl;
     }
 
-    public List<Group> getGroups() {
-        return groups;
+    public LeaguePhase getLeaguePhase() {
+        return leaguePhase;
     }
 
-    public void setGroups(List<Group> groups) {
-        this.groups = groups;
-    }
-
-    public List<Legend> getLegend() {
-        return legend;
-    }
-
-    public void setLegend(List<Legend> legend) {
-        this.legend = legend;
+    public void setLeaguePhase(LeaguePhase leaguePhase) {
+        this.leaguePhase = leaguePhase;
     }
 
     public boolean isPinned() {
