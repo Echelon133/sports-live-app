@@ -1,6 +1,7 @@
 package pl.echelon133.competitionservice.competition.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import pl.echelon133.competitionservice.competition.TestUpsertLeaguePhaseDto;
 import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -297,7 +298,10 @@ public class CompetitionControllerTests {
         given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
 
         for (String correctName : correctNameLengths) {
-            var contentDto = TestUpsertCompetitionDto.builder().name(correctName).build();
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
+                    .name(correctName)
+                    .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
             // when
@@ -369,7 +373,10 @@ public class CompetitionControllerTests {
         given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
 
         for (String correctSeason : correctSeasonLengths) {
-            var contentDto = TestUpsertCompetitionDto.builder().season(correctSeason).build();
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
+                    .season(correctSeason)
+                    .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
             // when
@@ -460,7 +467,10 @@ public class CompetitionControllerTests {
         given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
 
         for (String correctLogoUrl : correctLogoUrlLengths) {
-            var contentDto = TestUpsertCompetitionDto.builder().logoUrl(correctLogoUrl).build();
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
+                    .logoUrl(correctLogoUrl)
+                    .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
             // when
@@ -485,7 +495,9 @@ public class CompetitionControllerTests {
         );
 
         for (List<UpsertCompetitionDto.UpsertGroupDto> groups : incorrectGroupSizes) {
-            var contentDto = TestUpsertCompetitionDto.builder().groups(groups).build();
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(groups).build())
+                    .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
             mvc.perform(
@@ -496,7 +508,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("groups", List.of("size must be between 1 and 10")))
+                            jsonPath("$.messages", hasEntry("leaguePhase.groups", List.of("size must be between 1 and 10")))
                     );
         }
     }
@@ -515,7 +527,9 @@ public class CompetitionControllerTests {
         given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
 
         for (List<UpsertCompetitionDto.UpsertGroupDto> groups : incorrectGroupSizes) {
-            var contentDto = TestUpsertCompetitionDto.builder().groups(groups).build();
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(groups).build())
+                    .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
             // when
@@ -540,7 +554,9 @@ public class CompetitionControllerTests {
                 TestUpsertGroupDto.builder().teams(teams).build()
         ).collect(Collectors.toList());
 
-        var contentDto = TestUpsertCompetitionDto.builder().groups(groups).build();
+        var contentDto = TestUpsertCompetitionDto.builder()
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(groups).build())
+                .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
         mvc.perform(
@@ -551,7 +567,7 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("groups", List.of("team cannot be a member of multiple groups in one competition")))
+                        jsonPath("$.messages", hasEntry("leaguePhase.groups", List.of("team cannot be a member of multiple groups in one competition")))
                 );
     }
 
@@ -563,7 +579,9 @@ public class CompetitionControllerTests {
                 .mapToObj(i -> TestUpsertGroupDto.builder().teams(generateTeamIds(10)).build())
                 .collect(Collectors.toList());
 
-        var contentDto = TestUpsertCompetitionDto.builder().groups(groups).build();
+        var contentDto = TestUpsertCompetitionDto.builder()
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(groups).build())
+                .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
         // given
@@ -582,8 +600,9 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 422 when group's name is not provided")
     public void createCompetition_GroupNameNotProvided_StatusUnprocessableEntity() throws Exception {
+        var noGroupNameGroups = List.of(TestUpsertGroupDto.builder().name(null).build());
         var contentDto = TestUpsertCompetitionDto.builder()
-                .groups(List.of(TestUpsertGroupDto.builder().name(null).build()))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(noGroupNameGroups).build())
                 .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -595,7 +614,7 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("groups[0].name", List.of("field has to be provided")))
+                        jsonPath("$.messages", hasEntry("leaguePhase.groups[0].name", List.of("field has to be provided")))
                 );
     }
 
@@ -605,8 +624,9 @@ public class CompetitionControllerTests {
         // too long (51 characters)
         var incorrectName = "a".repeat(51);
 
+        var incorrectNameGroups = List.of(TestUpsertGroupDto.builder().name(incorrectName).build());
         var contentDto = TestUpsertCompetitionDto.builder()
-                .groups(List.of(TestUpsertGroupDto.builder().name(incorrectName).build()))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(incorrectNameGroups).build())
                 .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -618,7 +638,7 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("groups[0].name", List.of("expected length between 0 and 50")))
+                        jsonPath("$.messages", hasEntry("leaguePhase.groups[0].name", List.of("expected length between 0 and 50")))
                 );
     }
 
@@ -627,8 +647,9 @@ public class CompetitionControllerTests {
     public void createCompetition_GroupNameLengthCorrect_StatusOk() throws Exception {
         var correctName = "a".repeat(50);
 
+        var correctNameGroups = List.of(TestUpsertGroupDto.builder().name(correctName).build());
         var contentDto = TestUpsertCompetitionDto.builder()
-                .groups(List.of(TestUpsertGroupDto.builder().name(correctName).build()))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(correctNameGroups).build())
                 .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -656,8 +677,9 @@ public class CompetitionControllerTests {
         );
 
         for (List<String> teams : incorrectGroupTeamSizes) {
+            var groupWithTeams = List.of(TestUpsertGroupDto.builder().teams(teams).build());
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .groups(List.of(TestUpsertGroupDto.builder().teams(teams).build()))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(groupWithTeams).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
             mvc.perform(
@@ -668,7 +690,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("groups[0].teams", List.of("size must be between 2 and 36")))
+                            jsonPath("$.messages", hasEntry("leaguePhase.groups[0].teams", List.of("size must be between 2 and 36")))
                     );
         }
     }
@@ -687,8 +709,9 @@ public class CompetitionControllerTests {
         given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
 
         for (List<String> teams : correctGroupTeamSizes) {
+            var correctSizeGroups = List.of(TestUpsertGroupDto.builder().teams(teams).build());
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .groups(List.of(TestUpsertGroupDto.builder().teams(teams).build()))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(correctSizeGroups).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -715,8 +738,9 @@ public class CompetitionControllerTests {
         for (String incorrectTeamId : incorrectTeamIds) {
             // mix correct and incorrect ids
             var teams = List.of(UUID.randomUUID().toString(), incorrectTeamId);
+            var mixedGroups = List.of(TestUpsertGroupDto.builder().teams(teams).build());
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .groups(List.of(TestUpsertGroupDto.builder().teams(teams).build()))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(mixedGroups).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -728,7 +752,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("groups[0].teams[1]", List.of("not a valid uuid")))
+                            jsonPath("$.messages", hasEntry("leaguePhase.groups[0].teams[1]", List.of("not a valid uuid")))
                     );
         }
     }
@@ -742,7 +766,7 @@ public class CompetitionControllerTests {
                 .collect(Collectors.toList());
 
         var contentDto = TestUpsertCompetitionDto.builder()
-                .legend(incorrectLegendSize)
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(incorrectLegendSize).build())
                 .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
         mvc.perform(
@@ -753,7 +777,7 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("legend", List.of("size must be between 0 and 6")))
+                        jsonPath("$.messages", hasEntry("leaguePhase.legend", List.of("size must be between 0 and 6")))
                 );
     }
 
@@ -774,7 +798,7 @@ public class CompetitionControllerTests {
 
         for (List<UpsertCompetitionDto.UpsertLegendDto> legend : correctLegendSize) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(legend)
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -803,7 +827,7 @@ public class CompetitionControllerTests {
 
         for (List<UpsertCompetitionDto.UpsertLegendDto> legend : duplicatePositionLegend) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(legend)
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
             mvc.perform(
@@ -814,7 +838,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("legend", List.of("multiple legend entries cannot reference the same position")))
+                            jsonPath("$.messages", hasEntry("leaguePhase.legend", List.of("multiple legend entries cannot reference the same position")))
                     );
         }
     }
@@ -833,7 +857,7 @@ public class CompetitionControllerTests {
 
         for (List<UpsertCompetitionDto.UpsertLegendDto> legend : incorrectPositionSize) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(legend)
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
             mvc.perform(
@@ -844,7 +868,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("legend[0].positions", List.of("size must be between 1 and 16")))
+                            jsonPath("$.messages", hasEntry("leaguePhase.legend[0].positions", List.of("size must be between 1 and 16")))
                     );
         }
     }
@@ -866,7 +890,7 @@ public class CompetitionControllerTests {
 
         for (List<UpsertCompetitionDto.UpsertLegendDto> legend : correctPositionSize) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(legend)
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -885,8 +909,9 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 422 when legend's context is not provided")
     public void createCompetition_LegendContextNotProvided_StatusUnprocessableEntity() throws Exception {
+        var legend = List.of(TestUpsertLegendDto.builder().context(null).build());
         var contentDto = TestUpsertCompetitionDto.builder()
-                .legend(List.of(TestUpsertLegendDto.builder().context(null).build()))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                 .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -898,7 +923,7 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("legend[0].context", List.of("field has to be provided")))
+                        jsonPath("$.messages", hasEntry("leaguePhase.legend[0].context", List.of("field has to be provided")))
                 );
     }
 
@@ -913,8 +938,9 @@ public class CompetitionControllerTests {
         );
 
         for (String context : incorrectContextLengths) {
+            var legend = List.of(TestUpsertLegendDto.builder().context(context).build());
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(List.of(TestUpsertLegendDto.builder().context(context).build()))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -926,7 +952,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("legend[0].context", List.of("expected length between 1 and 200")))
+                            jsonPath("$.messages", hasEntry("leaguePhase.legend[0].context", List.of("expected length between 1 and 200")))
                     );
         }
     }
@@ -945,8 +971,9 @@ public class CompetitionControllerTests {
         given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
 
         for (String context : correctContextLengths) {
+            var legend = List.of(TestUpsertLegendDto.builder().context(context).build());
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(List.of(TestUpsertLegendDto.builder().context(context).build()))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -964,8 +991,9 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 422 when legend's sentiment is not provided")
     public void createCompetition_LegendSentimentNotProvided_StatusUnprocessableEntity() throws Exception {
+        var legend = List.of(TestUpsertLegendDto.builder().sentiment(null).build());
         var contentDto = TestUpsertCompetitionDto.builder()
-                .legend(List.of(TestUpsertLegendDto.builder().sentiment(null).build()))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                 .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -977,7 +1005,7 @@ public class CompetitionControllerTests {
                 )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(
-                        jsonPath("$.messages", hasEntry("legend[0].sentiment", List.of("field has to be provided")))
+                        jsonPath("$.messages", hasEntry("leaguePhase.legend[0].sentiment", List.of("field has to be provided")))
                 );
     }
 
@@ -989,8 +1017,9 @@ public class CompetitionControllerTests {
         );
 
         for (String sentiment : incorrectSentiments) {
+            var legend = List.of(TestUpsertLegendDto.builder().sentiment(sentiment).build());
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(List.of(TestUpsertLegendDto.builder().sentiment(sentiment).build()))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -1002,7 +1031,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("legend[0].sentiment", List.of("required exactly one of [POSITIVE_A, POSITIVE_B, POSITIVE_C, POSITIVE_D, NEGATIVE_A, NEGATIVE_B]")))
+                            jsonPath("$.messages", hasEntry("leaguePhase.legend[0].sentiment", List.of("required exactly one of [POSITIVE_A, POSITIVE_B, POSITIVE_C, POSITIVE_D, NEGATIVE_A, NEGATIVE_B]")))
                     );
         }
     }
@@ -1020,8 +1049,9 @@ public class CompetitionControllerTests {
         given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
 
         for (String sentiment : correctSentiments) {
+            var legend = List.of(TestUpsertLegendDto.builder().sentiment(sentiment).build());
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(List.of(TestUpsertLegendDto.builder().sentiment(sentiment).build()))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(legend).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -1050,7 +1080,7 @@ public class CompetitionControllerTests {
 
         for (UpsertCompetitionDto.UpsertLegendDto legend : incorrectPositionReferences) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(List.of(legend))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(List.of(legend)).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -1084,7 +1114,7 @@ public class CompetitionControllerTests {
 
         for (UpsertCompetitionDto.UpsertLegendDto legend : correctPositionReferences) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .legend(List.of(legend))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().legend(List.of(legend)).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -1117,8 +1147,7 @@ public class CompetitionControllerTests {
 
         for (UpsertCompetitionDto.UpsertLegendDto legend : incorrectPositionReferences) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .groups(groups)
-                    .legend(List.of(legend))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(groups).legend(List.of(legend)).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -1156,8 +1185,7 @@ public class CompetitionControllerTests {
 
         for (UpsertCompetitionDto.UpsertLegendDto legend : correctPositionReferences) {
             var contentDto = TestUpsertCompetitionDto.builder()
-                    .groups(groups)
-                    .legend(List.of(legend))
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(groups).legend(List.of(legend)).build())
                     .build();
             var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
@@ -1175,14 +1203,16 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 422 when the service method throws")
     public void createCompetition_ServiceThrows_StatusUnprocessableEntity() throws Exception {
-        var contentDto = TestUpsertCompetitionDto.builder().build();
+        var contentDto = TestUpsertCompetitionDto.builder()
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
+                .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
-        var teamIdToFail = UUID.fromString(contentDto.groups().get(0).teams().get(0));
+        var teamIdToFail = UUID.fromString(contentDto.leaguePhase().groups().get(0).teams().get(0));
 
         // given
         given(competitionService.createCompetition(
-                argThat(c -> c.groups().get(0).teams().contains(teamIdToFail.toString()))
+                argThat(c -> c.leaguePhase().groups().get(0).teams().contains(teamIdToFail.toString()))
         )).willThrow(new CompetitionInvalidException("failed to fetch resource with id " + teamIdToFail));
 
         // then
@@ -1201,7 +1231,9 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 200 when all data in the body is correct and service saves the entity")
     public void createCompetition_ServiceSaves_StatusOk() throws Exception {
-        var contentDto = TestUpsertCompetitionDto.builder().build();
+        var contentDto = TestUpsertCompetitionDto.builder()
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
+                .build();
         var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
 
         var competitionId = UUID.randomUUID();

@@ -10,10 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import pl.echelon133.competitionservice.competition.TestCompetition;
-import pl.echelon133.competitionservice.competition.TestUpsertCompetitionDto;
-import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
-import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
+import pl.echelon133.competitionservice.competition.*;
 import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.*;
@@ -138,7 +135,7 @@ public class CompetitionServiceTests {
                 .teams(requestedTeamIds.stream().map(UUID::toString).collect(Collectors.toList()))
                 .build();
         var dto = TestUpsertCompetitionDto.builder()
-                .groups(List.of(group))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(group)).build())
                 .build();
 
         // simulate a response with more teams than requested
@@ -175,7 +172,7 @@ public class CompetitionServiceTests {
                 .teams(requestedTeamIds.stream().map(UUID::toString).collect(Collectors.toList()))
                 .build();
         var dto = TestUpsertCompetitionDto.builder()
-                .groups(List.of(group))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(group)).build())
                 .build();
 
         // simulate a response with fewer teams than requested
@@ -217,8 +214,8 @@ public class CompetitionServiceTests {
                     competition.getLogoUrl().equals(expectedCompetition.getLogoUrl()) &&
                     competition.isPinned() == expectedCompetition.isPinned();
 
-            Group group = competition.getGroups().get(0);
-            Group expectedGroup = expectedCompetition.getGroups().get(0);
+            Group group = competition.getLeaguePhase().getGroups().get(0);
+            Group expectedGroup = expectedCompetition.getLeaguePhase().getGroups().get(0);
             TeamStats teamStats = group.getTeams().get(0);
             TeamStats expectedTeamStats = expectedGroup.getTeams().get(0);
             boolean groupDataCorrect =
@@ -227,8 +224,8 @@ public class CompetitionServiceTests {
                     teamStats.getTeamName().equals(expectedTeamStats.getTeamName()) &&
                     teamStats.getCrestUrl().equals(expectedTeamStats.getCrestUrl());
 
-            Legend legend = competition.getLegend().get(0);
-            Legend expectedLegend = expectedCompetition.getLegend().get(0);
+            Legend legend = competition.getLeaguePhase().getLegend().get(0);
+            Legend expectedLegend = expectedCompetition.getLeaguePhase().getLegend().get(0);
             boolean legendDataCorrect =
                     legend.getPositions().equals(expectedLegend.getPositions()) &&
                     legend.getContext().equals(expectedLegend.getContext()) &&
@@ -255,8 +252,7 @@ public class CompetitionServiceTests {
                 .name("Test Competition B")
                 .season("2024/25")
                 .logoUrl("https://test-site.com/image/logo.png")
-                .groups(List.of(dtoGroup))
-                .legend(List.of(dtoLegend))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(dtoGroup)).legend(List.of(dtoLegend)).build())
                 .build();
 
         var expectedTeamStats = new TeamStats(groupTeamId, "Team " + groupTeamId, "Url " + groupTeamId);
@@ -266,8 +262,7 @@ public class CompetitionServiceTests {
                 dtoCompetition.name(),
                 dtoCompetition.season(),
                 dtoCompetition.logoUrl(),
-                List.of(expectedGroup),
-                List.of(expectedLegend)
+                new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend))
         );
 
         var requestedTeamIds = List.of(groupTeamId);
@@ -309,8 +304,7 @@ public class CompetitionServiceTests {
                 .name("Test Competition B")
                 .season("2024/25")
                 .logoUrl("https://test-site.com/image/logo.png")
-                .groups(List.of(dtoGroup))
-                .legend(List.of(dtoLegend))
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(dtoGroup)).legend(List.of(dtoLegend)).build())
                 .pinned(true)
                 .build();
 
@@ -321,8 +315,7 @@ public class CompetitionServiceTests {
                 dtoCompetition.name(),
                 dtoCompetition.season(),
                 dtoCompetition.logoUrl(),
-                List.of(expectedGroup),
-                List.of(expectedLegend)
+                new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend))
         );
         expectedCompetition.setPinned(true);
 
@@ -380,8 +373,7 @@ public class CompetitionServiceTests {
         var group = new Group("Group A", List.of(team));
         var legend = new Legend(Set.of(1, 2), "Promotion to League A", Legend.LegendSentiment.POSITIVE_A);
         var competition = TestCompetition.builder()
-                .groups(List.of(group))
-                .legend(List.of(legend))
+                .leaguePhase(new LeaguePhase(List.of(group), List.of(legend)))
                 .build();
         var competitionId = competition.getId();
 
