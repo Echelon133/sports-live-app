@@ -252,7 +252,7 @@ public class CompetitionServiceTests {
                 .name("Test Competition B")
                 .season("2024/25")
                 .logoUrl("https://test-site.com/image/logo.png")
-                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(dtoGroup)).legend(List.of(dtoLegend)).build())
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(dtoGroup)).legend(List.of(dtoLegend)).maxRounds(25).build())
                 .build();
 
         var expectedTeamStats = new TeamStats(groupTeamId, "Team " + groupTeamId, "Url " + groupTeamId);
@@ -262,7 +262,7 @@ public class CompetitionServiceTests {
                 dtoCompetition.name(),
                 dtoCompetition.season(),
                 dtoCompetition.logoUrl(),
-                new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend))
+                new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend), dtoCompetition.leaguePhase().maxRounds())
         );
 
         var requestedTeamIds = List.of(groupTeamId);
@@ -304,7 +304,7 @@ public class CompetitionServiceTests {
                 .name("Test Competition B")
                 .season("2024/25")
                 .logoUrl("https://test-site.com/image/logo.png")
-                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(dtoGroup)).legend(List.of(dtoLegend)).build())
+                .leaguePhase(TestUpsertLeaguePhaseDto.builder().groups(List.of(dtoGroup)).legend(List.of(dtoLegend)).maxRounds(10).build())
                 .pinned(true)
                 .build();
 
@@ -315,7 +315,7 @@ public class CompetitionServiceTests {
                 dtoCompetition.name(),
                 dtoCompetition.season(),
                 dtoCompetition.logoUrl(),
-                new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend))
+                new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend), dtoCompetition.leaguePhase().maxRounds())
         );
         expectedCompetition.setPinned(true);
 

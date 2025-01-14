@@ -15,6 +15,7 @@ public interface TestUpsertLeaguePhaseDto {
                 List.of(TestUpsertGroupDto.builder().build());
         private List<UpsertCompetitionDto.UpsertLegendDto> legend =
                 List.of(TestUpsertLegendDto.builder().build());
+        private int maxRounds = 1;
 
         private UpsertLeaguePhaseDtoBuilder() {}
 
@@ -28,8 +29,13 @@ public interface TestUpsertLeaguePhaseDto {
             return this;
         }
 
+        public UpsertLeaguePhaseDtoBuilder maxRounds(int maxRounds) {
+            this.maxRounds = maxRounds;
+            return this;
+        }
+
         public UpsertCompetitionDto.UpsertLeaguePhaseDto build() {
-            return new UpsertCompetitionDto.UpsertLeaguePhaseDto(groups, legend);
+            return new UpsertCompetitionDto.UpsertLeaguePhaseDto(groups, legend, maxRounds);
         }
     }
 }

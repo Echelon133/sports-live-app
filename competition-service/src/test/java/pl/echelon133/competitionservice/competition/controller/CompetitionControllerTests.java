@@ -1229,6 +1229,56 @@ public class CompetitionControllerTests {
     }
 
     @Test
+    @DisplayName("POST /api/competitions returns 422 when the maximum number of rounds of the league phase is incorrect")
+    public void createCompetition_IncorrectNumberOfMaximumRounds_StatusUnprocessableEntity() throws Exception {
+        var incorrectMaxRounds = List.of(0, 51, 100, 200);
+
+        for (var maxRounds : incorrectMaxRounds) {
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().maxRounds(maxRounds).build())
+                    .build();
+            var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // then
+            mvc.perform(
+                            post("/api/competitions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("leaguePhase.maxRounds", List.of("expected between 1 and 50 rounds in the league phase")))
+                    );
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions returns 200 when the maximum number of rounds of the league phase is correct")
+    public void createCompetition_CorrectNumberOfMaximumRounds_StatusOk() throws Exception {
+        var correctMaxRounds = List.of(1, 5, 25, 50);
+
+        // given
+        given(competitionService.createCompetition(any())).willReturn(UUID.randomUUID());
+
+        for (var maxRounds : correctMaxRounds) {
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .leaguePhase(TestUpsertLeaguePhaseDto.builder().maxRounds(maxRounds).build())
+                    .build();
+            var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // then
+            mvc.perform(
+                            post("/api/competitions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
     @DisplayName("POST /api/competitions returns 200 when all data in the body is correct and service saves the entity")
     public void createCompetition_ServiceSaves_StatusOk() throws Exception {
         var contentDto = TestUpsertCompetitionDto.builder()
