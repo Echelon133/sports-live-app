@@ -17,7 +17,7 @@ public interface TestCompetition {
         private String name = "Test Competition";
         private String season = "2023/24";
         private String logoUrl = "http://test-logo.com/image.png";
-        private LeaguePhase leaguePhase = new LeaguePhase(List.of(), List.of());
+        private LeaguePhase leaguePhase = new LeaguePhase(List.of(), List.of(), 38);
         private boolean deleted = false;
         private boolean pinned = false;
 

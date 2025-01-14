@@ -1,6 +1,6 @@
 package pl.echelon133.competitionservice.competition.repository;
 
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,9 +10,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.TestPropertySource;
 import pl.echelon133.competitionservice.competition.TestCompetition;
-import pl.echelon133.competitionservice.competition.model.Competition;
-import pl.echelon133.competitionservice.competition.model.PlayerStats;
-import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +36,9 @@ public class CompetitionRepositoryTests {
         assertEquals(entity.getName(), dto.getName());
         assertEquals(entity.getSeason(), dto.getSeason());
         assertEquals(entity.getLogoUrl(), dto.getLogoUrl());
+        if (entity.getLeaguePhase() != null) {
+            assertEquals(entity.getLeaguePhase().getMaxRounds(), dto.getMaxRounds());
+        }
     }
 
     @Test

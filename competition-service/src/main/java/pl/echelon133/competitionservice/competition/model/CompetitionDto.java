@@ -7,8 +7,9 @@ public interface CompetitionDto {
     String getName();
     String getSeason();
     String getLogoUrl();
+    int getMaxRounds();
 
-    static CompetitionDto from(UUID id, String name, String season, String logoUrl) {
+    static CompetitionDto from(UUID id, String name, String season, String logoUrl, int maxRounds) {
         return new CompetitionDto() {
             @Override
             public UUID getId() {
@@ -28,6 +29,11 @@ public interface CompetitionDto {
             @Override
             public String getLogoUrl() {
                 return logoUrl;
+            }
+
+            @Override
+            public int getMaxRounds() {
+                return maxRounds;
             }
         };
     }

@@ -59,7 +59,7 @@ public class CompetitionServiceTests {
     @Test
     @DisplayName("findById returns the dto when the competition is present")
     public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
-        var testDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
+        var testDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3", 1);
         var competitionId = testDto.getId();
 
         // given
@@ -92,7 +92,7 @@ public class CompetitionServiceTests {
     public void findCompetitionsByName_CustomPhraseAndPageable_CorrectlyCallsRepository() {
         var phrase = "test";
         var pageable = Pageable.ofSize(7).withPage(4);
-        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
+        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3", 1);
         var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
 
         // given
@@ -111,7 +111,7 @@ public class CompetitionServiceTests {
     @Test
     @DisplayName("findPinnedCompetitions calls the repository method")
     public void findPinnedCompetitions_NoArguments_CorrectlyCallsRepository() {
-        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
+        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3", 1);
 
         // given
         given(competitionRepository.findAllPinned()).willReturn(List.of(expectedDto));
