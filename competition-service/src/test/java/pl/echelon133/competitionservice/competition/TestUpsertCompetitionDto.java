@@ -14,6 +14,7 @@ public interface TestUpsertCompetitionDto {
         private String season = "2023/24";
         private String logoUrl = "http://test.com/logo.png";
         private UpsertCompetitionDto.UpsertLeaguePhaseDto leaguePhase = null;
+        private UpsertCompetitionDto.UpsertKnockoutPhaseDto knockoutPhase = null;
         private boolean pinned;
 
         private UpsertCompetitionDtoBuilder() {}
@@ -38,13 +39,18 @@ public interface TestUpsertCompetitionDto {
             return this;
         }
 
+        public UpsertCompetitionDtoBuilder knockoutPhase(UpsertCompetitionDto.UpsertKnockoutPhaseDto knockoutPhase) {
+            this.knockoutPhase = knockoutPhase;
+            return this;
+        }
+
         public UpsertCompetitionDtoBuilder pinned(boolean pinned) {
             this.pinned = pinned;
             return this;
         }
 
         public UpsertCompetitionDto build() {
-            return new UpsertCompetitionDto(name, season, logoUrl, leaguePhase, pinned);
+            return new UpsertCompetitionDto(name, season, logoUrl, leaguePhase, knockoutPhase, pinned);
         }
     }
 }

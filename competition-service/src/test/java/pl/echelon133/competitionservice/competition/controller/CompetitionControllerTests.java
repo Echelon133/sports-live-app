@@ -2,7 +2,7 @@ package pl.echelon133.competitionservice.competition.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import pl.echelon133.competitionservice.competition.TestUpsertLeaguePhaseDto;
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,10 +23,6 @@ import pl.echelon133.competitionservice.competition.TestUpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
 import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
-import pl.echelon133.competitionservice.competition.model.Competition;
-import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
-import pl.echelon133.competitionservice.competition.model.StandingsDto;
-import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
 import java.util.List;
@@ -40,6 +36,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -238,6 +235,28 @@ public class CompetitionControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size()", is(1)))
                 .andExpect(jsonPath("$.[0].name", is(expectedName)));
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions returns 422 when neither league phase nor knockout phase is provided")
+    public void createCompetition_BothPhasesNull_StatusUnprocessableEntity() throws Exception {
+        var contentDto = TestUpsertCompetitionDto.builder()
+                .leaguePhase(null)
+                .knockoutPhase(null)
+                .build();
+        var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+        // then
+        mvc.perform(
+                        post("/api/competitions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(
+                        jsonPath("$.messages", hasEntry("general", List.of("a competition must have at least one phase")))
+                );
     }
 
     @Test
@@ -1279,30 +1298,103 @@ public class CompetitionControllerTests {
     }
 
     @Test
-    @DisplayName("POST /api/competitions returns 200 when all data in the body is correct and service saves the entity")
+    @DisplayName("POST /api/competitions returns 422 when knockout phase information is incorrect")
+    public void createCompetition_IncorrectKnockoutPhaseInformation_StatusUnprocessableEntity() throws Exception {
+        var incorrectStartsAt = List.of(
+                "ROUND_OF_256", "ASFSDFS", "tesasdf", "", "roundof64", "semifinal"
+        );
+
+        var expectedMessage =
+                "require exactly one of [ROUND_OF_128, ROUND_OF_64, ROUND_OF_32, ROUND_OF_16, QUARTER_FINAL, SEMI_FINAL, FINAL]";
+
+        for (var startsAt : incorrectStartsAt) {
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .knockoutPhase(new UpsertCompetitionDto.UpsertKnockoutPhaseDto(startsAt))
+                    .build();
+            var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+
+            // then
+            mvc.perform(
+                            post("/api/competitions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(
+                            jsonPath("$.messages", hasEntry("knockoutPhase.startsAt", List.of(expectedMessage)))
+                    );
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions returns 200 when knockout phase information is correct")
+    public void createCompetition_CorrectKnockoutPhaseInformation_StatusOk() throws Exception {
+        var correctStartsAt = List.of(
+                "ROUND_OF_128", "round_of_64", "ROUND_of_32", "ROUND_OF_16",
+                "QUARTER_final", "semi_FINAL", "FiNaL"
+        );
+
+        for (var startsAt : correctStartsAt) {
+            var contentDto = TestUpsertCompetitionDto.builder()
+                    .knockoutPhase(new UpsertCompetitionDto.UpsertKnockoutPhaseDto(startsAt))
+                    .build();
+            var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+            var competitionId = UUID.randomUUID();
+
+            // given
+            doReturn(competitionId).when(competitionService).createCompetition(argThat(c -> c.name().equals(contentDto.name())));
+            var expectedJson = String.format("{\"id\":\"%s\"}", competitionId);
+
+            // then
+            mvc.perform(
+                            post("/api/competitions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(expectedJson));
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions returns 200 for all combinations of phases")
     public void createCompetition_ServiceSaves_StatusOk() throws Exception {
-        var contentDto = TestUpsertCompetitionDto.builder()
-                .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
-                .build();
-        var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+        var competitions = List.of(
+                // only a league phase
+                TestUpsertCompetitionDto.builder()
+                        .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
+                        .build(),
+                // only a knockout phase
+                TestUpsertCompetitionDto.builder()
+                        .knockoutPhase(new UpsertCompetitionDto.UpsertKnockoutPhaseDto(KnockoutStage.ROUND_OF_64.name()))
+                        .build(),
+                // both phases
+                TestUpsertCompetitionDto.builder()
+                        .leaguePhase(TestUpsertLeaguePhaseDto.builder().build())
+                        .knockoutPhase(new UpsertCompetitionDto.UpsertKnockoutPhaseDto(KnockoutStage.ROUND_OF_64.name()))
+                        .build()
+        );
 
-        var competitionId = UUID.randomUUID();
+        for (var contentDto : competitions) {
+            var json = jsonUpsertCompetitionDto.write(contentDto).getJson();
+            var competitionId = UUID.randomUUID();
 
-        // given
-        given(competitionService.createCompetition(argThat(c -> c.name().equals(contentDto.name()))))
-                .willReturn(competitionId);
+            // given
+            doReturn(competitionId).when(competitionService).createCompetition(argThat(c -> c.name().equals(contentDto.name())));
+            var expectedJson = String.format("{\"id\":\"%s\"}", competitionId);
 
-        var expectedJson = String.format("{\"id\":\"%s\"}", competitionId);
-
-        // then
-        mvc.perform(
-                        post("/api/competitions")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .content(json)
-                )
-                .andExpect(status().isOk())
-                .andExpect(content().string(expectedJson));
+            // then
+            mvc.perform(
+                            post("/api/competitions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(expectedJson));
+        }
     }
 
     @Test
