@@ -1092,7 +1092,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("general", List.of("legend cannot reference positions which do not exist in groups"))
+                            jsonPath("$.messages", hasEntry("leaguePhase", List.of("legend cannot reference positions which do not exist in groups"))
                     )
             );
         }
@@ -1159,7 +1159,7 @@ public class CompetitionControllerTests {
                     )
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(
-                            jsonPath("$.messages", hasEntry("general", List.of("legend cannot reference positions which do not exist in groups")))
+                            jsonPath("$.messages", hasEntry("leaguePhase", List.of("legend cannot reference positions which do not exist in groups")))
                     );
         }
     }

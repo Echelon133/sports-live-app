@@ -15,7 +15,6 @@ import pl.echelon133.competitionservice.competition.model.constraints.TeamsUniqu
 import java.util.List;
 import java.util.Set;
 
-@LegendPositionsInRange
 public record UpsertCompetitionDto(
     @NotNull @Length(min = 1, max = 50) String name,
     @NotNull @Length(min = 1, max = 30) String season,
@@ -34,6 +33,7 @@ public record UpsertCompetitionDto(
         @NotNull @SentimentValue String sentiment
     ) {}
 
+    @LegendPositionsInRange
     public record UpsertLeaguePhaseDto(
         @Size(min = 1, max = 10) @TeamsUniqueInGroups List<@Valid UpsertGroupDto> groups,
         @Size(max = 6) @PositionsUniqueInLegend List<@Valid UpsertLegendDto> legend,

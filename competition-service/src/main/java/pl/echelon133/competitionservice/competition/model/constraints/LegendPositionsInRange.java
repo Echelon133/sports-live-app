@@ -21,16 +21,16 @@ public @interface LegendPositionsInRange {
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 
-    class Validator implements ConstraintValidator<LegendPositionsInRange, UpsertCompetitionDto> {
+    class Validator implements ConstraintValidator<LegendPositionsInRange, UpsertCompetitionDto.UpsertLeaguePhaseDto> {
 
         @Override
-        public boolean isValid(UpsertCompetitionDto upsertCompetitionDto, ConstraintValidatorContext constraintValidatorContext) {
-            if (upsertCompetitionDto.leaguePhase() == null) {
+        public boolean isValid(UpsertCompetitionDto.UpsertLeaguePhaseDto upsertLeaguePhaseDto, ConstraintValidatorContext constraintValidatorContext) {
+            if (upsertLeaguePhaseDto == null) {
                 return true;
             }
 
             var minimumLegalPosition = 1; // a team cannot have a 0th or a negative position in a group
-            var maximumLegalPosition = upsertCompetitionDto.leaguePhase().groups().stream()
+            var maximumLegalPosition = upsertLeaguePhaseDto.groups().stream()
                     .map(s -> s.teams().size())
                     .max(Comparator.naturalOrder());
 
@@ -41,7 +41,7 @@ public @interface LegendPositionsInRange {
                 return true;
             }
 
-            var allPositionReferences = upsertCompetitionDto.leaguePhase().legend().stream()
+            var allPositionReferences = upsertLeaguePhaseDto.legend().stream()
                     .flatMap(l -> l.positions().stream())
                     .collect(Collectors.toSet());
 
