@@ -1069,7 +1069,7 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 422 when legend references positions that do not appear in a group")
     public void createCompetition_LegendPositionsNotInRangeForSingleGroup_StatusUnprocessableEntity() throws Exception {
-        // default TestUpsertGroupDto in TestUpsertCompetitionDto creates a single group of 20 teams,
+        // default TestUpsertGroupDto creates a single group of 20 teams,
         // which means that positions 0, 21, 22, 23, etc. are not legal, because they refer to
         // positions which do not exist in a group
         List<UpsertCompetitionDto.UpsertLegendDto> incorrectPositionReferences =
@@ -1101,11 +1101,11 @@ public class CompetitionControllerTests {
     @Test
     @DisplayName("POST /api/competitions returns 200 when legend references positions that appear in a group")
     public void createCompetition_LegendPositionsInRangeForSingleGroup_StatusOk() throws Exception {
-        // default TestUpsertGroupDto in TestUpsertCompetitionDto creates a single group of 10 teams,
-        // which means that positions 1 through 10 are legal
+        // default TestUpsertGroupDto creates a single group of 20 teams,
+        // which means that positions 1 through 20 are legal
         List<UpsertCompetitionDto.UpsertLegendDto> correctPositionReferences =
                 IntStream
-                        .range(1, 11)
+                        .range(1, 20)
                         .mapToObj(i -> TestUpsertLegendDto.builder().positions(Set.of(i)).build())
                         .collect(Collectors.toList());
 
