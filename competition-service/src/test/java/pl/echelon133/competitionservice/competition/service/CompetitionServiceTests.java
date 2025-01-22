@@ -214,24 +214,61 @@ public class CompetitionServiceTests {
                     competition.getLogoUrl().equals(expectedCompetition.getLogoUrl()) &&
                     competition.isPinned() == expectedCompetition.isPinned();
 
-            Group group = competition.getLeaguePhase().getGroups().get(0);
-            Group expectedGroup = expectedCompetition.getLeaguePhase().getGroups().get(0);
-            TeamStats teamStats = group.getTeams().get(0);
-            TeamStats expectedTeamStats = expectedGroup.getTeams().get(0);
-            boolean groupDataCorrect =
-                    group.getName().equals(expectedGroup.getName()) &&
-                    teamStats.getTeamId().equals(expectedTeamStats.getTeamId()) &&
-                    teamStats.getTeamName().equals(expectedTeamStats.getTeamName()) &&
-                    teamStats.getCrestUrl().equals(expectedTeamStats.getCrestUrl());
+            boolean leaguePhaseCorrect;
+            if (competition.getLeaguePhase() == null) {
+                leaguePhaseCorrect = expectedCompetition.getLeaguePhase() == null;
+            } else {
+                boolean groupDataCorrect = true;
+                int groupSize = competition.getLeaguePhase().getGroups().size();
+                int expectedGroupSize = expectedCompetition.getLeaguePhase().getGroups().size();
 
-            Legend legend = competition.getLeaguePhase().getLegend().get(0);
-            Legend expectedLegend = expectedCompetition.getLeaguePhase().getLegend().get(0);
-            boolean legendDataCorrect =
-                    legend.getPositions().equals(expectedLegend.getPositions()) &&
-                    legend.getContext().equals(expectedLegend.getContext()) &&
-                    legend.getSentiment().equals(expectedLegend.getSentiment());
+                if (groupSize != expectedGroupSize) {
+                    return false;
+                }
 
-            return basicDataCorrect && groupDataCorrect && legendDataCorrect;
+                for (var i = 0; i < groupSize; i++) {
+                    Group group = competition.getLeaguePhase().getGroups().get(i);
+                    Group expectedGroup = expectedCompetition.getLeaguePhase().getGroups().get(i);
+
+                    int teamSize = group.getTeams().size();
+                    int expectedTeamSize = expectedGroup.getTeams().size();
+
+                    if (teamSize != expectedTeamSize) {
+                        return false;
+                    }
+
+                    for (var j = 0; j < teamSize; j++) {
+                        TeamStats teamStats = group.getTeams().get(j);
+                        TeamStats expectedTeamStats = expectedGroup.getTeams().get(j);
+                        groupDataCorrect =
+                                groupDataCorrect &&
+                                group.getName().equals(expectedGroup.getName()) &&
+                                teamStats.getTeamId().equals(expectedTeamStats.getTeamId()) &&
+                                teamStats.getTeamName().equals(expectedTeamStats.getTeamName()) &&
+                                teamStats.getCrestUrl().equals(expectedTeamStats.getCrestUrl());
+                    }
+                }
+
+                boolean legendDataCorrect = true;
+                int legendSize = competition.getLeaguePhase().getLegend().size();
+                for (var i = 0; i < legendSize; i++) {
+                    Legend legend = competition.getLeaguePhase().getLegend().get(i);
+                    Legend expectedLegend = expectedCompetition.getLeaguePhase().getLegend().get(i);
+                    legendDataCorrect =
+                            legendDataCorrect &&
+                            legend.getPositions().equals(expectedLegend.getPositions()) &&
+                            legend.getContext().equals(expectedLegend.getContext()) &&
+                            legend.getSentiment().equals(expectedLegend.getSentiment());
+
+                }
+
+                boolean maxRoundsCorrect =
+                        competition.getLeaguePhase().getMaxRounds() == expectedCompetition.getLeaguePhase().getMaxRounds();
+
+                leaguePhaseCorrect = groupDataCorrect && legendDataCorrect && maxRoundsCorrect;
+            }
+
+            return basicDataCorrect && leaguePhaseCorrect;
         }
     }
 
