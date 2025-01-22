@@ -27,12 +27,6 @@ public class Competition extends BaseEntity {
         this.name = name;
         this.season = season;
         this.logoUrl = logoUrl;
-        this.leaguePhase = null;
-    }
-
-    public Competition(String name, String season, String logoUrl, LeaguePhase leaguePhase) {
-        this(name, season, logoUrl);
-        this.leaguePhase = leaguePhase;
     }
 
     public String getName() {

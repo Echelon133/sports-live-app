@@ -261,9 +261,9 @@ public class CompetitionServiceTests {
         var expectedCompetition = new Competition(
                 dtoCompetition.name(),
                 dtoCompetition.season(),
-                dtoCompetition.logoUrl(),
-                new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend), dtoCompetition.leaguePhase().maxRounds())
+                dtoCompetition.logoUrl()
         );
+        expectedCompetition.setLeaguePhase(new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend), dtoCompetition.leaguePhase().maxRounds()));
 
         var requestedTeamIds = List.of(groupTeamId);
         var clientResponse = new PageImpl<>(List.of(
@@ -314,7 +314,9 @@ public class CompetitionServiceTests {
         var expectedCompetition = new Competition(
                 dtoCompetition.name(),
                 dtoCompetition.season(),
-                dtoCompetition.logoUrl(),
+                dtoCompetition.logoUrl()
+        );
+        expectedCompetition.setLeaguePhase(
                 new LeaguePhase(List.of(expectedGroup), List.of(expectedLegend), dtoCompetition.leaguePhase().maxRounds())
         );
         expectedCompetition.setPinned(true);

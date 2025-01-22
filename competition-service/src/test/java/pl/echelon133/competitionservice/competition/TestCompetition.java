@@ -59,8 +59,9 @@ public interface TestCompetition {
         }
 
         public Competition build() {
-            var competition = new Competition(name, season, logoUrl, leaguePhase);
+            var competition = new Competition(name, season, logoUrl);
             competition.setPinned(pinned);
+            competition.setLeaguePhase(leaguePhase);
             competition.setId(id);
             competition.setDeleted(deleted);
             return competition;
