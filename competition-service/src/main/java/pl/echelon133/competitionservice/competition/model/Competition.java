@@ -20,6 +20,9 @@ public class Competition extends BaseEntity {
     @Embedded
     private LeaguePhase leaguePhase;
 
+    @Embedded
+    private KnockoutPhase knockoutPhase;
+
     private boolean pinned;
 
     public Competition() {}
@@ -59,6 +62,14 @@ public class Competition extends BaseEntity {
 
     public void setLeaguePhase(LeaguePhase leaguePhase) {
         this.leaguePhase = leaguePhase;
+    }
+
+    public KnockoutPhase getKnockoutPhase() {
+        return knockoutPhase;
+    }
+
+    public void setKnockoutPhase(KnockoutPhase knockoutPhase) {
+        this.knockoutPhase = knockoutPhase;
     }
 
     public boolean isPinned() {
