@@ -1,14 +1,14 @@
 package ml.echelon133.matchservice.match.service;
 
+import ml.echelon133.common.event.dto.MatchInfo;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
-import ml.echelon133.matchservice.match.model.LineupFormationsDto;
-import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
 import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
+import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.model.LineupFormationsDto;
 import ml.echelon133.matchservice.match.model.Match;
 import ml.echelon133.matchservice.match.model.UpsertLineupDto;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
@@ -17,10 +17,12 @@ import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import ml.echelon133.matchservice.venue.model.Venue;
 import ml.echelon133.matchservice.venue.service.VenueService;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +63,9 @@ public class MatchServiceTests {
 
     @Mock
     private MatchRepository matchRepository;
+
+    @Mock
+    private KafkaProducer<UUID, MatchInfo> matchInfoKafkaProducer;
 
     @InjectMocks
     private MatchService matchService;
@@ -314,6 +319,11 @@ public class MatchServiceTests {
         );
 
         // then
+        verify(matchInfoKafkaProducer).send(argThat(m ->
+                m.key().equals(expectedMatch.getId()) &&
+                m.value().matchId().equals(expectedMatch.getId()) &&
+                m.value().competitionId().equals(expectedMatch.getCompetitionId())
+        ));
         assertEquals(expectedMatch.getId(), receivedDto.getId());
         assertNull(receivedDto.getReferee());
     }
@@ -411,6 +421,11 @@ public class MatchServiceTests {
         );
 
         // then
+        verify(matchInfoKafkaProducer).send(argThat(m ->
+           m.key().equals(expectedMatch.getId()) &&
+           m.value().matchId().equals(expectedMatch.getId()) &&
+           m.value().competitionId().equals(expectedMatch.getCompetitionId())
+        ));
         assertEquals(expectedMatch.getId(), receivedDto.getId());
         assertEquals(refereeEntity.getId(), receivedDto.getReferee().getId());
     }

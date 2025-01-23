@@ -1,29 +1,36 @@
 package ml.echelon133.matchservice.match.service;
 
+import jakarta.transaction.Transactional;
 import ml.echelon133.common.constants.DateFormatConstants;
+import ml.echelon133.common.event.KafkaTopicNames;
+import ml.echelon133.common.event.dto.MatchInfo;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.matchservice.match.model.*;
-import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import ml.echelon133.matchservice.venue.service.VenueService;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,18 +45,22 @@ public class MatchService {
     private final VenueService venueService;
     private final RefereeService refereeService;
     private final MatchRepository matchRepository;
+    private final KafkaProducer<UUID, MatchInfo> matchInfoKafkaProducer;
 
     @Autowired
     public MatchService(TeamService teamService,
                         TeamPlayerService teamPlayerService,
                         VenueService venueService,
                         RefereeService refereeService,
-                        MatchRepository matchRepository) {
+                        MatchRepository matchRepository,
+                        KafkaProducer<UUID, MatchInfo> matchInfoKafkaProducer
+    ) {
         this.teamService = teamService;
         this.teamPlayerService = teamPlayerService;
         this.venueService = venueService;
         this.refereeService = refereeService;
         this.matchRepository = matchRepository;
+        this.matchInfoKafkaProducer = matchInfoKafkaProducer;
     }
 
     public Match findEntityById(UUID id) throws ResourceNotFoundException {
@@ -126,7 +137,20 @@ public class MatchService {
         var competitionId = UUID.fromString(matchDto.competitionId());
         match.setCompetitionId(competitionId);
 
-        return MatchMapper.entityToDto(matchRepository.save(match));
+        var savedMatch = matchRepository.save(match);
+
+        // let other services know about this match being created for that particular competition,
+        // so that it can be assigned to a round (in case of a league competition),
+        // or a stage (in case of a knockout competition)
+        matchInfoKafkaProducer.send(
+            new ProducerRecord<>(
+                    KafkaTopicNames.MATCH_INFO,
+                    savedMatch.getId(),
+                    new MatchInfo(savedMatch.getCompetitionId(), savedMatch.getId())
+            )
+        );
+
+        return MatchMapper.entityToDto(savedMatch);
     }
 
     /**
