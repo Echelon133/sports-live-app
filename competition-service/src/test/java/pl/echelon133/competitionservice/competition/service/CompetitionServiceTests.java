@@ -10,17 +10,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.util.Pair;
 import pl.echelon133.competitionservice.competition.*;
 import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -337,8 +336,8 @@ public class CompetitionServiceTests {
     }
 
     @Test
-    @DisplayName("createCompetition correctly constructs a competition object when all team details are fetched successfully and competition is not pinned")
-    public void createCompetition_NotPinnedCompetitionAndTeamDetailsAllFetchesSucceed_ConstructsEntityAndSaves() throws CompetitionInvalidException {
+    @DisplayName("createCompetition correctly constructs a league competition when all team details are fetched successfully and competition is not pinned")
+    public void createCompetition_NotPinnedLeagueCompetitionAndTeamDetailsAllFetchesSucceed_ConstructsEntityAndSaves() throws CompetitionInvalidException {
         var groupTeamId = UUID.randomUUID();
         var dtoGroup = TestUpsertGroupDto.builder()
                 .name("A")
@@ -389,8 +388,8 @@ public class CompetitionServiceTests {
     }
 
     @Test
-    @DisplayName("createCompetition correctly constructs a competition object when all team details are fetched successfully and competition is pinned")
-    public void createCompetition_PinnedCompetitionAndTeamDetailsAllFetchesSucceed_ConstructsEntityAndSaves() throws CompetitionInvalidException {
+    @DisplayName("createCompetition correctly constructs a league competition when all team details are fetched successfully and competition is pinned")
+    public void createCompetition_PinnedLeagueCompetitionAndTeamDetailsAllFetchesSucceed_ConstructsEntityAndSaves() throws CompetitionInvalidException {
         var groupTeamId = UUID.randomUUID();
         var dtoGroup = TestUpsertGroupDto.builder()
                 .name("A")
@@ -432,6 +431,140 @@ public class CompetitionServiceTests {
                 argThat(l -> l.containsAll(requestedTeamIds) && l.size() == requestedTeamIds.size()),
                 eq(Pageable.ofSize(requestedTeamIds.size()))
         )).willReturn(clientResponse);
+        // this simply prevents a NullPointerException, actual checking of the saved value
+        // happens in the `verify` at the bottom of this test
+        given(competitionRepository.save(any(Competition.class))).willReturn(new Competition());
+
+        // when
+        var result = competitionService.createCompetition(dtoCompetition);
+
+        // then
+        verify(competitionRepository).save(argThat(new CompetitionMatcher(expectedCompetition)));
+        assertNotNull(result);
+    }
+
+    private List<KnockoutSlot> generateEmptySlots(int number) {
+        return IntStream.range(0, number).mapToObj(i -> new KnockoutSlot.Empty()).collect(Collectors.toList());
+    }
+
+    @Test
+    @DisplayName("createCompetition correctly constructs a knockout competition when it starts at the round of 128")
+    public void createCompetition_StartsAtRoundOf128_ConstructsEntityAndSaves() throws CompetitionInvalidException {
+        var startsAt = KnockoutStage.ROUND_OF_128;
+        // since the competition we create starts at the round of 128, it MUST contain these
+        // knockout stages, in this order
+        List<Pair<KnockoutStage, List<KnockoutSlot>>> slotsPerStage = List.of(
+                Pair.of(KnockoutStage.ROUND_OF_128, generateEmptySlots(64)),
+                Pair.of(KnockoutStage.ROUND_OF_64, generateEmptySlots(32)),
+                Pair.of(KnockoutStage.ROUND_OF_32, generateEmptySlots(16)),
+                Pair.of(KnockoutStage.ROUND_OF_16, generateEmptySlots(8)),
+                Pair.of(KnockoutStage.QUARTER_FINAL, generateEmptySlots(4)),
+                Pair.of(KnockoutStage.SEMI_FINAL, generateEmptySlots(2)),
+                Pair.of(KnockoutStage.FINAL, generateEmptySlots(1))
+        );
+
+        var dtoCompetition = TestUpsertCompetitionDto.builder()
+                .knockoutPhase(new UpsertCompetitionDto.UpsertKnockoutPhaseDto(startsAt.name()))
+                .build();
+        var expectedCompetition = new Competition(
+                dtoCompetition.name(),
+                dtoCompetition.season(),
+                dtoCompetition.logoUrl()
+        );
+        var expectedKnockoutPhase = new KnockoutPhase();
+        var stages = slotsPerStage.stream().map(pair -> {
+            var stage = new Stage(pair.getFirst());
+            stage.setSlots(pair.getSecond());
+            return stage;
+        }).toList();
+        expectedKnockoutPhase.setStages(stages);
+        expectedCompetition.setKnockoutPhase(expectedKnockoutPhase);
+
+        // given
+        // this simply prevents a NullPointerException, actual checking of the saved value
+        // happens in the `verify` at the bottom of this test
+        given(competitionRepository.save(any(Competition.class))).willReturn(new Competition());
+
+        // when
+        var result = competitionService.createCompetition(dtoCompetition);
+
+        // then
+        verify(competitionRepository).save(argThat(new CompetitionMatcher(expectedCompetition)));
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("createCompetition correctly constructs a knockout competition when it starts at the round of 16")
+    public void createCompetition_StartsAtRoundOf16_ConstructsEntityAndSaves() throws CompetitionInvalidException {
+        var startsAt = KnockoutStage.ROUND_OF_16;
+        // since the competition we create starts at the round of 16, it MUST contain these
+        // knockout stages, in this order
+        List<Pair<KnockoutStage, List<KnockoutSlot>>> slotsPerStage = List.of(
+                Pair.of(KnockoutStage.ROUND_OF_16, generateEmptySlots(8)),
+                Pair.of(KnockoutStage.QUARTER_FINAL, generateEmptySlots(4)),
+                Pair.of(KnockoutStage.SEMI_FINAL, generateEmptySlots(2)),
+                Pair.of(KnockoutStage.FINAL, generateEmptySlots(1))
+        );
+
+        var dtoCompetition = TestUpsertCompetitionDto.builder()
+                .knockoutPhase(new UpsertCompetitionDto.UpsertKnockoutPhaseDto(startsAt.name()))
+                .build();
+        var expectedCompetition = new Competition(
+                dtoCompetition.name(),
+                dtoCompetition.season(),
+                dtoCompetition.logoUrl()
+        );
+        var expectedKnockoutPhase = new KnockoutPhase();
+        var stages = slotsPerStage.stream().map(pair -> {
+            var stage = new Stage(pair.getFirst());
+            stage.setSlots(pair.getSecond());
+            return stage;
+        }).toList();
+        expectedKnockoutPhase.setStages(stages);
+        expectedCompetition.setKnockoutPhase(expectedKnockoutPhase);
+
+        // given
+        // this simply prevents a NullPointerException, actual checking of the saved value
+        // happens in the `verify` at the bottom of this test
+        given(competitionRepository.save(any(Competition.class))).willReturn(new Competition());
+
+        // when
+        var result = competitionService.createCompetition(dtoCompetition);
+
+        // then
+        verify(competitionRepository).save(argThat(new CompetitionMatcher(expectedCompetition)));
+        assertNotNull(result);
+    }
+
+    @Test
+    @DisplayName("createCompetition correctly constructs a knockout competition when it starts at the semi-final")
+    public void createCompetition_StartsAtSemiFinal_ConstructsEntityAndSaves() throws CompetitionInvalidException {
+        var startsAt = KnockoutStage.SEMI_FINAL;
+        // since the competition we create starts at the semifinal, it MUST contain these
+        // knockout stages, in this order
+        List<Pair<KnockoutStage, List<KnockoutSlot>>> slotsPerStage = List.of(
+                Pair.of(KnockoutStage.SEMI_FINAL, generateEmptySlots(2)),
+                Pair.of(KnockoutStage.FINAL, generateEmptySlots(1))
+        );
+
+        var dtoCompetition = TestUpsertCompetitionDto.builder()
+                .knockoutPhase(new UpsertCompetitionDto.UpsertKnockoutPhaseDto(startsAt.name()))
+                .build();
+        var expectedCompetition = new Competition(
+                dtoCompetition.name(),
+                dtoCompetition.season(),
+                dtoCompetition.logoUrl()
+        );
+        var expectedKnockoutPhase = new KnockoutPhase();
+        var stages = slotsPerStage.stream().map(pair -> {
+            var stage = new Stage(pair.getFirst());
+            stage.setSlots(pair.getSecond());
+            return stage;
+        }).toList();
+        expectedKnockoutPhase.setStages(stages);
+        expectedCompetition.setKnockoutPhase(expectedKnockoutPhase);
+
+        // given
         // this simply prevents a NullPointerException, actual checking of the saved value
         // happens in the `verify` at the bottom of this test
         given(competitionRepository.save(any(Competition.class))).willReturn(new Competition());

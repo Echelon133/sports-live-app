@@ -13,6 +13,7 @@ import pl.echelon133.competitionservice.competition.repository.CompetitionReposi
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.groupingBy;
 
@@ -163,6 +164,38 @@ public class CompetitionService {
     }
 
     /**
+     * Sets up the knockout phase of a competition.
+     *
+     * @param knockoutPhaseDto dto containing information about how to set up the knockout phase
+     * @return {@link KnockoutPhase} or null if there is no knockout phase to set up
+     */
+    private KnockoutPhase setupKnockoutPhase(UpsertCompetitionDto.UpsertKnockoutPhaseDto knockoutPhaseDto) {
+        if (knockoutPhaseDto == null) {
+            return null;
+        }
+
+        // ordered stages which should appear in the competition's knockout phase
+        // i.e. QUARTER_FINAL, SEMI_FINAL, FINAL, in this order
+        var neededStages = KnockoutStage
+                .getStagesForCompetition(KnockoutStage.valueOfIgnoreCase(knockoutPhaseDto.startsAt()));
+        var stages = neededStages.stream().map(stage -> {
+            // initialize every stage with as many empty slots as that stage requires, i.e.
+            //      * the round of 16 needs 8 empty slots (8 single/double legged matches)
+            //      * the semi-final needs 2 slots (2 single/double legged matches)
+            //      * etc...
+            var slotsPerStage = stage.getSlots();
+            var stageEntity = new Stage(stage);
+            List<KnockoutSlot> emptySlots = IntStream
+                    .range(0, slotsPerStage)
+                    .mapToObj(i -> new KnockoutSlot.Empty())
+                    .collect(Collectors.toList());
+            stageEntity.setSlots(emptySlots);
+            return stageEntity;
+        }).toList();
+        return new KnockoutPhase(stages);
+    }
+
+    /**
      * Creates a competition's entry in the database.
      *
      * The values in {@link UpsertCompetitionDto} have to be pre-validated before being used here,
@@ -179,8 +212,8 @@ public class CompetitionService {
                 competitionDto.logoUrl()
         );
         competition.setPinned(competitionDto.pinned());
-
         competition.setLeaguePhase(setupLeaguePhase(competition, competitionDto.leaguePhase()));
+        competition.setKnockoutPhase(setupKnockoutPhase(competitionDto.knockoutPhase()));
 
         return competitionRepository.save(competition).getId();
     }
