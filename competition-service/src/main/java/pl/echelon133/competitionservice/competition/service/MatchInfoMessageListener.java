@@ -28,10 +28,12 @@ public class MatchInfoMessageListener implements MessageListener<UUID, MatchInfo
         logger.info("Received key {} with matchId {} and competitionId {}",
                 record.key(), matchId, competitionId
         );
-        var unassignedMatch = unassignedMatchRepository.save(new UnassignedMatch(matchId, competitionId));
+        var unassignedMatchId = unassignedMatchRepository
+                .save(new UnassignedMatch(matchId, competitionId))
+                .getUnassignedMatchId();
         logger.info(
-                "Saved unassigned match with matchId {} and competitionId {} as {}",
-                matchId, competitionId, unassignedMatch.getId()
+                "Saved unassigned match with matchId {} and competitionId {}",
+                unassignedMatchId.getMatchId(), unassignedMatchId.getCompetitionId()
         );
     }
 }
