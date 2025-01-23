@@ -278,6 +278,60 @@ public class CompetitionServiceTests {
                 }
             }
 
+            if (competition.getKnockoutPhase() == null) {
+                if (expectedCompetition.getKnockoutPhase() != null) {
+                    return false;
+                }
+            } else {
+                int stageSize = competition.getKnockoutPhase().getStages().size();
+                int expectedStageSize = expectedCompetition.getKnockoutPhase().getStages().size();
+
+                if (stageSize != expectedStageSize) {
+                    return false;
+                }
+
+                for (var i = 0; i < stageSize; i++) {
+                    Stage stage = competition.getKnockoutPhase().getStages().get(i);
+                    Stage expectedStage = expectedCompetition.getKnockoutPhase().getStages().get(i);
+
+                    int slotSize = stage.getSlots().size();
+                    int expectedSlotSize = expectedStage.getSlots().size();
+
+                    if (slotSize != expectedSlotSize) {
+                        return false;
+                    }
+
+                    for (var j = 0; j < slotSize; j++) {
+                        KnockoutSlot slot = stage.getSlots().get(j);
+                        KnockoutSlot expectedSlot = expectedStage.getSlots().get(j);
+
+                        var slotType = slot.getType();
+                        var expectedSlotType = expectedSlot.getType();
+
+                        if (slotType.equals(KnockoutSlot.SlotType.EMPTY) && expectedSlotType.equals(KnockoutSlot.SlotType.EMPTY)) {
+                            // EMPTY slot does not have any data, so these values are equal based on type only
+                        } else if (slotType.equals(KnockoutSlot.SlotType.BYE) && expectedSlotType.equals(KnockoutSlot.SlotType.BYE)) {
+                            KnockoutSlot.Bye bye = (KnockoutSlot.Bye)slot;
+                            KnockoutSlot.Bye expectedBye = (KnockoutSlot.Bye)expectedSlot;
+                            if (!bye.getTeamId().equals(expectedBye.getTeamId())) {
+                                return false;
+                            }
+                        } else if (slotType.equals(KnockoutSlot.SlotType.TAKEN) && expectedSlotType.equals(KnockoutSlot.SlotType.TAKEN)) {
+                            KnockoutSlot.Taken taken = (KnockoutSlot.Taken)slot;
+                            KnockoutSlot.Taken expectedTaken = (KnockoutSlot.Taken)expectedSlot;
+                            boolean takenMatches =
+                                    taken.getFirstLeg().equals(expectedTaken.getFirstLeg()) &&
+                                    taken.getSecondLeg().equals(expectedTaken.getSecondLeg());
+                            if (!takenMatches) {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+                }
+            }
+
             return true;
         }
     }
