@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ml.echelon133.common.event.dto.MatchEventDetails;
 
 /**
- * {@link ObjectMapper} used by Kafka to serialize/deserialize {@link MatchEventDetails}.
+ * {@link ObjectMapper} used for serialization/deserialization of Kafka messages.
  */
 public class KafkaObjectMapper {
 
