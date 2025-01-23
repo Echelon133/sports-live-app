@@ -208,17 +208,21 @@ public class CompetitionServiceTests {
             // cannot use `equals` because our entities' implementation of that method only
             // compares IDs of objects, so if we want to compare pure data we need to compare
             // everything "by hand"
-            boolean basicDataCorrect =
+            boolean basicDataMatches =
                     competition.getName().equals(expectedCompetition.getName()) &&
                     competition.getSeason().equals(expectedCompetition.getSeason()) &&
                     competition.getLogoUrl().equals(expectedCompetition.getLogoUrl()) &&
                     competition.isPinned() == expectedCompetition.isPinned();
 
-            boolean leaguePhaseCorrect;
+            if (!basicDataMatches) {
+                return false;
+            }
+
             if (competition.getLeaguePhase() == null) {
-                leaguePhaseCorrect = expectedCompetition.getLeaguePhase() == null;
+                if (expectedCompetition.getLeaguePhase() != null) {
+                    return false;
+                }
             } else {
-                boolean groupDataCorrect = true;
                 int groupSize = competition.getLeaguePhase().getGroups().size();
                 int expectedGroupSize = expectedCompetition.getLeaguePhase().getGroups().size();
 
@@ -240,35 +244,41 @@ public class CompetitionServiceTests {
                     for (var j = 0; j < teamSize; j++) {
                         TeamStats teamStats = group.getTeams().get(j);
                         TeamStats expectedTeamStats = expectedGroup.getTeams().get(j);
-                        groupDataCorrect =
-                                groupDataCorrect &&
+                        boolean groupDataMatches =
                                 group.getName().equals(expectedGroup.getName()) &&
                                 teamStats.getTeamId().equals(expectedTeamStats.getTeamId()) &&
                                 teamStats.getTeamName().equals(expectedTeamStats.getTeamName()) &&
                                 teamStats.getCrestUrl().equals(expectedTeamStats.getCrestUrl());
+
+                        if (!groupDataMatches) {
+                            return false;
+                        }
                     }
                 }
 
-                boolean legendDataCorrect = true;
                 int legendSize = competition.getLeaguePhase().getLegend().size();
                 for (var i = 0; i < legendSize; i++) {
                     Legend legend = competition.getLeaguePhase().getLegend().get(i);
                     Legend expectedLegend = expectedCompetition.getLeaguePhase().getLegend().get(i);
-                    legendDataCorrect =
-                            legendDataCorrect &&
+                    boolean legendDataMatches =
                             legend.getPositions().equals(expectedLegend.getPositions()) &&
                             legend.getContext().equals(expectedLegend.getContext()) &&
                             legend.getSentiment().equals(expectedLegend.getSentiment());
 
+                    if (!legendDataMatches) {
+                        return false;
+                    }
                 }
 
-                boolean maxRoundsCorrect =
+                boolean maxRoundsMatches =
                         competition.getLeaguePhase().getMaxRounds() == expectedCompetition.getLeaguePhase().getMaxRounds();
 
-                leaguePhaseCorrect = groupDataCorrect && legendDataCorrect && maxRoundsCorrect;
+                if (!maxRoundsMatches) {
+                    return false;
+                }
             }
 
-            return basicDataCorrect && leaguePhaseCorrect;
+            return true;
         }
     }
 
