@@ -231,32 +231,6 @@ public class MatchService {
     }
 
     /**
-     * Finds all matches that happen in a specified competition and filters them by their status.
-     *
-     * @param competitionId id of the competition in which the match happens
-     * @param matchFinished if `true`, only returns matches that are finished and have a final result
-     * @param pageable information about the wanted page
-     * @return a map in which keys are IDs of competitions and values are lists of matches happening in a specified competition
-     * and have a particular status
-     */
-    public Map<UUID, List<CompactMatchDto>> findMatchesByCompetition(UUID competitionId, boolean matchFinished, Pageable pageable) {
-        List<String> acceptedStatuses;
-        if (matchFinished) {
-            // only fetch matches that are finished
-            acceptedStatuses = MatchStatus.RESULT_TYPE_STATUSES;
-        } else {
-            // only fetch matches that are not finished
-            acceptedStatuses = MatchStatus.FIXTURE_TYPE_STATUSES;
-        }
-        // the invariant of the query below ensures that all the matches will belong to the same competition,
-        // which means that using `Collectors.groupingBy` is unnecessary
-        return Map.of(
-                competitionId,
-                matchRepository.findAllByCompetitionAndStatuses(competitionId, acceptedStatuses, pageable)
-        );
-    }
-
-    /**
      * Finds all matches of a certain team and filters them by their status.
      *
      * @param teamId id of the team whose matches we want to fetch

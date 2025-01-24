@@ -70,21 +70,6 @@ public class MatchController {
             BindingResult result,
             Pageable pageable
     ) throws RequestParamsInvalidException {
-        // there are two variants of results this endpoint provides:
-        //      * variant 1 - matches that happen on a specific date (in a specific timezone)
-        //      * variant 2 - matches that happen in a specific competition and have a specific type
-        //                      (results - matches that are finished, fixtures - ongoing and future matches)
-        //
-        //  both variants support paging (size and page parameters)
-        //
-        // example valid calls which represent the first variant:
-        //      * /api/matches?date=2023/01/01
-        //      * /api/matches?date=2023/10/10&utcOffset=%2B02:00 (encode the plus sign as '%2B')
-        //      * /api/matches?date=2023/10/10&utcOffset=-02:00
-        //
-        // example valid calls which represent the second variant:
-        //      * /api/matches?competitionId=6a2b04c0-b391-435f-bd36-982abcabd4a2&type=fixtures
-        //      * /api/matches?competitionId=6a2b04c0-b391-435f-bd36-982abcabd4a2&type=results
 
         // Validation annotations placed on request parameters are not used unless the entire controller is annotated
         // with '@Validated'. The standalone configuration of MockMvc does not support the '@Validated' annotation
@@ -96,20 +81,12 @@ public class MatchController {
             throw new RequestParamsInvalidException(ValidationResultMapper.requestParamResultIntoErrorMap(result));
         }
 
-        if (params.getDate() != null) {
-            // handle the first variant (date and utcOffset)
-            LocalDate date = LocalDate.parse(params.getDate(), matchCriteriaValidator.getMatchDateFormatter());
-            ZoneOffset zoneOffset = ZoneOffset.UTC;
-            if (params.getUtcOffset() != null) {
-                zoneOffset = ZoneOffset.of(params.getUtcOffset());
-            }
-            return matchService.findMatchesByDate(date, zoneOffset, pageable);
-        } else {
-            // handle the second variant (competitionId and type)
-            UUID competitionId = UUID.fromString(params.getCompetitionId());
-            boolean matchFinished = params.getType().equalsIgnoreCase("results");
-            return matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
+        LocalDate date = LocalDate.parse(params.date(), matchCriteriaValidator.getMatchDateFormatter());
+        ZoneOffset zoneOffset = ZoneOffset.UTC;
+        if (params.utcOffset() != null) {
+            zoneOffset = ZoneOffset.of(params.utcOffset());
         }
+        return matchService.findMatchesByDate(date, zoneOffset, pageable);
     }
 
     @GetMapping("/{matchId}/lineups")

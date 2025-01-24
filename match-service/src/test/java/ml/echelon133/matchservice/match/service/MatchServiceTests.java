@@ -835,42 +835,6 @@ public class MatchServiceTests {
     }
 
     @Test
-    @DisplayName("findMatchesByCompetition fetches finished matches when matchFinished is true")
-    public void findMatchesByCompetition_MatchFinishedTrue_FetchesFinishedMatches() {
-        var competitionId = UUID.randomUUID();
-        var matchFinished = true;
-        var pageable = Pageable.ofSize(3).withPage(6);
-
-        // when
-        matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
-
-        // then
-        verify(matchRepository).findAllByCompetitionAndStatuses(
-                eq(competitionId),
-                eq(MatchStatus.RESULT_TYPE_STATUSES),
-                eq(pageable)
-        );
-    }
-
-    @Test
-    @DisplayName("findMatchesByCompetition fetches unfinished matches when matchFinished is false")
-    public void findMatchesByCompetition_MatchFinishedFalse_FetchesUnfinishedMatches() {
-        var competitionId = UUID.randomUUID();
-        var matchFinished = false;
-        var pageable = Pageable.ofSize(3).withPage(6);
-
-        // when
-        matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
-
-        // then
-        verify(matchRepository).findAllByCompetitionAndStatuses(
-                eq(competitionId),
-                eq(MatchStatus.FIXTURE_TYPE_STATUSES),
-                eq(pageable)
-        );
-    }
-
-    @Test
     @DisplayName("findMatchesByTeam fetches finished matches when matchFinished is true")
     public void findMatchesByTeam_MatchFinishedTrue_FetchesFinishedMatches() {
         var teamId = UUID.randomUUID();
