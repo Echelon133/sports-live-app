@@ -161,6 +161,39 @@ public class MatchControllerTests {
     }
 
     @Test
+    @DisplayName("GET /api/matches returns 400 when `matchIds` is not provided")
+    public void getMatchesById_MatchIdsNotProvided_StatusBadRequest() throws Exception {
+        // when
+        mvc.perform(
+                        get("/api/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages", hasItem("query parameter 'matchIds' not provided")));
+    }
+
+    @Test
+    @DisplayName("GET /api/matches returns 200 when `matchIds` is provided")
+    public void getMatchesById_MatchIdsProvided_StatusOk() throws Exception {
+        var requestedMatchIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+        String matchIdsParam = String.format("%s,%s", requestedMatchIds.get(0), requestedMatchIds.get(1));
+
+        // given
+        given(matchService.findMatchesByIds(eq(requestedMatchIds))).willReturn(List.of());
+
+        // when
+        mvc.perform(
+                        get("/api/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("matchIds", matchIdsParam)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()", is(0)));
+    }
+
+    @Test
     @DisplayName("POST /api/matches returns 422 when homeTeamId is not provided")
     public void createMatch_HomeTeamIdNotProvided_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertMatchDto.builder().homeTeamId(null).build();
