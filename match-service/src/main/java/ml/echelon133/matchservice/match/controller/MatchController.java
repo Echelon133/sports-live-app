@@ -64,7 +64,7 @@ public class MatchController {
         return Map.of("deleted", matchService.markMatchAsDeleted(matchId));
     }
 
-    @GetMapping
+    @GetMapping("/grouped")
     public Map<UUID, List<CompactMatchDto>> getMatchesByCriteria(
             MatchCriteriaRequestParams params,
             BindingResult result,

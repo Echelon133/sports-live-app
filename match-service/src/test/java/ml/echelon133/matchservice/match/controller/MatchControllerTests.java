@@ -919,13 +919,13 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 400 when provided `date` has an incorrect format")
+    @DisplayName("GET /api/matches/grouped returns 400 when provided `date` has an incorrect format")
     public void getMatchesByCriteria_IncorrectDateProvided_StatusBadRequest() throws Exception {
         var incorrectDates = List.of("2023-01-01", "01/01/23", "2023/01/01 20:00");
 
         for (String incorrectDate : incorrectDates) {
             mvc.perform(
-                            get("/api/matches")
+                            get("/api/matches/grouped")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .param("date", incorrectDate)
@@ -938,12 +938,12 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 200 and sets default `utcOffset` value when valid `date` is provided")
+    @DisplayName("GET /api/matches/grouped returns 200 and sets default `utcOffset` value when valid `date` is provided")
     public void getMatchesByCriteria_ValidDateProvided_StatusOkAndDefaultUtcOffsetSet() throws Exception {
         var defaultUtcOffset = ZoneOffset.UTC;
 
         mvc.perform(
-                        get("/api/matches")
+                        get("/api/matches/grouped")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .param("date", "2023/01/01")
@@ -958,13 +958,13 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 400 when `date` is provided and provided `utcOffset` has an incorrect format")
+    @DisplayName("GET /api/matches/grouped returns 400 when `date` is provided and provided `utcOffset` has an incorrect format")
     public void getMatchesByCriteria_DateProvidedAndIncorrectUtcOffsetFormat_StatusBadRequest() throws Exception {
         var incorrectUtcOffsets = List.of("asdf", "+-000:000", "+AA:BB", "-25:99");
 
         for (String incorrectUtcOffset: incorrectUtcOffsets) {
             mvc.perform(
-                            get("/api/matches")
+                            get("/api/matches/grouped")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .param("date", "2023/01/01")
@@ -978,7 +978,7 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 200 when `date` is provided and `utcOffset` contains positive or negative offsets")
+    @DisplayName("GET /api/matches/grouped returns 200 when `date` is provided and `utcOffset` contains positive or negative offsets")
     public void getMatchesByCriteria_DateAndUtcOffsetProvided_StatusOk() throws Exception {
         var correctUtcOffsets = List.of("+00:00", "+05:59", "-08:30", "-01:00");
 
@@ -996,7 +996,7 @@ public class MatchControllerTests {
             // when
             var path = "$." + competitionId;
             mvc.perform(
-                            get("/api/matches")
+                            get("/api/matches/grouped")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .param("date", "2023/01/01")
@@ -1008,10 +1008,10 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 200 when custom `page` and `size` are provided alongside `date` and `utcOffset`")
+    @DisplayName("GET /api/matches/grouped returns 200 when custom `page` and `size` are provided alongside `date` and `utcOffset`")
     public void getMatchesByCriteria_DateProvidedAndCustomPageAndSize_StatusOkAndUsesCustomPageable() throws Exception {
         mvc.perform(
-                        get("/api/matches")
+                        get("/api/matches/grouped")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .param("date", "2023/01/01")
