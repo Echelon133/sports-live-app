@@ -995,4 +995,70 @@ public class MatchRepositoryTests {
         var expectedIds = expectedLineup.stream().map(BaseEntity::getId).collect(Collectors.toList());
         assertTrue(foundIds.containsAll(expectedIds));
     }
+
+    @Test
+    @DisplayName("findAllByMatchIds native query only finds matches with specified ids")
+    public void findAllByMatchIds_MultipleMatches_OnlyFindsMatchingMatches() {
+        var saved1 = matchRepository.save(TestMatch.builder().build());
+        var saved2 = matchRepository.save(TestMatch.builder().build());
+        matchRepository.save(TestMatch.builder().build());
+
+        var id1 = saved1.getId();
+        var id2 = saved2.getId();
+
+        // only request two of the three ids
+        var requestedIds = List.of(id1, id2);
+
+        // when
+        List<CompactMatchDto> result = matchRepository.findAllByMatchIds(requestedIds);
+
+        // then
+        assertEquals(2, result.size());
+
+        var received1 = result.stream().filter(m -> m.getId().equals(id1)).findFirst().get();
+        assertEntityAndDtoEqual(saved1, received1);
+
+        var received2 = result.stream().filter(m -> m.getId().equals(id2)).findFirst().get();
+        assertEntityAndDtoEqual(saved2, received2);
+    }
+
+    @Test
+    @DisplayName("findAllByMatchIds native query does not leak deleted teams")
+    public void findAllByMatchIds_MatchWithDeletedTeam_DoesNotLeakDeletedTeams() {
+        var saved = matchRepository.save(
+                TestMatch.builder()
+                        .homeTeam(TestTeam.builder().deleted(true).build())
+                        .awayTeam(TestTeam.builder().deleted(true).build())
+                        .build()
+        );
+
+        var requestedIds = List.of(saved.getId());
+
+        // when
+        List<CompactMatchDto> result = matchRepository.findAllByMatchIds(requestedIds);
+
+        // then
+        assertEquals(1, result.size());
+        var match = result.get(0);
+        assertNull(match.getHomeTeam());
+        assertNull(match.getAwayTeam());
+    }
+
+    @Test
+    @DisplayName("findAllByMatchIds native query only finds non-deleted matches")
+    public void findAllByMatchIds_SomeDeletedMatches_OnlyFindsMatchingNonDeletedMatches() {
+        var saved1 = matchRepository.save(TestMatch.builder().build());
+        var saved2 = matchRepository.save(TestMatch.builder().deleted(true).build());
+
+        var nonDeletedId = saved1.getId();
+        var deletedId = saved2.getId();
+        var requestedIds = List.of(deletedId, nonDeletedId);
+
+        // when
+        List<CompactMatchDto> result = matchRepository.findAllByMatchIds(requestedIds);
+
+        // then
+        assertEquals(1, result.size());
+        assertTrue(result.stream().anyMatch(m -> m.getId().equals(nonDeletedId)));
+    }
 }
