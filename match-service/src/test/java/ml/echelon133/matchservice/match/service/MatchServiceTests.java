@@ -1212,4 +1212,21 @@ public class MatchServiceTests {
 
         ));
     }
+
+    @Test
+    @DisplayName("findMatchesByIds correctly calls the repository method")
+    public void findMatchesByIds_CustomIds_CorrectlyCallsRepository() {
+        var id = UUID.randomUUID();
+        var expectedDto = CompactMatchDto.builder().id(id).build();
+        var requestedIds = List.of(id);
+
+        // given
+        given(matchRepository.findAllByMatchIds(requestedIds)).willReturn(List.of(expectedDto));
+
+        // when
+        var result = matchService.findMatchesByIds(requestedIds);
+
+        // then
+        assertEquals(1, result.size());
+    }
 }

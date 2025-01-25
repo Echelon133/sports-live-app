@@ -363,4 +363,14 @@ public class MatchService {
         lineup.setFormation(lineupDto.formation());
         matchRepository.save(match);
     }
+
+    /**
+     * Finds all matches whose ids are in the id list.
+     *
+     * @param matchIds requested match ids
+     * @return a list of matches
+     */
+    public List<CompactMatchDto> findMatchesByIds(List<UUID> matchIds) {
+        return matchRepository.findAllByMatchIds(matchIds);
+    }
 }
