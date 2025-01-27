@@ -132,6 +132,58 @@ public class CompetitionControllerTests {
     }
 
     @Test
+    @DisplayName("GET /api/competitions/:id/matches/unassigned returns 200 when competitionId is provided and pageable is default")
+    public void getUnassignedMatches_ProvidedCompetitionIdWithDefaultPageable_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var defaultPageSize = 20;
+        var defaultPageNumber = 0;
+        var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
+        var expectedPage = new PageImpl<UnassignedMatchDto>(List.of(), expectedPageable, 0);
+
+        // given
+        given(competitionService.findUnassignedMatches(
+                eq(competitionId),
+                argThat(p -> p.getPageSize() == defaultPageSize && p.getPageNumber() == defaultPageNumber)
+        )).willReturn(expectedPage);
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/matches/unassigned")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/matches/unassigned returns 200 when competitionId is provided and pageable is custom")
+    public void getUnassignedMatches_ProvidedCompetitionIdWithCustomPageable_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var testPageSize = 25;
+        var testPageNumber = 5;
+        var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
+        var expectedPage = new PageImpl<UnassignedMatchDto>(List.of(), expectedPageable, 0);
+
+        // given
+        given(competitionService.findUnassignedMatches(
+                eq(competitionId),
+                argThat(p -> p.getPageSize() == testPageSize && p.getPageNumber() == testPageNumber)
+        )).willReturn(expectedPage);
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/matches/unassigned")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("size", String.valueOf(testPageSize))
+                                .param("page", String.valueOf(testPageNumber))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.size()", is(0)));
+    }
+
+    @Test
     @DisplayName("DELETE /api/competitions/:id returns 200 and a counter of how many competitions have been deleted")
     public void deleteCompetition_CompetitionIdProvided_StatusOkAndReturnsCounter() throws Exception {
         var id = UUID.randomUUID();

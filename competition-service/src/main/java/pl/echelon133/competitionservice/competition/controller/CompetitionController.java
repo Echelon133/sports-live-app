@@ -11,10 +11,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
-import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
-import pl.echelon133.competitionservice.competition.model.StandingsDto;
-import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
+import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
 import java.util.List;
@@ -35,6 +32,11 @@ public class CompetitionController {
     @GetMapping("/{competitionId}")
     public CompetitionDto getCompetition(@PathVariable UUID competitionId) throws ResourceNotFoundException {
         return competitionService.findById(competitionId);
+    }
+
+    @GetMapping("/{competitionId}/matches/unassigned")
+    public Page<UnassignedMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
+        return competitionService.findUnassignedMatches(competitionId, pageable);
     }
 
     @DeleteMapping("/{competitionId}")
