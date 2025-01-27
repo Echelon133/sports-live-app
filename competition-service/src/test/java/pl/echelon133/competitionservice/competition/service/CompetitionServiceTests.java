@@ -16,6 +16,7 @@ import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
+import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +32,9 @@ public class CompetitionServiceTests {
 
     @Mock
     private CompetitionRepository competitionRepository;
+
+    @Mock
+    private UnassignedMatchRepository unassignedMatchRepository;
 
     @Mock
     private MatchServiceClient matchServiceClient;
@@ -69,6 +73,34 @@ public class CompetitionServiceTests {
 
         // then
         assertEquals(testDto, dto);
+    }
+
+    @Test
+    @DisplayName("findUnassignedMatches correctly calls the external endpoint and reuses the pageable")
+    public void findUnassignedMatches_MultipleUnassignedMatchesFound_ReturnsPage() {
+        var expectedPageSize = 20;
+        var expectedPageNumber = 1;
+        var competitionId = UUID.randomUUID();
+        var pageable = Pageable.ofSize(expectedPageSize).withPage(expectedPageNumber);
+        var unassignedMatches = List.of(
+                new UnassignedMatch(UUID.randomUUID(), UUID.randomUUID()),
+                new UnassignedMatch(UUID.randomUUID(), UUID.randomUUID())
+        );
+        var expectedMatchIds = unassignedMatches.stream().map(m -> m.getUnassignedMatchId().getMatchId()).toList();
+
+        // given
+        given(
+                unassignedMatchRepository.findAllByUnassignedMatchId_CompetitionIdAndAssignedFalse(competitionId, pageable)
+        ).willReturn(new PageImpl<>(unassignedMatches));
+        given(matchServiceClient.getMatchesById(argThat(l -> l.containsAll(expectedMatchIds)))).willReturn(List.of());
+
+        // when
+        var result = competitionService.findUnassignedMatches(competitionId, pageable);
+
+        // then
+        assertEquals(0, result.getTotalElements());
+        assertEquals(expectedPageSize, result.getPageable().getPageSize());
+        assertEquals(expectedPageNumber, result.getPageable().getPageNumber());
     }
 
     @Test

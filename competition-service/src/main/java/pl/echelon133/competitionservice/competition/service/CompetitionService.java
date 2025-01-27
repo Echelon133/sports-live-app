@@ -4,12 +4,14 @@ import jakarta.transaction.Transactional;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
+import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,11 +25,17 @@ public class CompetitionService {
 
     private final CompetitionRepository competitionRepository;
     private final MatchServiceClient matchServiceClient;
+    private final UnassignedMatchRepository unassignedMatchRepository;
 
     @Autowired
-    public CompetitionService(CompetitionRepository competitionRepository, MatchServiceClient matchServiceClient) {
+    public CompetitionService(
+            CompetitionRepository competitionRepository,
+            MatchServiceClient matchServiceClient,
+            UnassignedMatchRepository unassignedMatchRepository
+    ) {
         this.competitionRepository = competitionRepository;
         this.matchServiceClient = matchServiceClient;
+        this.unassignedMatchRepository = unassignedMatchRepository;
     }
 
     /**
@@ -41,6 +49,32 @@ public class CompetitionService {
         return competitionRepository
                 .findCompetitionById(competitionId)
                 .orElseThrow(() -> new ResourceNotFoundException(Competition.class, competitionId));
+    }
+
+    /**
+     * Finds all unassigned matches from a particular competition.
+     * <p>
+     *     An unassigned match belongs to neither the league nor the knockout phase of a competition.
+     *     During the assignment process, the match receives its round (in case of the league phase) or
+     *     its stage (in case of the knockout phase).
+     * </p>
+     *
+     * @param competitionId id of the competition whose unassigned matches we want to fetch
+     * @param pageable information about the wanted page
+     * @return a page of unassigned matches
+     */
+    public Page<UnassignedMatchDto> findUnassignedMatches(UUID competitionId, Pageable pageable) {
+        var unassignedMatchIds = unassignedMatchRepository
+                .findAllByUnassignedMatchId_CompetitionIdAndAssignedFalse(competitionId, pageable)
+                .map(um -> um.getUnassignedMatchId().getMatchId())
+                .stream()
+                .toList();
+
+        var matchData = matchServiceClient.getMatchesById(unassignedMatchIds);
+
+        // since the ids of unassigned matches map one-to-one to matches returned by this method, the
+        // same pageable can be used in the return value
+        return new PageImpl<>(matchData, pageable, matchData.size());
     }
 
     /**
