@@ -63,7 +63,7 @@ public class CompetitionService {
      * @param pageable information about the wanted page
      * @return a page of unassigned matches
      */
-    public Page<UnassignedMatchDto> findUnassignedMatches(UUID competitionId, Pageable pageable) {
+    public Page<CompactMatchDto> findUnassignedMatches(UUID competitionId, Pageable pageable) {
         var unassignedMatchIds = unassignedMatchRepository
                 .findAllByUnassignedMatchId_CompetitionIdAndAssignedFalse(competitionId, pageable)
                 .map(um -> um.getUnassignedMatchId().getMatchId())

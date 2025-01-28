@@ -6,7 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import pl.echelon133.competitionservice.competition.model.TeamDetailsDto;
-import pl.echelon133.competitionservice.competition.model.UnassignedMatchDto;
+import pl.echelon133.competitionservice.competition.model.CompactMatchDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,5 +18,5 @@ public interface MatchServiceClient {
     Page<TeamDetailsDto> getTeamByTeamIds(@RequestParam List<UUID> teamIds, Pageable pageable);
 
     @GetMapping("/api/matches")
-    List<UnassignedMatchDto> getMatchesById(@RequestParam List<UUID> matchIds);
+    List<CompactMatchDto> getMatchesById(@RequestParam List<UUID> matchIds);
 }

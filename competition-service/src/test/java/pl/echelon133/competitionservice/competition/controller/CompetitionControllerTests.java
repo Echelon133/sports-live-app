@@ -138,7 +138,7 @@ public class CompetitionControllerTests {
         var defaultPageSize = 20;
         var defaultPageNumber = 0;
         var expectedPageable = Pageable.ofSize(defaultPageSize).withPage(defaultPageNumber);
-        var expectedPage = new PageImpl<UnassignedMatchDto>(List.of(), expectedPageable, 0);
+        var expectedPage = new PageImpl<CompactMatchDto>(List.of(), expectedPageable, 0);
 
         // given
         given(competitionService.findUnassignedMatches(
@@ -163,7 +163,7 @@ public class CompetitionControllerTests {
         var testPageSize = 25;
         var testPageNumber = 5;
         var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
-        var expectedPage = new PageImpl<UnassignedMatchDto>(List.of(), expectedPageable, 0);
+        var expectedPage = new PageImpl<CompactMatchDto>(List.of(), expectedPageable, 0);
 
         // given
         given(competitionService.findUnassignedMatches(

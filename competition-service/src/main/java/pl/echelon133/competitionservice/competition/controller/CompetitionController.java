@@ -35,7 +35,7 @@ public class CompetitionController {
     }
 
     @GetMapping("/{competitionId}/matches/unassigned")
-    public Page<UnassignedMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
+    public Page<CompactMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
         return competitionService.findUnassignedMatches(competitionId, pageable);
     }
 
