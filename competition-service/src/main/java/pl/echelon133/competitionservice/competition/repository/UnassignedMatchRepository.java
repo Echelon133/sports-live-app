@@ -5,8 +5,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import pl.echelon133.competitionservice.competition.model.UnassignedMatch;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UnassignedMatchRepository extends JpaRepository<UnassignedMatch, UnassignedMatch.UnassignedMatchId> {
     Page<UnassignedMatch> findAllById_CompetitionIdAndAssignedFalse(UUID competitionId, Pageable pageable);
+    List<UnassignedMatch> findAllByIdIsInAndAssignedFalse(Iterable<UnassignedMatch.UnassignedMatchId> ids);
 }
