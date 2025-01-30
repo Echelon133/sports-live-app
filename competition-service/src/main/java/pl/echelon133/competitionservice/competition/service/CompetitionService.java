@@ -134,6 +134,66 @@ public class CompetitionService {
     }
 
     /**
+     * Assigns matches to a particular round of a particular competition.
+     * @param competitionId id of the competition
+     * @param round round which is being assigned matches
+     * @param matchIdsToAssign a list of ids of matches to assign to the round
+     * @throws ResourceNotFoundException thrown when a competition with given id does not exist
+     * @throws CompetitionPhaseNotFoundException thrown when a competition does not have a league phase
+     * @throws CompetitionRoundNotFoundException thrown when a competition does not have a given round in its league phase
+     * @throws CompetitionRoundNotEmptyException thrown when a round already has matches assigned to it
+     * @throws CompetitionMatchAssignmentException thrown when some matches could not be assigned to the round
+     */
+    public void assignMatchesToRound(UUID competitionId, int round, List<UUID> matchIdsToAssign)
+            throws ResourceNotFoundException, CompetitionPhaseNotFoundException,
+            CompetitionRoundNotFoundException, CompetitionRoundNotEmptyException, CompetitionMatchAssignmentException {
+
+        var competition = findById(competitionId);
+        var maxRounds = competition.getMaxRounds();
+
+        throwIfLeaguePhaseNotSupported(maxRounds);
+        throwIfRoundNotFound(round, maxRounds);
+
+        var matchIdsAlreadyInRound = leagueSlotRepository
+                .findAllByCompetitionIdAndRoundAndDeletedFalse(competitionId, round).stream()
+                .map(m -> m.getMatch().getMatchId())
+                .toList();
+
+        // do not allow assigning matches to this round if there are already matches assigned to it
+        if (matchIdsAlreadyInRound.size() != 0) {
+            throw new CompetitionRoundNotEmptyException();
+        }
+
+        // create composite keys of all requested unassigned matches, and fetch these unassigned matches
+        var unassignedMatchesIds = matchIdsToAssign
+                .stream().map(id -> new UnassignedMatch.UnassignedMatchId(id, competitionId))
+                .toList();
+        var retrievedUnassignedMatches = unassignedMatchRepository.findAllByIdIsInAndAssignedFalse(unassignedMatchesIds);
+
+        // some requested matchIds did not refer to matches which are unassigned
+        if (unassignedMatchesIds.size() != retrievedUnassignedMatches.size()) {
+            // retrieved unassigned matches have composite keys, so extract only matchId from each key
+            var retrievedUnassignedMatchesMatchIds = retrievedUnassignedMatches
+                    .stream().map(m -> m.getId().getMatchId())
+                    .collect(Collectors.toSet());
+            // calculate a list of matchIds which were requested to be assigned, but were not in the set of matches
+            // available to assign
+            var diffMatchIds = matchIdsToAssign.stream().dropWhile(retrievedUnassignedMatchesMatchIds::contains).toList();
+            throw new CompetitionMatchAssignmentException(diffMatchIds);
+        }
+
+        // assignment is possible here, since all validation was successful
+        List<LeagueSlot> leagueSlots = new ArrayList<>(retrievedUnassignedMatches.size());
+        for (var unassignedMatch: retrievedUnassignedMatches) {
+            var competitionMatch = new CompetitionMatch(unassignedMatch.getId().getMatchId());
+            leagueSlots.add(new LeagueSlot(competitionMatch, competitionId, round));
+            unassignedMatch.setAssigned(true);
+        }
+        unassignedMatchRepository.saveAll(retrievedUnassignedMatches);
+        leagueSlotRepository.saveAll(leagueSlots);
+    }
+
+    /**
      * Marks a competition with the specified id as deleted.
      *
      * @param id id of the competition to be marked as deleted

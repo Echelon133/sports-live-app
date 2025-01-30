@@ -805,4 +805,200 @@ public class CompetitionServiceTests {
         }
     }
 
+    @Test
+    @DisplayName("assignMatchesToRound throws when the competition does not have a league phase")
+    public void assignMatchesToRound_LeaguePhaseNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+        var matchIdsToAssign = List.of(UUID.randomUUID());
+
+        // if a competition's maxRounds is set to 0, then that competition does not have a league phase
+        var maxRounds = 0;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+
+        // when
+        String message = assertThrows(CompetitionPhaseNotFoundException.class, () -> {
+            competitionService.assignMatchesToRound(competitionId, round, matchIdsToAssign);
+        }).getMessage();
+
+        // then
+        assertEquals("competition does not have the phase required to execute this action", message);
+    }
+
+    @Test
+    @DisplayName("assignMatchesToRound throws when the competition does not have a given round")
+    public void assignMatchesToRound_RoundsNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+        var matchIdsToAssign = List.of(UUID.randomUUID());
+
+        // maxRounds set to 34 means that only rounds (1, 34) exist
+        var maxRounds = 34;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+
+        for (var incorrectRound = maxRounds + 1; incorrectRound < 50; incorrectRound++) {
+            // when
+            int finalIncorrectRound = incorrectRound;
+            String message = assertThrows(CompetitionRoundNotFoundException.class, () -> {
+                competitionService.assignMatchesToRound(competitionId, finalIncorrectRound, matchIdsToAssign);
+            }).getMessage();
+
+            // then
+            assertEquals(String.format("round %s could not be found", incorrectRound), message);
+        }
+    }
+
+    @Test
+    @DisplayName("assignMatchesToRound throws when the competition's round is not empty")
+    public void assignMatchesToRound_RoundsNotEmpty_Throws() {
+        var round = 1;
+        var competitionId = UUID.randomUUID();
+        var matchIdsToAssign = List.of(UUID.randomUUID());
+
+        // maxRounds set to 34 means that only rounds (1, 34) exist
+        var maxRounds = 34;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+        var leagueSlots = List.of(new LeagueSlot(new CompetitionMatch(UUID.randomUUID()), competitionId, round));
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(leagueSlotRepository.findAllByCompetitionIdAndRoundAndDeletedFalse(eq(competitionId), eq(round)))
+                .willReturn(leagueSlots);
+
+        // when
+        String message = assertThrows(CompetitionRoundNotEmptyException.class, () -> {
+            competitionService.assignMatchesToRound(competitionId, round, matchIdsToAssign);
+        }).getMessage();
+
+        // then
+        assertEquals("only an empty round can have matches assigned to it", message);
+    }
+
+    private static class UnassignedMatchIdsMatcher implements ArgumentMatcher<Iterable<UnassignedMatch.UnassignedMatchId>> {
+        private final List<UnassignedMatch.UnassignedMatchId> expectedUnassignedMatchIds;
+
+        public UnassignedMatchIdsMatcher(List<UnassignedMatch.UnassignedMatchId> expectedIds) {
+            this.expectedUnassignedMatchIds = expectedIds;
+        }
+
+        @Override
+        public boolean matches(Iterable<UnassignedMatch.UnassignedMatchId> unassignedMatchIds) {
+            for (var unassignedMatchId : unassignedMatchIds) {
+                var mId = unassignedMatchId.getMatchId();
+                var cId = unassignedMatchId.getCompetitionId();
+                var requestedPresent = expectedUnassignedMatchIds.stream().anyMatch(
+                        requested -> requested.getMatchId().equals(mId) && requested.getCompetitionId().equals(cId)
+                );
+                if (!requestedPresent) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    @Test
+    @DisplayName("assignMatchesToRound throws when some matches requested to be assigned are already assigned")
+    public void assignMatchesToRound_SomeMatchesAlreadyAssigned_Throws() {
+        var round = 1;
+        var competitionId = UUID.randomUUID();
+
+        var unassignedMatchId = UUID.randomUUID();
+        var unassignedMatch = new UnassignedMatch(unassignedMatchId, competitionId);
+
+        var alreadyAssignedMatchId = UUID.randomUUID();
+        // one of the requested matchIds is already assigned
+        var matchIdsToAssign = List.of(unassignedMatchId, alreadyAssignedMatchId);
+
+        // maxRounds set to 34 means that only rounds (1, 34) exist
+        var maxRounds = 34;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(leagueSlotRepository.findAllByCompetitionIdAndRoundAndDeletedFalse(eq(competitionId), eq(round)))
+                .willReturn(List.of());
+        var expectedUnassignedMatchIds = matchIdsToAssign
+                .stream().map(id -> new UnassignedMatch.UnassignedMatchId(id, competitionId))
+                .toList();
+        // return only one unassigned match, simulating one match being already assigned
+        given(unassignedMatchRepository.findAllByIdIsInAndAssignedFalse(
+                argThat(new UnassignedMatchIdsMatcher(expectedUnassignedMatchIds))))
+                .willReturn(List.of(unassignedMatch));
+
+        // when
+        String message = assertThrows(CompetitionMatchAssignmentException.class, () -> {
+            competitionService.assignMatchesToRound(competitionId, round, matchIdsToAssign);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("matches [%s] could not be assigned", alreadyAssignedMatchId), message);
+    }
+
+    @Test
+    @DisplayName("assignMatchesToRound correctly assigns matches when none of the requested matches were previously assigned")
+    public void assignMatchesToRound_NoneMatchesAssigned_CorrectlyAssigns() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        var unassignedMatch0 = new UnassignedMatch(UUID.randomUUID(), competitionId);
+        var unassignedMatch1 = new UnassignedMatch(UUID.randomUUID(), competitionId);
+        var unassignedMatch2 = new UnassignedMatch(UUID.randomUUID(), competitionId);
+
+        var unassignedMatches = List.of(unassignedMatch0, unassignedMatch1, unassignedMatch2);
+        var matchIdsToAssign = unassignedMatches.stream().map(um -> um.getId().getMatchId()).toList();
+
+        // maxRounds set to 34 means that only rounds (1, 34) exist
+        var maxRounds = 34;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+        for (var correctRound = 1; correctRound <= maxRounds; correctRound++) {
+            // given
+            doReturn(Optional.of(competitionDto)).when(competitionRepository).findCompetitionById(eq(competitionId));
+            doReturn(List.of()).when(leagueSlotRepository).findAllByCompetitionIdAndRoundAndDeletedFalse(
+                    eq(competitionId), eq(correctRound)
+            );
+            var expectedUnassignedMatchIds = matchIdsToAssign
+                    .stream().map(id -> new UnassignedMatch.UnassignedMatchId(id, competitionId))
+                    .toList();
+            doReturn(unassignedMatches).when(unassignedMatchRepository)
+                    .findAllByIdIsInAndAssignedFalse(
+                            argThat(new UnassignedMatchIdsMatcher(expectedUnassignedMatchIds))
+                    );
+
+            // when
+            competitionService.assignMatchesToRound(competitionId, correctRound, matchIdsToAssign);
+
+            // then
+            // all unassigned matches should be turned into league slot entries
+            int finalCorrectRound = correctRound;
+            verify(leagueSlotRepository).saveAll(argThat(leagueSlots -> {
+                for (var slot : leagueSlots) {
+                    var slotCorrect =
+                            slot.getCompetitionId().equals(competitionId) &&
+                            slot.getRound() == finalCorrectRound &&
+                            matchIdsToAssign.contains(slot.getMatch().getMatchId());
+                    if (!slotCorrect) {
+                        return false;
+                    }
+                }
+                return true;
+            }));
+        }
+
+        // all matches should be marked as assigned
+        verify(unassignedMatchRepository, times(maxRounds)).saveAll(argThat(unassignedMatch -> {
+            for (var um : unassignedMatch) {
+                if (!um.isAssigned()) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+    }
 }
