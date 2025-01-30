@@ -65,8 +65,8 @@ public class CompetitionService {
      */
     public Page<CompactMatchDto> findUnassignedMatches(UUID competitionId, Pageable pageable) {
         var unassignedMatchIds = unassignedMatchRepository
-                .findAllByUnassignedMatchId_CompetitionIdAndAssignedFalse(competitionId, pageable)
-                .map(um -> um.getUnassignedMatchId().getMatchId())
+                .findAllById_CompetitionIdAndAssignedFalse(competitionId, pageable)
+                .map(um -> um.getId().getMatchId())
                 .stream()
                 .toList();
 

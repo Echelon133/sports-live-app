@@ -86,11 +86,11 @@ public class CompetitionServiceTests {
                 new UnassignedMatch(UUID.randomUUID(), UUID.randomUUID()),
                 new UnassignedMatch(UUID.randomUUID(), UUID.randomUUID())
         );
-        var expectedMatchIds = unassignedMatches.stream().map(m -> m.getUnassignedMatchId().getMatchId()).toList();
+        var expectedMatchIds = unassignedMatches.stream().map(m -> m.getId().getMatchId()).toList();
 
         // given
         given(
-                unassignedMatchRepository.findAllByUnassignedMatchId_CompetitionIdAndAssignedFalse(competitionId, pageable)
+                unassignedMatchRepository.findAllById_CompetitionIdAndAssignedFalse(competitionId, pageable)
         ).willReturn(new PageImpl<>(unassignedMatches));
         given(matchServiceClient.getMatchesById(argThat(l -> l.containsAll(expectedMatchIds)))).willReturn(List.of());
 

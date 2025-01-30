@@ -38,21 +38,21 @@ public class UnassignedMatch {
     }
 
     @EmbeddedId
-    private UnassignedMatchId unassignedMatchId;
+    private UnassignedMatchId id;
     private boolean assigned;
 
     public UnassignedMatch() {}
     public UnassignedMatch(UUID matchId, UUID competitionId) {
-        this.unassignedMatchId = new UnassignedMatchId(matchId, competitionId);
+        this.id = new UnassignedMatchId(matchId, competitionId);
         this.assigned = false;
     }
 
-    public UnassignedMatchId getUnassignedMatchId() {
-        return unassignedMatchId;
+    public UnassignedMatchId getId() {
+        return id;
     }
 
-    public void setUnassignedMatchId(UnassignedMatchId unassignedMatchId) {
-        this.unassignedMatchId = unassignedMatchId;
+    public void setId(UnassignedMatchId id) {
+        this.id = id;
     }
 
     public boolean isAssigned() {

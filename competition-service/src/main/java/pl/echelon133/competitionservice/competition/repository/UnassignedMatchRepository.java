@@ -8,5 +8,5 @@ import pl.echelon133.competitionservice.competition.model.UnassignedMatch;
 import java.util.UUID;
 
 public interface UnassignedMatchRepository extends JpaRepository<UnassignedMatch, UnassignedMatch.UnassignedMatchId> {
-    Page<UnassignedMatch> findAllByUnassignedMatchId_CompetitionIdAndAssignedFalse(UUID competitionId, Pageable pageable);
+    Page<UnassignedMatch> findAllById_CompetitionIdAndAssignedFalse(UUID competitionId, Pageable pageable);
 }

@@ -30,7 +30,7 @@ public class MatchInfoMessageListener implements MessageListener<UUID, MatchInfo
         );
         var unassignedMatchId = unassignedMatchRepository
                 .save(new UnassignedMatch(matchId, competitionId))
-                .getUnassignedMatchId();
+                .getId();
         logger.info(
                 "Saved unassigned match with matchId {} and competitionId {}",
                 unassignedMatchId.getMatchId(), unassignedMatchId.getCompetitionId()
