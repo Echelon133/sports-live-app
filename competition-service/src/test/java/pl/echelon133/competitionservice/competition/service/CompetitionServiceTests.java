@@ -13,19 +13,23 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Pair;
 import pl.echelon133.competitionservice.competition.*;
 import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
-import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
+import pl.echelon133.competitionservice.competition.exceptions.*;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
+import pl.echelon133.competitionservice.competition.repository.LeagueSlotRepository;
 import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class CompetitionServiceTests {
@@ -38,6 +42,9 @@ public class CompetitionServiceTests {
 
     @Mock
     private MatchServiceClient matchServiceClient;
+
+    @Mock
+    private LeagueSlotRepository leagueSlotRepository;
 
     @InjectMocks
     private CompetitionService competitionService;
@@ -701,4 +708,101 @@ public class CompetitionServiceTests {
         // then
         assertEquals(1, result.getNumberOfElements());
     }
+
+    @Test
+    @DisplayName("findMatchesByRound throws when the competition does not exist")
+    public void findMatchesByRound_CompetitionNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            competitionService.findMatchesByRound(competitionId, round);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("competition %s could not be found", competitionId), message);
+    }
+
+    @Test
+    @DisplayName("findMatchesByRound throws when the competition does not have a league phase")
+    public void findMatchesByRound_LeaguePhaseNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // if a competition's maxRounds is set to 0, then that competition does not have a league phase
+        var maxRounds = 0;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+
+        // when
+        String message = assertThrows(CompetitionPhaseNotFoundException.class, () -> {
+            competitionService.findMatchesByRound(competitionId, round);
+        }).getMessage();
+
+        // then
+        assertEquals("competition does not have the phase required to execute this action", message);
+    }
+
+    @Test
+    @DisplayName("findMatchesByRound throws when the competition does not have a given round")
+    public void findMatchesByRound_RoundsNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+
+        // maxRounds set to 34 means that only rounds (1, 34) exist
+        var maxRounds = 34;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+
+        for (var incorrectRound = maxRounds + 1; incorrectRound < 50; incorrectRound++) {
+            // when
+            int finalIncorrectRound = incorrectRound;
+            String message = assertThrows(CompetitionRoundNotFoundException.class, () -> {
+                competitionService.findMatchesByRound(competitionId, finalIncorrectRound);
+            }).getMessage();
+
+            // then
+            assertEquals(String.format("round %s could not be found", incorrectRound), message);
+        }
+    }
+
+    @Test
+    @DisplayName("findMatchesByRound correctly calls the external endpoint")
+    public void findMatchesByRound_CompetitionFoundAndValidRound_CorrectlyCallsClient() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        // maxRounds set to 34 means that only rounds (1, 34) exist
+        var maxRounds = 34;
+        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+
+
+        // given
+        given(competitionRepository.findCompetitionById(eq(competitionId)))
+                .willReturn(Optional.of(competitionDto));
+
+        for (var round = 1; round <= maxRounds; round++) {
+            var matchId = UUID.randomUUID();
+            List<LeagueSlot> leagueSlots = List.of(new LeagueSlot(new CompetitionMatch(matchId), competitionId, round));
+
+            doReturn(leagueSlots)
+                    .when(leagueSlotRepository)
+                    .findAllByCompetitionIdAndRoundAndDeletedFalse(eq(competitionId), eq(round));
+
+            // when
+            var result = competitionService.findMatchesByRound(competitionId, round);
+
+            // then
+            var expectedMatchIds = List.of(matchId);
+            assertEquals(0, result.size());
+            verify(matchServiceClient).getMatchesById(eq(expectedMatchIds));
+        }
+    }
+
 }

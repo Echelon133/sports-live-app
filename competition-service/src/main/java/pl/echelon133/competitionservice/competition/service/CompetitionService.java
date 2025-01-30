@@ -8,9 +8,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import pl.echelon133.competitionservice.competition.client.MatchServiceClient;
-import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
+import pl.echelon133.competitionservice.competition.exceptions.*;
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.repository.CompetitionRepository;
+import pl.echelon133.competitionservice.competition.repository.LeagueSlotRepository;
 import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
 import java.util.*;
@@ -26,16 +27,19 @@ public class CompetitionService {
     private final CompetitionRepository competitionRepository;
     private final MatchServiceClient matchServiceClient;
     private final UnassignedMatchRepository unassignedMatchRepository;
+    private final LeagueSlotRepository leagueSlotRepository;
 
     @Autowired
     public CompetitionService(
             CompetitionRepository competitionRepository,
             MatchServiceClient matchServiceClient,
-            UnassignedMatchRepository unassignedMatchRepository
+            UnassignedMatchRepository unassignedMatchRepository,
+            LeagueSlotRepository leagueSlotRepository
     ) {
         this.competitionRepository = competitionRepository;
         this.matchServiceClient = matchServiceClient;
         this.unassignedMatchRepository = unassignedMatchRepository;
+        this.leagueSlotRepository = leagueSlotRepository;
     }
 
     /**
@@ -75,6 +79,58 @@ public class CompetitionService {
         // since the ids of unassigned matches map one-to-one to matches returned by this method, the
         // same pageable can be used in the return value
         return new PageImpl<>(matchData, pageable, matchData.size());
+    }
+
+    /**
+     * Helper method which throws if the particular competition does not have a league phase.
+     *
+     * @param maxRounds number of rounds in the competition's league phase
+     * @throws CompetitionPhaseNotFoundException thrown when a competition does not have a league phase
+     */
+    private void throwIfLeaguePhaseNotSupported(int maxRounds) throws CompetitionPhaseNotFoundException {
+        if (maxRounds == 0) {
+            // if maxRounds is 0, then the competition does not support the league phase
+            throw new CompetitionPhaseNotFoundException();
+        }
+    }
+
+    /**
+     * Helper method which throws if the particular competition does not have a round represented by a given number.
+     *
+     * @param round round to check
+     * @param maxRounds number of rounds in the competition's league phase
+     * @throws CompetitionRoundNotFoundException thrown when a competition does not have a given round in its league phase
+     */
+    private void throwIfRoundNotFound(int round, int maxRounds) throws CompetitionRoundNotFoundException {
+        if (!(1 <= round && round <= maxRounds)) {
+            // if round is not in (1, maxRounds), then that round does not exist
+            throw new CompetitionRoundNotFoundException(round);
+        }
+    }
+
+    /**
+     * Finds all matches from a particular round of a competition which has a league phase.
+     * @param competitionId id of the competition
+     * @param round round to which the match belongs
+     * @return a list of matches
+     * @throws ResourceNotFoundException thrown when a competition with given id does not exist
+     * @throws CompetitionPhaseNotFoundException thrown when a competition does not have a league phase
+     * @throws CompetitionRoundNotFoundException thrown when a competition does not have a given round in its league phase
+     */
+    public List<CompactMatchDto> findMatchesByRound(UUID competitionId, int round)
+            throws ResourceNotFoundException, CompetitionPhaseNotFoundException, CompetitionRoundNotFoundException {
+
+        var competition = findById(competitionId);
+        var maxRounds = competition.getMaxRounds();
+
+        throwIfLeaguePhaseNotSupported(maxRounds);
+        throwIfRoundNotFound(round, maxRounds);
+
+        var matchIdsFromRound = leagueSlotRepository
+                .findAllByCompetitionIdAndRoundAndDeletedFalse(competitionId, round)
+                .stream().map(slot -> slot.getMatch().getMatchId())
+                .toList();
+        return matchServiceClient.getMatchesById(matchIdsFromRound);
     }
 
     /**
