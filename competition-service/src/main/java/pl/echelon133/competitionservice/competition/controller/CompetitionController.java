@@ -56,6 +56,11 @@ public class CompetitionController {
         competitionService.assignMatchesToRound(competitionId, roundNumber, upsertRoundDto.matchIds());
     }
 
+    @DeleteMapping("/{competitionId}/league/rounds/{roundNumber}")
+    public void unassignMatchesFromRound(@PathVariable UUID competitionId, @PathVariable int roundNumber) throws Exception {
+        competitionService.unassignMatchesFromRound(competitionId, roundNumber);
+    }
+
     @GetMapping("/{competitionId}/matches/unassigned")
     public Page<CompactMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
         return competitionService.findUnassignedMatches(competitionId, pageable);

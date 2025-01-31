@@ -1803,4 +1803,20 @@ public class CompetitionControllerTests {
         }
     }
 
+    @Test
+    @DisplayName("DELETE /api/competitions/:id/league/rounds/:round returns 200 when competition's round is correctly unassigned")
+    public void unassignMatchesFromRound_CompetitionRoundUnassigned_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // when
+        mvc.perform(
+                        delete("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk());
+
+        verify(competitionService).unassignMatchesFromRound(eq(competitionId), eq(round));
+    }
 }
