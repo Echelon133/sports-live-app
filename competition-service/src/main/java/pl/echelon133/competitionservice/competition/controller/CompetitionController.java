@@ -41,6 +41,21 @@ public class CompetitionController {
         return competitionService.findMatchesByRound(competitionId, roundNumber);
     }
 
+    @PostMapping("/{competitionId}/league/rounds/{roundNumber}")
+    public void assignMatchesToRound(
+            @PathVariable UUID competitionId,
+            @PathVariable int roundNumber,
+            @Valid @RequestBody UpsertRoundDto upsertRoundDto,
+            BindingResult result
+    ) throws Exception {
+
+        if (result.hasErrors()) {
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        competitionService.assignMatchesToRound(competitionId, roundNumber, upsertRoundDto.matchIds());
+    }
+
     @GetMapping("/{competitionId}/matches/unassigned")
     public Page<CompactMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
         return competitionService.findUnassignedMatches(competitionId, pageable);

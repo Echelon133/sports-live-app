@@ -64,6 +64,8 @@ public class CompetitionControllerTests {
 
     private JacksonTester<StandingsDto> jsonStandingsDto;
 
+    private JacksonTester<UpsertRoundDto> jsonUpsertRoundDto;
+
     @BeforeEach
     public void beforeEach() {
         var om = new ObjectMapper();
@@ -1640,6 +1642,165 @@ public class CompetitionControllerTests {
                                 .accept(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isOk());
+    }
+
+    private List<UUID> generateMatchIds(int howMany) {
+        return IntStream.range(0, howMany).mapToObj(i -> UUID.randomUUID()).toList();
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions/:id/league/rounds/:round returns 422 when the size of matchIds to assign is invalid")
+    public void assignMatchesToRound_MatchIdsSizeInvalid_StatusUnprocessableEntity() throws Exception {
+        var invalidSizes = List.of(0, 19, 20, 30, 40);
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        for (var invalidSize : invalidSizes) {
+            var matchesToAssign = generateMatchIds(invalidSize);
+            var dto = new UpsertRoundDto(matchesToAssign);
+            var json = jsonUpsertRoundDto.write(dto).getJson();
+
+            // when
+            mvc.perform(
+                            post("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages",
+                            hasEntry("matchIds", List.of("expected between 1 and 18 matches")
+                    )));
+        }
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions/:id/league/rounds/:round returns 404 when competition is not found")
+    public void assignMatchesToRound_CompetitionNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+        var matchesToAssign = generateMatchIds(3);
+        var dto = new UpsertRoundDto(matchesToAssign);
+        var json = jsonUpsertRoundDto.write(dto).getJson();
+
+        // given
+        doThrow(new ResourceNotFoundException(Competition.class, competitionId))
+                .when(competitionService).assignMatchesToRound(eq(competitionId), eq(round), eq(matchesToAssign));
+
+        // when
+        mvc.perform(
+                        post("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("competition %s could not be found", competitionId)
+                )));
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions/:id/league/rounds/:round returns 404 when competition's phase is not found")
+    public void assignMatchesToRound_CompetitionPhaseNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+        var matchesToAssign = generateMatchIds(3);
+        var dto = new UpsertRoundDto(matchesToAssign);
+        var json = jsonUpsertRoundDto.write(dto).getJson();
+
+        // given
+        doThrow(new CompetitionPhaseNotFoundException())
+                .when(competitionService).assignMatchesToRound(eq(competitionId), eq(round), eq(matchesToAssign));
+
+        // when
+        mvc.perform(
+                        post("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        "competition does not have the phase required to execute this action"
+                )));
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions/:id/league/rounds/:round returns 404 when competition's round is not found")
+    public void assignMatchesToRound_CompetitionRoundNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+        var matchesToAssign = generateMatchIds(3);
+        var dto = new UpsertRoundDto(matchesToAssign);
+        var json = jsonUpsertRoundDto.write(dto).getJson();
+
+        // given
+        doThrow(new CompetitionRoundNotFoundException(round))
+                .when(competitionService).assignMatchesToRound(eq(competitionId), eq(round), eq(matchesToAssign));
+
+        // when
+        mvc.perform(
+                        post("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("round %d could not be found", round)
+                )));
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions/:id/league/rounds/:round returns 422 when competition's round is not empty")
+    public void assignMatchesToRound_CompetitionRoundNotEmpty_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+        var matchesToAssign = generateMatchIds(3);
+        var dto = new UpsertRoundDto(matchesToAssign);
+        var json = jsonUpsertRoundDto.write(dto).getJson();
+
+        // given
+        doThrow(new CompetitionRoundNotEmptyException())
+                .when(competitionService).assignMatchesToRound(eq(competitionId), eq(round), eq(matchesToAssign));
+
+        // when
+        mvc.perform(
+                        post("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        "only an empty round can have matches assigned to it"
+                )));
+    }
+
+    @Test
+    @DisplayName("POST /api/competitions/:id/league/rounds/:round returns 200 when competition's round is correctly assigned")
+    public void assignMatchesToRound_CompetitionRoundAssigned_StatusOk() throws Exception {
+        var validSizes = List.of(1, 5, 10, 18);
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        for (var validSize : validSizes) {
+            var matchesToAssign = generateMatchIds(validSize);
+            var dto = new UpsertRoundDto(matchesToAssign);
+            var json = jsonUpsertRoundDto.write(dto).getJson();
+
+            // when
+            mvc.perform(
+                            post("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isOk());
+
+            verify(competitionService).assignMatchesToRound(eq(competitionId), eq(round), eq(matchesToAssign));
+        }
     }
 
 }
