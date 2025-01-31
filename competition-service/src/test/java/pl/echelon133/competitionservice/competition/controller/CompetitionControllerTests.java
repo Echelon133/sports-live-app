@@ -2,6 +2,9 @@ package pl.echelon133.competitionservice.competition.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import pl.echelon133.competitionservice.competition.TestUpsertLeaguePhaseDto;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionPhaseNotFoundException;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionRoundNotEmptyException;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionRoundNotFoundException;
 import pl.echelon133.competitionservice.competition.model.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +39,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -1554,4 +1557,89 @@ public class CompetitionControllerTests {
                 .andExpect(jsonPath("$.content.size()", is(1)))
                 .andExpect(jsonPath("$.content[0].name", is(testPlayerName)));
     }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/league/rounds/:round returns 404 when competition is not found")
+    public void getMatchesFromRound_CompetitionNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // given
+        given(competitionService.findMatchesByRound(eq(competitionId), eq(round)))
+                .willThrow(new ResourceNotFoundException(Competition.class, competitionId));
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("competition %s could not be found", competitionId)
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/league/rounds/:round returns 404 when competition's phase is not found")
+    public void getMatchesFromRound_CompetitionPhaseNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // given
+        given(competitionService.findMatchesByRound(eq(competitionId), eq(round)))
+                .willThrow(new CompetitionPhaseNotFoundException());
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        "competition does not have the phase required to execute this action"
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/league/rounds/:round returns 404 when competition's round is not found")
+    public void getMatchesFromRound_CompetitionRoundNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // given
+        given(competitionService.findMatchesByRound(eq(competitionId), eq(round)))
+                .willThrow(new CompetitionRoundNotFoundException(round));
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("round %d could not be found", round)
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/league/rounds/:round returns 200 when the service returns without exception")
+    public void getMatchesFromRound_ServiceReturns_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // given
+        given(competitionService.findMatchesByRound(eq(competitionId), eq(round))).willReturn(List.of());
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/league/rounds/" + round)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk());
+    }
+
 }

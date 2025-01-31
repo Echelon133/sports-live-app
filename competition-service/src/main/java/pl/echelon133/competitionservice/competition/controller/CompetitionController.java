@@ -34,6 +34,13 @@ public class CompetitionController {
         return competitionService.findById(competitionId);
     }
 
+    @GetMapping("/{competitionId}/league/rounds/{roundNumber}")
+    public List<CompactMatchDto> getMatchesFromRound(
+            @PathVariable UUID competitionId, @PathVariable int roundNumber
+    ) throws Exception {
+        return competitionService.findMatchesByRound(competitionId, roundNumber);
+    }
+
     @GetMapping("/{competitionId}/matches/unassigned")
     public Page<CompactMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
         return competitionService.findUnassignedMatches(competitionId, pageable);
