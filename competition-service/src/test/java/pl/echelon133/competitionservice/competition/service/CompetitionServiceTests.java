@@ -1001,4 +1001,66 @@ public class CompetitionServiceTests {
             return true;
         }));
     }
+
+    @Test
+    @DisplayName("unassignMatchesFromRound does nothing if there are no matches in a particular round")
+    public void unassignMatchesFromRound_RoundEmpty_NoOperation() {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // given
+        given(leagueSlotRepository.findAllByCompetitionIdAndRoundAndDeletedFalse(eq(competitionId), eq(round)))
+                .willReturn(List.of());
+
+        // when
+        competitionService.unassignMatchesFromRound(competitionId, round);
+
+        // then
+        verify(leagueSlotRepository, never()).saveAll(any());
+        verify(unassignedMatchRepository, never()).findAllById(any());
+        verify(unassignedMatchRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("unassignMatchesFromRound unassigns matches from round and resets unassigned statuses")
+    public void unassignMatchesFromRound_RoundNotEmpty_UnassignsMatches() {
+        var competitionId = UUID.randomUUID();
+        var round = 1;
+
+        // this match must be assigned, since it
+        var matchId = UUID.randomUUID();
+        var assignedMatch = new UnassignedMatch(matchId, competitionId);
+        assignedMatch.setAssigned(true);
+
+        var unassignedMatches = List.of(assignedMatch);
+        var leagueSlots = List.of(new LeagueSlot(new CompetitionMatch(matchId), competitionId, round));
+
+        // given
+        given(leagueSlotRepository.findAllByCompetitionIdAndRoundAndDeletedFalse(eq(competitionId), eq(round)))
+                .willReturn(leagueSlots);
+        given(unassignedMatchRepository.findAllById(any())).willReturn(unassignedMatches);
+
+        // when
+        competitionService.unassignMatchesFromRound(competitionId, round);
+
+        // then
+        verify(leagueSlotRepository).saveAll(argThat(lSlots -> {
+            // every league slot is marked as deleted
+            for (var leagueSlot : lSlots) {
+                if (!leagueSlot.isDeleted()) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+        verify(unassignedMatchRepository).saveAll(argThat(uMatches -> {
+            // all matches are marked as unassigned
+            for (var uMatch : uMatches) {
+                if (uMatch.isAssigned()) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+    }
 }

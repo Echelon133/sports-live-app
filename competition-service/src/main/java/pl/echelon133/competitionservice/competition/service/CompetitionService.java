@@ -194,6 +194,36 @@ public class CompetitionService {
     }
 
     /**
+     * Unassigns matches which are assigned to a particular round in the given competition.
+     * <p>Matches unassigned from a round are eligible to being reassigned to same/different round later.</p>
+     *
+     * @param competitionId id of the competition whose round we want to unassign
+     * @param round round of the competition whose matches we want to unassign
+     */
+    public void unassignMatchesFromRound(UUID competitionId, int round) {
+
+        var matchesInRound = leagueSlotRepository
+                .findAllByCompetitionIdAndRoundAndDeletedFalse(competitionId, round);
+
+        if (matchesInRound.size() == 0) {
+            return;
+        }
+
+        // at first delete all assignments between matches and their round
+        matchesInRound.forEach(m -> m.setDeleted(true));
+        leagueSlotRepository.saveAll(matchesInRound);
+
+        // for every match which is no longer assigned to a round, set its assigned flag to `false`
+        // so that it's possible to reassign these matches later
+        var unassignedMatchIds = matchesInRound
+                .stream().map(m -> new UnassignedMatch.UnassignedMatchId(m.getMatch().getMatchId(), m.getCompetitionId()))
+                .toList();
+        var unassignedMatchEntities = unassignedMatchRepository.findAllById(unassignedMatchIds);
+        unassignedMatchEntities.forEach(um -> um.setAssigned(false));
+        unassignedMatchRepository.saveAll(unassignedMatchEntities);
+    }
+
+    /**
      * Marks a competition with the specified id as deleted.
      *
      * @param id id of the competition to be marked as deleted
