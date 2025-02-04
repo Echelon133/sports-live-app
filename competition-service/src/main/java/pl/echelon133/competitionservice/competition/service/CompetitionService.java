@@ -56,6 +56,19 @@ public class CompetitionService {
     }
 
     /**
+     * Returns the entity representing a competition with the specified id.
+     * @param competitionId id of the competition's entity
+     * @return competition's entity
+     * @throws ResourceNotFoundException thrown when the competition does not exist in the database or is deleted
+     */
+    public Competition findEntityById(UUID competitionId) throws ResourceNotFoundException {
+        return competitionRepository
+                .findById(competitionId)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException(Competition.class, competitionId));
+    }
+
+    /**
      * Finds all unassigned matches from a particular competition.
      * <p>
      *     An unassigned match belongs to neither the league nor the knockout phase of a competition.

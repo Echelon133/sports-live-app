@@ -83,6 +83,58 @@ public class CompetitionServiceTests {
     }
 
     @Test
+    @DisplayName("findEntityById throws when the repository does not store an entity with given id")
+    public void findEntityById_EntityNotPresent_Throws() {
+        var testId = UUID.randomUUID();
+
+        // given
+        given(competitionRepository.findById(testId)).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            competitionService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("competition %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById throws when the repository stores an entity with given id but it's deleted")
+    public void findEntityById_EntityPresentButDeleted_Throws() {
+        var testId = UUID.randomUUID();
+        var competitionEntity = TestCompetition.builder().deleted(true).build();
+
+        // given
+        given(competitionRepository.findById(testId)).willReturn(Optional.of(competitionEntity));
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            competitionService.findEntityById(testId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("competition %s could not be found", testId), message);
+    }
+
+    @Test
+    @DisplayName("findEntityById returns the entity when the repository stores it")
+    public void findEntityById_EntityPresent_ReturnsEntity() throws ResourceNotFoundException {
+        var testId = UUID.randomUUID();
+        var competitionEntity = TestCompetition.builder().build();
+
+        // given
+        given(competitionRepository.findById(testId)).willReturn(Optional.of(competitionEntity));
+
+        // when
+        var entity = competitionService.findEntityById(testId);
+
+        // then
+        assertEquals(competitionEntity, entity);
+    }
+
+
+    @Test
     @DisplayName("findUnassignedMatches correctly calls the external endpoint and reuses the pageable")
     public void findUnassignedMatches_MultipleUnassignedMatchesFound_ReturnsPage() {
         var expectedPageSize = 20;
