@@ -1,8 +1,6 @@
 package pl.echelon133.competitionservice.competition.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
 import ml.echelon133.common.entity.BaseEntity;
 
 @Entity
@@ -17,7 +15,8 @@ public class Competition extends BaseEntity {
     @Column(name = "logo_url", nullable = false, length = 500)
     private String logoUrl;
 
-    @Embedded
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "league_phase_id")
     private LeaguePhase leaguePhase;
 
     @Embedded

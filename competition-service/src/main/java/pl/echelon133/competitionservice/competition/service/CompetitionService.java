@@ -97,12 +97,11 @@ public class CompetitionService {
     /**
      * Helper method which throws if the particular competition does not have a league phase.
      *
-     * @param maxRounds number of rounds in the competition's league phase
+     * @param competition competition to check
      * @throws CompetitionPhaseNotFoundException thrown when a competition does not have a league phase
      */
-    private void throwIfLeaguePhaseNotSupported(int maxRounds) throws CompetitionPhaseNotFoundException {
-        if (maxRounds == 0) {
-            // if maxRounds is 0, then the competition does not support the league phase
+    private void throwIfLeaguePhaseNotSupported(Competition competition) throws CompetitionPhaseNotFoundException {
+        if (competition.getLeaguePhase() == null) {
             throw new CompetitionPhaseNotFoundException();
         }
     }
@@ -133,10 +132,9 @@ public class CompetitionService {
     public List<CompactMatchDto> findMatchesByRound(UUID competitionId, int round)
             throws ResourceNotFoundException, CompetitionPhaseNotFoundException, CompetitionRoundNotFoundException {
 
-        var competition = findById(competitionId);
-        var maxRounds = competition.getMaxRounds();
-
-        throwIfLeaguePhaseNotSupported(maxRounds);
+        var competition = findEntityById(competitionId);
+        throwIfLeaguePhaseNotSupported(competition);
+        var maxRounds = competition.getLeaguePhase().getMaxRounds();
         throwIfRoundNotFound(round, maxRounds);
 
         var matchIdsFromRound = leagueSlotRepository
@@ -161,10 +159,9 @@ public class CompetitionService {
             throws ResourceNotFoundException, CompetitionPhaseNotFoundException,
             CompetitionRoundNotFoundException, CompetitionRoundNotEmptyException, CompetitionMatchAssignmentException {
 
-        var competition = findById(competitionId);
-        var maxRounds = competition.getMaxRounds();
-
-        throwIfLeaguePhaseNotSupported(maxRounds);
+        var competition = findEntityById(competitionId);
+        throwIfLeaguePhaseNotSupported(competition);
+        var maxRounds = competition.getLeaguePhase().getMaxRounds();
         throwIfRoundNotFound(round, maxRounds);
 
         var matchIdsAlreadyInRound = leagueSlotRepository

@@ -1,13 +1,15 @@
 package pl.echelon133.competitionservice.competition.model;
 
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
+import ml.echelon133.common.entity.BaseEntity;
 
 import java.util.List;
 
-@Embeddable
-public class LeaguePhase {
+@Entity
+public class LeaguePhase extends BaseEntity {
 
     public LeaguePhase() {}
     public LeaguePhase(List<Group> groups, List<Legend> legend) {
@@ -19,10 +21,10 @@ public class LeaguePhase {
         this.maxRounds = maxRounds;
     }
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Group> groups;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Legend> legend;
 
     private int maxRounds;

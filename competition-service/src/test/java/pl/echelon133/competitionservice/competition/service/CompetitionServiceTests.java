@@ -69,7 +69,7 @@ public class CompetitionServiceTests {
     @Test
     @DisplayName("findById returns the dto when the competition is present")
     public void findById_EntityPresent_ReturnsDto() throws ResourceNotFoundException {
-        var testDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3", 1);
+        var testDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
         var competitionId = testDto.getId();
 
         // given
@@ -182,7 +182,7 @@ public class CompetitionServiceTests {
     public void findCompetitionsByName_CustomPhraseAndPageable_CorrectlyCallsRepository() {
         var phrase = "test";
         var pageable = Pageable.ofSize(7).withPage(4);
-        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3", 1);
+        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
         var expectedPage = new PageImpl<>(List.of(expectedDto), pageable, 1);
 
         // given
@@ -201,7 +201,7 @@ public class CompetitionServiceTests {
     @Test
     @DisplayName("findPinnedCompetitions calls the repository method")
     public void findPinnedCompetitions_NoArguments_CorrectlyCallsRepository() {
-        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3", 1);
+        var expectedDto = CompetitionDto.from(UUID.randomUUID(), "test1", "test2", "test3");
 
         // given
         given(competitionRepository.findAllPinned()).willReturn(List.of(expectedDto));
@@ -768,7 +768,7 @@ public class CompetitionServiceTests {
         var round = 1;
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.empty());
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.empty());
 
         // when
         String message = assertThrows(ResourceNotFoundException.class, () -> {
@@ -785,12 +785,10 @@ public class CompetitionServiceTests {
         var competitionId = UUID.randomUUID();
         var round = 1;
 
-        // if a competition's maxRounds is set to 0, then that competition does not have a league phase
-        var maxRounds = 0;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+        var competition = TestCompetition.builder().leaguePhase(null).build();
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
 
         // when
         String message = assertThrows(CompetitionPhaseNotFoundException.class, () -> {
@@ -808,10 +806,10 @@ public class CompetitionServiceTests {
 
         // maxRounds set to 34 means that only rounds (1, 34) exist
         var maxRounds = 34;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+        var competition = TestCompetition.builder().leaguePhase(new LeaguePhase(List.of(), List.of(), maxRounds)).build();
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
 
         for (var incorrectRound = maxRounds + 1; incorrectRound < 50; incorrectRound++) {
             // when
@@ -832,12 +830,10 @@ public class CompetitionServiceTests {
 
         // maxRounds set to 34 means that only rounds (1, 34) exist
         var maxRounds = 34;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
-
+        var competition = TestCompetition.builder().leaguePhase(new LeaguePhase(List.of(), List.of(), maxRounds)).build();
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId)))
-                .willReturn(Optional.of(competitionDto));
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
 
         for (var round = 1; round <= maxRounds; round++) {
             var matchId = UUID.randomUUID();
@@ -864,12 +860,10 @@ public class CompetitionServiceTests {
         var round = 1;
         var matchIdsToAssign = List.of(UUID.randomUUID());
 
-        // if a competition's maxRounds is set to 0, then that competition does not have a league phase
-        var maxRounds = 0;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+        var competition = TestCompetition.builder().leaguePhase(null).build();
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
 
         // when
         String message = assertThrows(CompetitionPhaseNotFoundException.class, () -> {
@@ -888,10 +882,10 @@ public class CompetitionServiceTests {
 
         // maxRounds set to 34 means that only rounds (1, 34) exist
         var maxRounds = 34;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+        var competition = TestCompetition.builder().leaguePhase(new LeaguePhase(List.of(), List.of(), maxRounds)).build();
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
 
         for (var incorrectRound = maxRounds + 1; incorrectRound < 50; incorrectRound++) {
             // when
@@ -914,12 +908,12 @@ public class CompetitionServiceTests {
 
         // maxRounds set to 34 means that only rounds (1, 34) exist
         var maxRounds = 34;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+        var competition = TestCompetition.builder().leaguePhase(new LeaguePhase(List.of(), List.of(), maxRounds)).build();
 
         var leagueSlots = List.of(new LeagueSlot(new CompetitionMatch(UUID.randomUUID()), competitionId, round));
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
         given(leagueSlotRepository.findAllByCompetitionIdAndRoundAndDeletedFalse(eq(competitionId), eq(round)))
                 .willReturn(leagueSlots);
 
@@ -970,10 +964,10 @@ public class CompetitionServiceTests {
 
         // maxRounds set to 34 means that only rounds (1, 34) exist
         var maxRounds = 34;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+        var competition = TestCompetition.builder().leaguePhase(new LeaguePhase(List.of(), List.of(), maxRounds)).build();
 
         // given
-        given(competitionRepository.findCompetitionById(eq(competitionId))).willReturn(Optional.of(competitionDto));
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
         given(leagueSlotRepository.findAllByCompetitionIdAndRoundAndDeletedFalse(eq(competitionId), eq(round)))
                 .willReturn(List.of());
         var expectedUnassignedMatchIds = matchIdsToAssign
@@ -1007,11 +1001,11 @@ public class CompetitionServiceTests {
 
         // maxRounds set to 34 means that only rounds (1, 34) exist
         var maxRounds = 34;
-        var competitionDto = CompetitionDto.from(competitionId, "", "", "", maxRounds);
+        var competition = TestCompetition.builder().leaguePhase(new LeaguePhase(List.of(), List.of(), maxRounds)).build();
 
         for (var correctRound = 1; correctRound <= maxRounds; correctRound++) {
             // given
-            doReturn(Optional.of(competitionDto)).when(competitionRepository).findCompetitionById(eq(competitionId));
+            doReturn(Optional.of(competition)).when(competitionRepository).findById(eq(competitionId));
             doReturn(List.of()).when(leagueSlotRepository).findAllByCompetitionIdAndRoundAndDeletedFalse(
                     eq(competitionId), eq(correctRound)
             );

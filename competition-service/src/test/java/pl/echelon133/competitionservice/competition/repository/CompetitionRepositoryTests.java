@@ -36,9 +36,6 @@ public class CompetitionRepositoryTests {
         assertEquals(entity.getName(), dto.getName());
         assertEquals(entity.getSeason(), dto.getSeason());
         assertEquals(entity.getLogoUrl(), dto.getLogoUrl());
-        if (entity.getLeaguePhase() != null) {
-            assertEquals(entity.getLeaguePhase().getMaxRounds(), dto.getMaxRounds());
-        }
     }
 
     @Test
