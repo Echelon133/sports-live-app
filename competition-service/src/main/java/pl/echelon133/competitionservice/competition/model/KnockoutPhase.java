@@ -8,7 +8,7 @@ import java.util.List;
 @Entity
 public class KnockoutPhase extends BaseEntity {
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     List<Stage> stages;
 
     public KnockoutPhase() {}
