@@ -12,6 +12,7 @@ public class Stage extends BaseEntity {
     private KnockoutStage stage;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderColumn(name = "slot_order")
     private List<KnockoutSlot> slots;
 
     public Stage() {}
