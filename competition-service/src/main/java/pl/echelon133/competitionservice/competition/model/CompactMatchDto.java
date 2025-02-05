@@ -20,7 +20,7 @@ public record CompactMatchDto(
         ScoreInfoDto penaltiesInfo,
         RedCardInfoDto redCardInfo
 ) {
-    record TeamDto (UUID id, String name, String crestUrl) {}
+    public record TeamDto (UUID id, String name, String crestUrl) {}
     public record ScoreInfoDto(int homeGoals, int awayGoals) {}
     public record RedCardInfoDto(int homeRedCards, int awayRedCards) {}
 }
