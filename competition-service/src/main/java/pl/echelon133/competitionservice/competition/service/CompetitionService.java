@@ -15,10 +15,15 @@ import pl.echelon133.competitionservice.competition.repository.LeagueSlotReposit
 import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toMap;
 
 @Service
 @Transactional
@@ -28,18 +33,21 @@ public class CompetitionService {
     private final MatchServiceClient matchServiceClient;
     private final UnassignedMatchRepository unassignedMatchRepository;
     private final LeagueSlotRepository leagueSlotRepository;
+    private final Executor asyncExecutor;
 
     @Autowired
     public CompetitionService(
             CompetitionRepository competitionRepository,
             MatchServiceClient matchServiceClient,
             UnassignedMatchRepository unassignedMatchRepository,
-            LeagueSlotRepository leagueSlotRepository
+            LeagueSlotRepository leagueSlotRepository,
+            Executor asyncExecutor
     ) {
         this.competitionRepository = competitionRepository;
         this.matchServiceClient = matchServiceClient;
         this.unassignedMatchRepository = unassignedMatchRepository;
         this.leagueSlotRepository = leagueSlotRepository;
+        this.asyncExecutor = asyncExecutor;
     }
 
     /**
@@ -231,6 +239,115 @@ public class CompetitionService {
         var unassignedMatchEntities = unassignedMatchRepository.findAllById(unassignedMatchIds);
         unassignedMatchEntities.forEach(um -> um.setAssigned(false));
         unassignedMatchRepository.saveAll(unassignedMatchEntities);
+    }
+
+    /**
+     * Finds all matches from the knockout phase of a competition.
+     * @param competitionId id of the competition
+     * @return an object representing all stages of the knockout phase
+     * @throws ResourceNotFoundException thrown when a competition with given id does not exist
+     * @throws CompetitionPhaseNotFoundException thrown when a competition does not have a knockout phase
+     */
+    public KnockoutPhaseDto findKnockoutPhase(UUID competitionId)
+            throws ResourceNotFoundException, CompetitionPhaseNotFoundException, CompletionException {
+        var competition = findEntityById(competitionId);
+        var knockoutPhase = competition.getKnockoutPhase();
+        if (knockoutPhase == null) {
+            throw new CompetitionPhaseNotFoundException();
+        }
+
+        var stages = knockoutPhase.getStages();
+
+        List<UUID> matchIdsToFetch = new ArrayList<>(16);
+        List<UUID> teamIdsToFetch = new ArrayList<>(16);
+
+        // traverse the slots of all stages and collect matchIds and teamIds to fetch
+        for (var stage : stages) {
+            for (var slot : stage.getSlots()) {
+                switch (slot) {
+                    case KnockoutSlot.Empty ignored -> {}
+                    case KnockoutSlot.Bye bye -> teamIdsToFetch.add(bye.getTeamId());
+                    case KnockoutSlot.Taken taken -> {
+                        if (taken.getFirstLeg() != null) {
+                            matchIdsToFetch.add(taken.getFirstLeg().getMatchId());
+                        }
+                        if (taken.getSecondLeg() != null) {
+                            matchIdsToFetch.add(taken.getSecondLeg().getMatchId());
+                        }
+                    }
+                    // KnockoutSlot is an entity, therefore it cannot be a sealed class (Hibernate does not allow that),
+                    // that's why this default clause has to be here
+                    default -> throw new IllegalStateException("Unexpected value: " + slot);
+                }
+            }
+        }
+
+        CompletableFuture<Map<UUID, CompactMatchDto>> fetchedMatchesFuture;
+        if (matchIdsToFetch.isEmpty()) {
+            fetchedMatchesFuture = CompletableFuture.completedFuture(Map.of());
+        } else {
+            fetchedMatchesFuture = CompletableFuture.supplyAsync(
+                    () -> matchServiceClient
+                            .getMatchesById(matchIdsToFetch)
+                            .stream()
+                            .collect(toMap(CompactMatchDto::id, Function.identity())),
+                    asyncExecutor);
+        }
+
+        CompletableFuture<Map<UUID, TeamDetailsDto>> fetchedTeamDetailsFuture;
+        if (teamIdsToFetch.isEmpty()) {
+            fetchedTeamDetailsFuture = CompletableFuture.completedFuture(Map.of());
+        } else {
+            fetchedTeamDetailsFuture = CompletableFuture.supplyAsync(
+                    () -> matchServiceClient
+                            .getTeamByTeamIds(teamIdsToFetch, Pageable.ofSize(teamIdsToFetch.size()))
+                            .getContent()
+                            .stream()
+                            .collect(toMap(TeamDetailsDto::id, Function.identity())),
+                    asyncExecutor);
+        }
+
+        var result = CompletableFuture.allOf(fetchedMatchesFuture, fetchedTeamDetailsFuture);
+        // await both futures to complete
+        result.join();
+        // if we are here, both joins will be instantaneous
+        var fetchedMatches = fetchedMatchesFuture.join();
+        var fetchedTeamDetails = fetchedTeamDetailsFuture.join();
+
+        // pre-allocate the maximum number of stages expected
+        List<KnockoutPhaseDto.StageDto> stageDtos = new ArrayList<>(KnockoutStage.values().length);
+
+        // reconstruct all stages as DTOs, replacing ids referencing matches/teams with data representing these objects
+        for (var stage : stages) {
+            List<KnockoutPhaseDto.KnockoutSlotDto> slotDtos = new ArrayList<>(16);
+            for (var slot : stage.getSlots()) {
+                switch (slot) {
+                    case KnockoutSlot.Empty ignored -> slotDtos.add(new KnockoutPhaseDto.EmptySlotDto());
+                    case KnockoutSlot.Bye bye -> {
+                        var teamDetails = fetchedTeamDetails.get(bye.getTeamId());
+                        slotDtos.add(new KnockoutPhaseDto.ByeSlotDto(teamDetails));
+                    }
+                    case KnockoutSlot.Taken taken -> {
+                        CompactMatchDto firstLeg = null;
+                        CompactMatchDto secondLeg = null;
+                        if (taken.getFirstLeg() != null) {
+                            firstLeg = fetchedMatches.get(taken.getFirstLeg().getMatchId());
+                        }
+                        if (taken.getSecondLeg() != null) {
+                            secondLeg = fetchedMatches.get(taken.getSecondLeg().getMatchId());
+                        }
+                        slotDtos.add(new KnockoutPhaseDto.TakenSlotDto(firstLeg, secondLeg));
+                    }
+                    // KnockoutSlot is an entity, therefore it cannot be a sealed class (Hibernate does not allow that),
+                    // that's why this default clause has to be here
+                    default -> throw new IllegalStateException("Unexpected value: " + slot);
+                }
+            }
+            var stageDto = new KnockoutPhaseDto.StageDto(stage.getStage().name(), slotDtos);
+            stageDtos.add(stageDto);
+        }
+
+        return new KnockoutPhaseDto(stageDtos);
     }
 
     /**

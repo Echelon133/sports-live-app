@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -19,10 +20,13 @@ import pl.echelon133.competitionservice.competition.repository.CompetitionReposi
 import pl.echelon133.competitionservice.competition.repository.LeagueSlotRepository;
 import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,6 +49,9 @@ public class CompetitionServiceTests {
 
     @Mock
     private LeagueSlotRepository leagueSlotRepository;
+
+    @Spy
+    private Executor executor = Executors.newFixedThreadPool(2);
 
     @InjectMocks
     private CompetitionService competitionService;
@@ -1108,5 +1115,238 @@ public class CompetitionServiceTests {
             }
             return true;
         }));
+    }
+
+    @Test
+    @DisplayName("findKnockoutPhase throws when the competition does not exist")
+    public void findKnockoutPhase_CompetitionNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            competitionService.findKnockoutPhase(competitionId);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("competition %s could not be found", competitionId), message);
+    }
+
+    @Test
+    @DisplayName("findKnockoutPhase throws when the competition does not have a knockout phase")
+    public void findKnockoutPhase_KnockoutPhaseNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+
+        var competition = TestCompetition.builder().knockoutPhase(null).build();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+
+        // when
+        String message = assertThrows(CompetitionPhaseNotFoundException.class, () -> {
+            competitionService.findKnockoutPhase(competitionId);
+        }).getMessage();
+
+        // then
+        assertEquals("competition does not have the phase required to execute this action", message);
+    }
+
+    @Test
+    @DisplayName("findKnockoutPhase does not fetch any data from external services if all knockout slots are empty")
+    public void findKnockoutPhase_AllSlotsEmpty_ReturnsWithoutFetchingExternalData() throws Exception {
+        // create a knockout phase where all slots are EMPTY
+        Stage semifinalStage = new Stage(KnockoutStage.SEMI_FINAL);
+        semifinalStage.setSlots(List.of(new KnockoutSlot.Empty(), new KnockoutSlot.Empty()));
+        Stage finalStage = new Stage(KnockoutStage.FINAL);
+        finalStage.setSlots(List.of(new KnockoutSlot.Empty()));
+        KnockoutPhase knockoutPhase = new KnockoutPhase(List.of(semifinalStage, finalStage));
+
+        Competition competition = TestCompetition.builder().knockoutPhase(knockoutPhase).build();
+        var competitionId = competition.getId();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+
+        // when
+        var result = competitionService.findKnockoutPhase(competitionId);
+
+        // then
+        var receivedSlots = result.stages().stream().flatMap(s -> s.slots().stream()).toList();
+        assertEquals(3, receivedSlots.stream().filter(s -> s.getType().equals("EMPTY")).count());
+        verify(matchServiceClient, never()).getMatchesById(any());
+        verify(matchServiceClient, never()).getTeamByTeamIds(any(), any());
+    }
+
+    @Test
+    @DisplayName("findKnockoutPhase does fetch team data from external services if all knockout slots are byes")
+    public void findKnockoutPhase_AllSlotsBye_ReturnsWithFetchingExternalData() throws Exception {
+        var team0Id = UUID.randomUUID();
+        var team1Id = UUID.randomUUID();
+        var team2Id = UUID.randomUUID();
+        var expectedFetchedTeamIds = List.of(team0Id, team1Id, team2Id);
+        var teamDetails = expectedFetchedTeamIds.stream().map(id -> new TeamDetailsDto(id, "Team", "")).toList();
+        var page = new PageImpl<>(teamDetails);
+
+        // create a knockout phase where all slots are BYEs
+        Stage semifinalStage = new Stage(KnockoutStage.SEMI_FINAL);
+        semifinalStage.setSlots(List.of(new KnockoutSlot.Bye(team0Id), new KnockoutSlot.Bye(team1Id)));
+        Stage finalStage = new Stage(KnockoutStage.FINAL);
+        finalStage.setSlots(List.of(new KnockoutSlot.Bye(team2Id)));
+        KnockoutPhase knockoutPhase = new KnockoutPhase(List.of(semifinalStage, finalStage));
+
+        Competition competition = TestCompetition.builder().knockoutPhase(knockoutPhase).build();
+        var competitionId = competition.getId();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+        given(matchServiceClient.getTeamByTeamIds(
+                argThat(teamIds -> teamIds.containsAll(expectedFetchedTeamIds) && teamIds.size() == expectedFetchedTeamIds.size()),
+                any()
+        )).willReturn(page);
+
+        // when
+        var result = competitionService.findKnockoutPhase(competitionId);
+
+        // then
+        var receivedSlots = result.stages().stream().flatMap(s -> s.slots().stream()).toList();
+        assertEquals(3, receivedSlots.stream().filter(s -> s.getType().equals("BYE")).count());
+        verify(matchServiceClient, never()).getMatchesById(any());
+    }
+
+    private CompactMatchDto createTestCompactMatchDto(UUID id) {
+        return new CompactMatchDto(
+                id, "", LocalDateTime.now(), "", UUID.randomUUID(), LocalDateTime.now(),
+                new CompactMatchDto.TeamDto(UUID.randomUUID(), "", ""),
+                new CompactMatchDto.TeamDto(UUID.randomUUID(), "", ""),
+                new CompactMatchDto.ScoreInfoDto(0, 0),
+                new CompactMatchDto.ScoreInfoDto(0, 0),
+                new CompactMatchDto.ScoreInfoDto(0, 0),
+                new CompactMatchDto.RedCardInfoDto(0, 0)
+        );
+    }
+
+    @Test
+    @DisplayName("findKnockoutPhase does fetch match data from external services if all knockout slots are taken")
+    public void findKnockoutPhase_AllSlotsTaken_ReturnsWithFetchingExternalData() throws Exception {
+        var match0Id = UUID.randomUUID();
+        var match1Id = UUID.randomUUID();
+        var match2Id = UUID.randomUUID();
+        var expectedFetchedMatchIds = List.of(match0Id, match1Id, match2Id);
+        var matchDetails = expectedFetchedMatchIds.stream().map(this::createTestCompactMatchDto).toList();
+
+        // create a knockout phase where all slots are TAKEN
+        Stage semifinalStage = new Stage(KnockoutStage.SEMI_FINAL);
+        semifinalStage.setSlots(List.of(
+                new KnockoutSlot.Taken(new CompetitionMatch(match0Id)),
+                new KnockoutSlot.Taken(new CompetitionMatch(match1Id)))
+        );
+        Stage finalStage = new Stage(KnockoutStage.FINAL);
+        finalStage.setSlots(List.of(new KnockoutSlot.Taken(new CompetitionMatch(match2Id))));
+        KnockoutPhase knockoutPhase = new KnockoutPhase(List.of(semifinalStage, finalStage));
+
+        Competition competition = TestCompetition.builder().knockoutPhase(knockoutPhase).build();
+        var competitionId = competition.getId();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+        given(matchServiceClient.getMatchesById(
+                argThat(matchIds -> matchIds.containsAll(expectedFetchedMatchIds) && matchIds.size() == expectedFetchedMatchIds.size())
+        )).willReturn(matchDetails);
+
+        // when
+        var result = competitionService.findKnockoutPhase(competitionId);
+
+        // then
+        var receivedSlots = result.stages().stream().flatMap(s -> s.slots().stream()).toList();
+        assertEquals(3, receivedSlots.stream().filter(s -> s.getType().equals("TAKEN")).count());
+        verify(matchServiceClient, never()).getTeamByTeamIds(any(), any());
+    }
+    @Test
+    @DisplayName("findKnockoutPhase maintains the ordering of stages and slots during processing")
+    public void findKnockoutPhase_MultipleSlotTypes_ReturnsMaintainingShape() throws Exception {
+        var team0Id = UUID.randomUUID();
+        var team1Id = UUID.randomUUID();
+        var team2Id = UUID.randomUUID();
+        var expectedFetchedTeamIds = List.of(team0Id, team1Id, team2Id);
+        var teamDetails = expectedFetchedTeamIds.stream().map(id -> new TeamDetailsDto(id, "Team", "")).toList();
+        var teamDetailsPage = new PageImpl<>(teamDetails);
+
+        var match0Id = UUID.randomUUID();
+        var match1Id = UUID.randomUUID();
+        var expectedFetchedMatchIds = List.of(match0Id, match1Id);
+        var matchDetails = expectedFetchedMatchIds.stream().map(this::createTestCompactMatchDto).toList();
+        // create a competition with three stages QUARTER_FINAL, SEMI_FINAL, FINAL
+        // where each stage has mixed types of slots
+        //
+        //  QF      SF      FINAL
+        //  -----------------------
+        //  EMPTY
+        //          TAKEN
+        //  BYE
+        //                  EMPTY
+        //  TAKEN
+        //          BYE
+        //  BYE
+        Stage quarterfinalStage = new Stage(KnockoutStage.QUARTER_FINAL);
+        quarterfinalStage.setSlots(List.of(
+                new KnockoutSlot.Empty(),
+                new KnockoutSlot.Bye(team0Id),
+                new KnockoutSlot.Taken(new CompetitionMatch(match0Id)),
+                new KnockoutSlot.Bye(team1Id)
+        ));
+        Stage semifinalStage = new Stage(KnockoutStage.SEMI_FINAL);
+        semifinalStage.setSlots(List.of(
+                new KnockoutSlot.Taken(new CompetitionMatch(match1Id)),
+                new KnockoutSlot.Bye(team2Id)
+        ));
+        Stage finalStage = new Stage(KnockoutStage.FINAL);
+        finalStage.setSlots(List.of(new KnockoutSlot.Empty()));
+        KnockoutPhase knockoutPhase = new KnockoutPhase(List.of(quarterfinalStage, semifinalStage, finalStage));
+
+        Competition competition = TestCompetition.builder().knockoutPhase(knockoutPhase).build();
+        var competitionId = competition.getId();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+        given(matchServiceClient.getTeamByTeamIds(
+                argThat(teamIds -> teamIds.containsAll(expectedFetchedTeamIds) && teamIds.size() == expectedFetchedTeamIds.size()),
+                any()
+        )).willReturn(teamDetailsPage);
+        given(matchServiceClient.getMatchesById(
+                argThat(matchIds -> matchIds.containsAll(expectedFetchedMatchIds) && matchIds.size() == expectedFetchedMatchIds.size())
+        )).willReturn(matchDetails);
+
+        // when
+        var result = competitionService.findKnockoutPhase(competitionId);
+
+        // then
+        var receivedQuarterfinalStage = result.stages().get(0);
+        assertEquals("QUARTER_FINAL", receivedQuarterfinalStage.stage());
+        var receivedQuarterfinalSlots = receivedQuarterfinalStage
+                .slots()
+                .stream()
+                .map(KnockoutPhaseDto.KnockoutSlotDto::getType)
+                .toList();
+        assertEquals(List.of("EMPTY", "BYE", "TAKEN", "BYE"), receivedQuarterfinalSlots);
+
+        var receivedSemifinalStage = result.stages().get(1);
+        assertEquals("SEMI_FINAL", receivedSemifinalStage.stage());
+        var receivedSemifinalSlots = receivedSemifinalStage
+                .slots()
+                .stream()
+                .map(KnockoutPhaseDto.KnockoutSlotDto::getType)
+                .toList();
+        assertEquals(List.of("TAKEN", "BYE"), receivedSemifinalSlots);
+
+        var receivedFinalStage = result.stages().get(2);
+        assertEquals("FINAL", receivedFinalStage.stage());
+        var receivedFinalSlots = receivedFinalStage
+                .slots()
+                .stream()
+                .map(KnockoutPhaseDto.KnockoutSlotDto::getType)
+                .toList();
+        assertEquals(List.of("EMPTY"), receivedFinalSlots);
     }
 }
