@@ -1,13 +1,12 @@
 package pl.echelon133.competitionservice.competition.model;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
+import ml.echelon133.common.entity.BaseEntity;
 
 import java.util.List;
 
-@Embeddable
-public class KnockoutPhase {
+@Entity
+public class KnockoutPhase extends BaseEntity {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     List<Stage> stages;
