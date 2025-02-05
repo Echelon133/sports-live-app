@@ -9,6 +9,7 @@ import java.util.List;
 public class KnockoutPhase extends BaseEntity {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderColumn(name = "stage_order")
     List<Stage> stages;
 
     public KnockoutPhase() {}
