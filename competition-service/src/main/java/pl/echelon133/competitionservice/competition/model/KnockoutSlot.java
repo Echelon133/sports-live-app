@@ -67,34 +67,47 @@ public abstract class KnockoutSlot extends BaseEntity {
     @Entity
     @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
     public static class Taken extends KnockoutSlot {
-        private UUID firstLeg;
-        private UUID secondLeg;
+
+        @AttributeOverrides({
+                @AttributeOverride(name = "matchId", column = @Column(name = "first_leg_match_id")),
+                @AttributeOverride(name = "finished", column = @Column(name = "first_leg_finished")),
+        })
+        @Embedded
+        private CompetitionMatch firstLeg;
+
+        @AttributeOverrides({
+                @AttributeOverride(name = "matchId", column = @Column(name = "second_leg_match_id")),
+                @AttributeOverride(name = "finished", column = @Column(name = "second_leg_finished")),
+        })
+        @Embedded
+        private CompetitionMatch secondLeg;
 
         public Taken() {
             super(SlotType.TAKEN);
         }
-        public Taken(UUID firstLeg) {
+
+        public Taken(CompetitionMatch firstLeg) {
             this();
             this.firstLeg = firstLeg;
         }
-        public Taken(UUID firstLeg, UUID secondLeg) {
+        public Taken(CompetitionMatch firstLeg, CompetitionMatch secondLeg) {
             this(firstLeg);
             this.secondLeg = secondLeg;
         }
 
-        public UUID getFirstLeg() {
+        public CompetitionMatch getFirstLeg() {
             return firstLeg;
         }
 
-        public void setFirstLeg(UUID firstLeg) {
+        public void setFirstLeg(CompetitionMatch firstLeg) {
             this.firstLeg = firstLeg;
         }
 
-        public UUID getSecondLeg() {
+        public CompetitionMatch getSecondLeg() {
             return secondLeg;
         }
 
-        public void setSecondLeg(UUID secondLeg) {
+        public void setSecondLeg(CompetitionMatch secondLeg) {
             this.secondLeg = secondLeg;
         }
     }
