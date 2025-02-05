@@ -19,7 +19,8 @@ public class Competition extends BaseEntity {
     @JoinColumn(name = "league_phase_id")
     private LeaguePhase leaguePhase;
 
-    @Embedded
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "knockout_phase_id")
     private KnockoutPhase knockoutPhase;
 
     private boolean pinned;

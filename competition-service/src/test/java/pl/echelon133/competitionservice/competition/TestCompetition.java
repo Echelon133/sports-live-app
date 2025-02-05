@@ -1,6 +1,7 @@
 package pl.echelon133.competitionservice.competition;
 
 import pl.echelon133.competitionservice.competition.model.Competition;
+import pl.echelon133.competitionservice.competition.model.KnockoutPhase;
 import pl.echelon133.competitionservice.competition.model.LeaguePhase;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public interface TestCompetition {
         private String season = "2023/24";
         private String logoUrl = "http://test-logo.com/image.png";
         private LeaguePhase leaguePhase = new LeaguePhase(List.of(), List.of(), 38);
+        private KnockoutPhase knockoutPhase = new KnockoutPhase(List.of());
         private boolean deleted = false;
         private boolean pinned = false;
 
@@ -48,6 +50,11 @@ public interface TestCompetition {
             return this;
         }
 
+        public CompetitionBuilder knockoutPhase(KnockoutPhase knockoutPhase) {
+            this.knockoutPhase = knockoutPhase;
+            return this;
+        }
+
         public CompetitionBuilder deleted(boolean deleted) {
             this.deleted = deleted;
             return this;
@@ -62,6 +69,7 @@ public interface TestCompetition {
             var competition = new Competition(name, season, logoUrl);
             competition.setPinned(pinned);
             competition.setLeaguePhase(leaguePhase);
+            competition.setKnockoutPhase(knockoutPhase);
             competition.setId(id);
             competition.setDeleted(deleted);
             return competition;
