@@ -6,7 +6,7 @@ import ml.echelon133.common.entity.BaseEntity;
 import java.util.UUID;
 
 @Entity
-@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 public abstract class KnockoutSlot extends BaseEntity {
 
     public enum SlotType {
@@ -35,7 +35,6 @@ public abstract class KnockoutSlot extends BaseEntity {
     }
 
     @Entity
-    @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
     public static class Empty extends KnockoutSlot {
         public Empty() {
             super(SlotType.EMPTY);
@@ -43,7 +42,6 @@ public abstract class KnockoutSlot extends BaseEntity {
     }
 
     @Entity
-    @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
     public static class Bye extends KnockoutSlot {
         private UUID teamId;
 
@@ -65,7 +63,6 @@ public abstract class KnockoutSlot extends BaseEntity {
     }
 
     @Entity
-    @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
     public static class Taken extends KnockoutSlot {
 
         @AttributeOverrides({
