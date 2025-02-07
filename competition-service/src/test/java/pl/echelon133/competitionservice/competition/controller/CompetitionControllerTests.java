@@ -1819,4 +1819,63 @@ public class CompetitionControllerTests {
 
         verify(competitionService).unassignMatchesFromRound(eq(competitionId), eq(round));
     }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/knockout returns 404 when competition is not found")
+    public void getKnockoutPhase_CompetitionNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionService.findKnockoutPhase(eq(competitionId)))
+                .willThrow(new ResourceNotFoundException(Competition.class, competitionId));
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("competition %s could not be found", competitionId)
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/knockout returns 404 when competition's phase is not found")
+    public void getKnockoutPhase_CompetitionPhaseNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionService.findKnockoutPhase(eq(competitionId)))
+                .willThrow(new CompetitionPhaseNotFoundException());
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        "competition does not have the phase required to execute this action"
+                )));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/knockout returns 200 when the service returns without exception")
+    public void getKnockoutPhase_ServiceReturns_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionService.findKnockoutPhase(eq(competitionId))).willReturn(new KnockoutPhaseDto(List.of()));
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk());
+    }
 }

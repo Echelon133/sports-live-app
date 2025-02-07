@@ -61,6 +61,11 @@ public class CompetitionController {
         competitionService.unassignMatchesFromRound(competitionId, roundNumber);
     }
 
+    @GetMapping("/{competitionId}/knockout")
+    public KnockoutPhaseDto getKnockoutPhase(@PathVariable UUID competitionId) throws Exception {
+        return competitionService.findKnockoutPhase(competitionId);
+    }
+
     @GetMapping("/{competitionId}/matches/unassigned")
     public Page<CompactMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
         return competitionService.findUnassignedMatches(competitionId, pageable);
