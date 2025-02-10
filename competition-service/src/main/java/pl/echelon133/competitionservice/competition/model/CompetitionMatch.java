@@ -1,11 +1,12 @@
 package pl.echelon133.competitionservice.competition.model;
 
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.Entity;
+import ml.echelon133.common.entity.BaseEntity;
 
 import java.util.UUID;
 
-@Embeddable
-public class CompetitionMatch {
+@Entity
+public class CompetitionMatch extends BaseEntity {
 
     private UUID matchId;
     private boolean finished;
@@ -14,6 +15,10 @@ public class CompetitionMatch {
     }
     public CompetitionMatch(UUID matchId) {
         this.matchId = matchId;
+    }
+    public CompetitionMatch(UUID matchId, boolean finished) {
+        this(matchId);
+        this.finished = finished;
     }
 
     public UUID getMatchId() {

@@ -376,9 +376,7 @@ public class CompetitionServiceTests {
             }
 
             if (competition.getKnockoutPhase() == null) {
-                if (expectedCompetition.getKnockoutPhase() != null) {
-                    return false;
-                }
+                return expectedCompetition.getKnockoutPhase() == null;
             } else {
                 int stageSize = competition.getKnockoutPhase().getStages().size();
                 int expectedStageSize = expectedCompetition.getKnockoutPhase().getStages().size();
@@ -417,8 +415,8 @@ public class CompetitionServiceTests {
                             KnockoutSlot.Taken taken = (KnockoutSlot.Taken)slot;
                             KnockoutSlot.Taken expectedTaken = (KnockoutSlot.Taken)expectedSlot;
                             boolean takenMatches =
-                                    taken.getFirstLeg().equals(expectedTaken.getFirstLeg()) &&
-                                    taken.getSecondLeg().equals(expectedTaken.getSecondLeg());
+                                    taken.getLegs().get(0).equals(expectedTaken.getLegs().get(0)) &&
+                                    taken.getLegs().get(1).equals(expectedTaken.getLegs().get(1));
                             if (!takenMatches) {
                                 return false;
                             }

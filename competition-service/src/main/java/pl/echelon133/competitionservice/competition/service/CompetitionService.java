@@ -21,6 +21,7 @@ import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
@@ -268,12 +269,7 @@ public class CompetitionService {
                     case KnockoutSlot.Empty ignored -> {}
                     case KnockoutSlot.Bye bye -> teamIdsToFetch.add(bye.getTeamId());
                     case KnockoutSlot.Taken taken -> {
-                        if (taken.getFirstLeg() != null) {
-                            matchIdsToFetch.add(taken.getFirstLeg().getMatchId());
-                        }
-                        if (taken.getSecondLeg() != null) {
-                            matchIdsToFetch.add(taken.getSecondLeg().getMatchId());
-                        }
+                        matchIdsToFetch.addAll(taken.getLegs().stream().map(CompetitionMatch::getMatchId).toList());
                     }
                     // KnockoutSlot is an entity, therefore it cannot be a sealed class (Hibernate does not allow that),
                     // that's why this default clause has to be here
@@ -328,13 +324,11 @@ public class CompetitionService {
                         slotDtos.add(new KnockoutPhaseDto.ByeSlotDto(teamDetails));
                     }
                     case KnockoutSlot.Taken taken -> {
-                        CompactMatchDto firstLeg = null;
+                        // first leg is always guaranteed to be present
+                        CompactMatchDto firstLeg = fetchedMatches.get(taken.getLegs().get(0).getMatchId());
                         CompactMatchDto secondLeg = null;
-                        if (taken.getFirstLeg() != null) {
-                            firstLeg = fetchedMatches.get(taken.getFirstLeg().getMatchId());
-                        }
-                        if (taken.getSecondLeg() != null) {
-                            secondLeg = fetchedMatches.get(taken.getSecondLeg().getMatchId());
+                        if (taken.getLegs().size() == 2) {
+                            secondLeg = fetchedMatches.get(taken.getLegs().get(1).getMatchId());
                         }
                         slotDtos.add(new KnockoutPhaseDto.TakenSlotDto(firstLeg, secondLeg));
                     }

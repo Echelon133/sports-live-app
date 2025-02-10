@@ -1,7 +1,8 @@
 package pl.echelon133.competitionservice.competition.model;
 
-import jakarta.persistence.Embedded;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToOne;
 import ml.echelon133.common.entity.BaseEntity;
 
 import java.util.UUID;
@@ -9,7 +10,7 @@ import java.util.UUID;
 @Entity
 public class LeagueSlot extends BaseEntity {
 
-    @Embedded
+    @OneToOne(cascade = CascadeType.ALL)
     private CompetitionMatch match;
     private UUID competitionId;
     private int round;

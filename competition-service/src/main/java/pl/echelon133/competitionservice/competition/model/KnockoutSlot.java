@@ -3,7 +3,11 @@ package pl.echelon133.competitionservice.competition.model;
 import jakarta.persistence.*;
 import ml.echelon133.common.entity.BaseEntity;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
@@ -65,47 +69,28 @@ public abstract class KnockoutSlot extends BaseEntity {
     @Entity
     public static class Taken extends KnockoutSlot {
 
-        @AttributeOverrides({
-                @AttributeOverride(name = "matchId", column = @Column(name = "first_leg_match_id")),
-                @AttributeOverride(name = "finished", column = @Column(name = "first_leg_finished")),
-        })
-        @Embedded
-        private CompetitionMatch firstLeg;
-
-        @AttributeOverrides({
-                @AttributeOverride(name = "matchId", column = @Column(name = "second_leg_match_id")),
-                @AttributeOverride(name = "finished", column = @Column(name = "second_leg_finished")),
-        })
-        @Embedded
-        private CompetitionMatch secondLeg;
+        @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+        @OrderColumn(name = "legs_order")
+        private List<CompetitionMatch> legs;
 
         public Taken() {
             super(SlotType.TAKEN);
         }
 
-        public Taken(CompetitionMatch firstLeg) {
-            this();
-            this.firstLeg = firstLeg;
-        }
         public Taken(CompetitionMatch firstLeg, CompetitionMatch secondLeg) {
-            this(firstLeg);
-            this.secondLeg = secondLeg;
+            this();
+            this.legs = Stream.of(firstLeg, secondLeg).filter(Objects::nonNull).collect(Collectors.toList());
+        }
+        public Taken(CompetitionMatch firstLeg) {
+            this(firstLeg, null);
         }
 
-        public CompetitionMatch getFirstLeg() {
-            return firstLeg;
+        public List<CompetitionMatch> getLegs() {
+            return legs;
         }
 
-        public void setFirstLeg(CompetitionMatch firstLeg) {
-            this.firstLeg = firstLeg;
-        }
-
-        public CompetitionMatch getSecondLeg() {
-            return secondLeg;
-        }
-
-        public void setSecondLeg(CompetitionMatch secondLeg) {
-            this.secondLeg = secondLeg;
+        public void setLegs(List<CompetitionMatch> legs) {
+            this.legs = legs;
         }
     }
 }
