@@ -1,11 +1,6 @@
 package pl.echelon133.competitionservice.competition.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import pl.echelon133.competitionservice.competition.TestUpsertLeaguePhaseDto;
-import pl.echelon133.competitionservice.competition.exceptions.CompetitionPhaseNotFoundException;
-import pl.echelon133.competitionservice.competition.exceptions.CompetitionRoundNotEmptyException;
-import pl.echelon133.competitionservice.competition.exceptions.CompetitionRoundNotFoundException;
-import pl.echelon133.competitionservice.competition.model.*;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,10 +19,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import pl.echelon133.competitionservice.competition.TestUpsertCompetitionDto;
 import pl.echelon133.competitionservice.competition.TestUpsertGroupDto;
+import pl.echelon133.competitionservice.competition.TestUpsertLeaguePhaseDto;
 import pl.echelon133.competitionservice.competition.TestUpsertLegendDto;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionPhaseNotFoundException;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionRoundNotEmptyException;
+import pl.echelon133.competitionservice.competition.exceptions.CompetitionRoundNotFoundException;
+import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -65,6 +66,8 @@ public class CompetitionControllerTests {
     private JacksonTester<StandingsDto> jsonStandingsDto;
 
     private JacksonTester<UpsertRoundDto> jsonUpsertRoundDto;
+
+    private JacksonTester<UpsertKnockoutTreeDto> jsonUpsertKnockoutTreeDto;
 
     @BeforeEach
     public void beforeEach() {
@@ -1875,6 +1878,391 @@ public class CompetitionControllerTests {
                         get("/api/competitions/" + competitionId + "/knockout")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when stages are null")
+    public void updateKnockoutPhase_StagesNull_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var upsertDto = new UpsertKnockoutTreeDto(null);
+        var json = jsonUpsertKnockoutTreeDto.write(upsertDto).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages", hasEntry("stages", List.of("field has to be provided"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when the number of stages is incorrect")
+    public void updateKnockoutPhase_StagesSizeIncorrect_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var incorrectDtos = List.of(
+                // 0 stages
+                new UpsertKnockoutTreeDto(List.of()),
+                // 8 stages
+                new UpsertKnockoutTreeDto(
+                        IntStream.range(0, 8).mapToObj(i -> new UpsertKnockoutTreeDto.UpsertStage("", List.of())).toList()
+                )
+        );
+
+        for (var incorrectDto : incorrectDtos) {
+            var json = jsonUpsertKnockoutTreeDto.write(incorrectDto).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/competitions/" + competitionId + "/knockout")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("stages", List.of("expected between 1 and 7 stages"))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when stage name is null")
+    public void updateKnockoutPhase_StagesNameNull_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var upsertDto = new UpsertKnockoutTreeDto(List.of(new UpsertKnockoutTreeDto.UpsertStage(null, List.of())));
+        var json = jsonUpsertKnockoutTreeDto.write(upsertDto).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages", hasEntry("stages[0].stage", List.of("field has to be provided"))));
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when stage name is incorrect")
+    public void updateKnockoutPhase_StagesNameIncorrect_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var incorrectStageNames = List.of(
+                "QUARTER__FINAL", "asdf", "semifinal"
+        );
+
+        for (var incorrectStageName : incorrectStageNames) {
+            var upsertDto = new UpsertKnockoutTreeDto(
+                    List.of(new UpsertKnockoutTreeDto.UpsertStage(incorrectStageName, List.of()))
+            );
+            var json = jsonUpsertKnockoutTreeDto.write(upsertDto).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/competitions/" + competitionId + "/knockout")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("stages[0].stage", List.of(
+                            "require exactly one of [ROUND_OF_128, ROUND_OF_64, ROUND_OF_32, ROUND_OF_16, QUARTER_FINAL, SEMI_FINAL, FINAL]"
+                    ))));
+        }
+    }
+
+    private List<UpsertKnockoutTreeDto.UpsertKnockoutSlot> generateEmptySlots(int howMany) {
+        return IntStream.range(0, howMany)
+                .mapToObj(i -> (UpsertKnockoutTreeDto.UpsertKnockoutSlot)new UpsertKnockoutTreeDto.Empty())
+                .toList();
+    }
+
+    private List<UpsertKnockoutTreeDto.UpsertKnockoutSlot> generateByeSlots(int howMany) {
+        return IntStream.range(0, howMany)
+                .mapToObj(i -> (UpsertKnockoutTreeDto.UpsertKnockoutSlot)new UpsertKnockoutTreeDto.Bye(UUID.randomUUID()))
+                .toList();
+    }
+
+    private List<UpsertKnockoutTreeDto.UpsertKnockoutSlot> generateTakenSlots(int howMany) {
+        return IntStream.range(0, howMany)
+                .mapToObj(i -> (UpsertKnockoutTreeDto.UpsertKnockoutSlot)new UpsertKnockoutTreeDto.Taken(UUID.randomUUID(), UUID.randomUUID()))
+                .toList();
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when stage name is duplicated")
+    public void updateKnockoutPhase_StagesNameDuplicated_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        for (var knockoutStageType : KnockoutStage.values()) {
+            // double the stage
+            var incorrectDto = new UpsertKnockoutTreeDto(
+                    IntStream.range(0, 2)
+                            .mapToObj(i -> new UpsertKnockoutTreeDto.UpsertStage(
+                                    knockoutStageType.name(),
+                                    generateEmptySlots(knockoutStageType.getSlots()))
+                            )
+                            .toList()
+            );
+            var json = jsonUpsertKnockoutTreeDto.write(incorrectDto).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/competitions/" + competitionId + "/knockout")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("general", List.of(
+                            "stage names cannot repeat in a single knockout tree"
+                    ))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when stage slots are null")
+    public void updateKnockoutPhase_StagesSlotsNull_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        for (var knockoutStageType : KnockoutStage.values()) {
+            var incorrectDto = new UpsertKnockoutTreeDto(
+                    List.of(new UpsertKnockoutTreeDto.UpsertStage(knockoutStageType.name(), null))
+            );
+            var json = jsonUpsertKnockoutTreeDto.write(incorrectDto).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/competitions/" + competitionId + "/knockout")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("stages[0].slots", List.of("field has to be provided"))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when stage has incorrect number of slots")
+    public void updateKnockoutPhase_StagesSlotsSizeIncorrect_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        for (var knockoutStageType : KnockoutStage.values()) {
+            var incorrectDto = new UpsertKnockoutTreeDto(
+                    List.of(new UpsertKnockoutTreeDto.UpsertStage(
+                            knockoutStageType.name(),
+                            // increment the correct number of slots to make it fail
+                            generateEmptySlots(knockoutStageType.getSlots() + 1)
+                    ))
+            );
+            var json = jsonUpsertKnockoutTreeDto.write(incorrectDto).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/competitions/" + competitionId + "/knockout")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("stages[0]", List.of(String.format(
+                            "stage %s must contain exactly %d slots", knockoutStageType.name(), knockoutStageType.getSlots()
+                    )))));
+        }
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when slot of type BYE contains null teamId")
+    public void updateKnockoutPhase_ByeTeamIdNull_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var incorrectDto = new UpsertKnockoutTreeDto(List.of(
+                new UpsertKnockoutTreeDto.UpsertStage(
+                        KnockoutStage.FINAL.name(), List.of(new UpsertKnockoutTreeDto.Bye(null)))
+        ));
+        var json = jsonUpsertKnockoutTreeDto.write(incorrectDto).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages", hasEntry("stages[0].slots[0].teamId",
+                        List.of("field has to be provided")
+                )));
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when slot of type TAKEN contains null firstLeg")
+    public void updateKnockoutPhase_TakenFirstLegNull_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var incorrectDto = new UpsertKnockoutTreeDto(List.of(
+                new UpsertKnockoutTreeDto.UpsertStage(
+                        KnockoutStage.FINAL.name(), List.of(new UpsertKnockoutTreeDto.Taken(null, null)))
+        ));
+        var json = jsonUpsertKnockoutTreeDto.write(incorrectDto).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.messages", hasEntry("stages[0].slots[0].firstLeg",
+                        List.of("field has to be provided")
+                )));
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 422 when multiple TAKEN slots refer to the same match")
+    public void updateKnockoutPhase_MultipleTakenSlotsReferToSameMatch_StatusUnprocessableEntity() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var duplicatedMatchId = UUID.randomUUID();
+        var incorrectDtos = List.of(
+                // multiple references to the same match in the same slot
+                new UpsertKnockoutTreeDto(List.of(new UpsertKnockoutTreeDto.UpsertStage(
+                        KnockoutStage.FINAL.name(),
+                        List.of(new UpsertKnockoutTreeDto.Taken(duplicatedMatchId, duplicatedMatchId))
+                ))),
+                // multiple references to the same match in different slots in the same stage
+                new UpsertKnockoutTreeDto(List.of(new UpsertKnockoutTreeDto.UpsertStage(
+                        KnockoutStage.SEMI_FINAL.name(),
+                        List.of(
+                                new UpsertKnockoutTreeDto.Taken(duplicatedMatchId, null),
+                                new UpsertKnockoutTreeDto.Taken(duplicatedMatchId, null)
+                        )
+                ))),
+                // multiple references to the same match in different stages
+                new UpsertKnockoutTreeDto(List.of(
+                        new UpsertKnockoutTreeDto.UpsertStage(
+                                KnockoutStage.SEMI_FINAL.name(),
+                                List.of(
+                                        new UpsertKnockoutTreeDto.Taken(duplicatedMatchId, null),
+                                        new UpsertKnockoutTreeDto.Empty()
+                                )),
+                        new UpsertKnockoutTreeDto.UpsertStage(
+                                KnockoutStage.FINAL.name(),
+                                List.of(
+                                        new UpsertKnockoutTreeDto.Taken(duplicatedMatchId, null)
+                                ))
+                ))
+        );
+
+        for (var incorrectDto : incorrectDtos) {
+            var json = jsonUpsertKnockoutTreeDto.write(incorrectDto).getJson();
+
+            // when
+            mvc.perform(
+                            put("/api/competitions/" + competitionId + "/knockout")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .accept(MediaType.APPLICATION_JSON)
+                                    .content(json)
+                    )
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.messages", hasEntry("general", List.of(
+                            "matches cannot repeat in a single knockout tree"
+                    ))));
+        }
+    }
+
+    private UpsertKnockoutTreeDto createValidEmptyUpsertKnockoutTree() {
+        var stages = Arrays.stream(KnockoutStage.values())
+                .map(stage -> new UpsertKnockoutTreeDto.UpsertStage(stage.name(), generateEmptySlots(stage.getSlots())))
+                .toList();
+        return new UpsertKnockoutTreeDto(stages);
+    }
+
+    private UpsertKnockoutTreeDto createValidUpsertKnockoutTree() {
+        var roundOf16 = KnockoutStage.ROUND_OF_16;
+        var roundOf16Stage =
+                new UpsertKnockoutTreeDto.UpsertStage(roundOf16.name(), generateTakenSlots(roundOf16.getSlots()));
+
+        var quarterFinal = KnockoutStage.QUARTER_FINAL;
+        var quarterFinalStage =
+                new UpsertKnockoutTreeDto.UpsertStage(quarterFinal.name(), generateByeSlots(quarterFinal.getSlots()));
+
+        var semiFinal = KnockoutStage.SEMI_FINAL;
+        var semiFinalStage =
+                new UpsertKnockoutTreeDto.UpsertStage(semiFinal.name(), generateEmptySlots(semiFinal.getSlots()));
+
+        var final_ = KnockoutStage.FINAL;
+        var finalStage =
+                new UpsertKnockoutTreeDto.UpsertStage(final_.name(), generateTakenSlots(final_.getSlots()));
+
+        return new UpsertKnockoutTreeDto(List.of(roundOf16Stage, quarterFinalStage, semiFinalStage, finalStage));
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 404 when competition is not found")
+    public void updateKnockoutPhase_CompetitionNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var upsertDto = createValidEmptyUpsertKnockoutTree();
+        var json = jsonUpsertKnockoutTreeDto.write(upsertDto).getJson();
+
+        // given
+        doThrow(new ResourceNotFoundException(Competition.class, competitionId))
+                .when(competitionService)
+                .updateKnockoutPhase(eq(competitionId), any());
+
+        // when
+        mvc.perform(
+                        put("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        String.format("competition %s could not be found", competitionId)
+                )));
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 404 when competition's phase is not found")
+    public void updateKnockoutPhase_CompetitionPhaseNotFound_StatusNotFound() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var upsertDto = createValidEmptyUpsertKnockoutTree();
+        var json = jsonUpsertKnockoutTreeDto.write(upsertDto).getJson();
+
+        // given
+        doThrow(new CompetitionPhaseNotFoundException())
+                .when(competitionService)
+                .updateKnockoutPhase(eq(competitionId), any());
+
+        // when
+        mvc.perform(
+                        put("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.messages[0]", is(
+                        "competition does not have the phase required to execute this action"
+                )));
+    }
+
+    @Test
+    @DisplayName("PUT /api/competitions/:id/knockout returns 200 when knockout tree is valid and service does not throw")
+    public void updateKnockoutPhase_KnockoutTreeValid_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var upsertDto = createValidUpsertKnockoutTree();
+        var json = jsonUpsertKnockoutTreeDto.write(upsertDto).getJson();
+
+        // when
+        mvc.perform(
+                        put("/api/competitions/" + competitionId + "/knockout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(json)
                 )
                 .andExpect(status().isOk());
     }

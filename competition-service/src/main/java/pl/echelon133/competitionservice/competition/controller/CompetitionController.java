@@ -66,6 +66,20 @@ public class CompetitionController {
         return competitionService.findKnockoutPhase(competitionId);
     }
 
+    @PutMapping("/{competitionId}/knockout")
+    public void updateKnockoutPhase(
+            @PathVariable UUID competitionId,
+            @Valid @RequestBody UpsertKnockoutTreeDto upsertKnockoutTreeDto,
+            BindingResult result
+    ) throws Exception {
+
+        if (result.hasErrors()) {
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        competitionService.updateKnockoutPhase(competitionId, upsertKnockoutTreeDto);
+    }
+
     @GetMapping("/{competitionId}/matches/unassigned")
     public Page<CompactMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
         return competitionService.findUnassignedMatches(competitionId, pageable);

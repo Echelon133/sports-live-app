@@ -344,6 +344,10 @@ public class CompetitionService {
         return new KnockoutPhaseDto(stageDtos);
     }
 
+    public void updateKnockoutPhase(UUID competitionId, UpsertKnockoutTreeDto upsertKnockoutTreeDto)
+            throws ResourceNotFoundException, CompetitionPhaseNotFoundException, CompetitionMatchAssignmentException {
+    }
+
     /**
      * Marks a competition with the specified id as deleted.
      *
