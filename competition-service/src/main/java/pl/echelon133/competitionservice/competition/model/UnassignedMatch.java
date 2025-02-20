@@ -40,11 +40,13 @@ public class UnassignedMatch {
     @EmbeddedId
     private UnassignedMatchId id;
     private boolean assigned;
+    private boolean finished;
 
     public UnassignedMatch() {}
     public UnassignedMatch(UUID matchId, UUID competitionId) {
         this.id = new UnassignedMatchId(matchId, competitionId);
         this.assigned = false;
+        this.finished = false;
     }
 
     public UnassignedMatchId getId() {
@@ -61,5 +63,13 @@ public class UnassignedMatch {
 
     public void setAssigned(boolean assigned) {
         this.assigned = assigned;
+    }
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
     }
 }

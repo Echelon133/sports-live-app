@@ -146,7 +146,7 @@ public class MatchService {
             new ProducerRecord<>(
                     KafkaTopicNames.MATCH_INFO,
                     savedMatch.getId(),
-                    new MatchInfo(savedMatch.getCompetitionId(), savedMatch.getId())
+                    new MatchInfo.CreationEvent(savedMatch.getCompetitionId(), savedMatch.getId())
             )
         );
 

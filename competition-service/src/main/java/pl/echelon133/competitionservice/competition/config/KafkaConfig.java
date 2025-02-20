@@ -16,6 +16,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.KafkaMessageListenerContainer;
+import pl.echelon133.competitionservice.competition.repository.CompetitionMatchRepository;
 import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 import pl.echelon133.competitionservice.competition.service.MatchEventDetailsMessageListener;
 import pl.echelon133.competitionservice.competition.service.MatchInfoMessageListener;
@@ -35,16 +36,19 @@ public class KafkaConfig {
     private final PlayerStatsService playerStatsService; // required by the MatchEventDetailsMessageListener
     private final TeamStatsService teamStatsService;     // required by the MatchEventDetailsMessageListener
     private final UnassignedMatchRepository unassignedMatchRepository; // required by the MatchInfoMessageListener
+    private final CompetitionMatchRepository competitionMatchRepository; // required by the MatchInfoMessageListener
 
     @Autowired
     public KafkaConfig(
             PlayerStatsService playerStatsService,
             TeamStatsService teamStatsService,
-            UnassignedMatchRepository unassignedMatchRepository
+            UnassignedMatchRepository unassignedMatchRepository,
+            CompetitionMatchRepository competitionMatchRepository
     ) {
         this.playerStatsService = playerStatsService;
         this.teamStatsService = teamStatsService;
         this.unassignedMatchRepository = unassignedMatchRepository;
+        this.competitionMatchRepository = competitionMatchRepository;
     }
 
     @Bean
@@ -76,7 +80,7 @@ public class KafkaConfig {
     @Bean
     KafkaMessageListenerContainer<UUID, MatchInfo> matchInfoListenerContainer() {
         ContainerProperties containerProps = new ContainerProperties(KafkaTopicNames.MATCH_INFO);
-        containerProps.setMessageListener(new MatchInfoMessageListener(unassignedMatchRepository));
+        containerProps.setMessageListener(new MatchInfoMessageListener(unassignedMatchRepository, competitionMatchRepository));
 
         ConsumerFactory<UUID, MatchInfo> consumerFactory = matchInfoConsumerFactory();
 

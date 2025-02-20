@@ -204,7 +204,7 @@ public class CompetitionService {
         // assignment is possible here, since all validation was successful
         List<LeagueSlot> leagueSlots = new ArrayList<>(retrievedUnassignedMatches.size());
         for (var unassignedMatch: retrievedUnassignedMatches) {
-            var competitionMatch = new CompetitionMatch(unassignedMatch.getId().getMatchId());
+            var competitionMatch = new CompetitionMatch(unassignedMatch.getId().getMatchId(), unassignedMatch.isFinished());
             leagueSlots.add(new LeagueSlot(competitionMatch, competitionId, round));
             unassignedMatch.setAssigned(true);
         }
@@ -453,13 +453,8 @@ public class CompetitionService {
 
         // store information about matchIds and their status (are they finished or not) so that it can be reused
         // while constructing the updated version of the knockout tree
-        Map<UUID, Boolean> matchFinishedCache = knockoutPhase
-                .getStages()
-                .stream().flatMap(stage -> stage.getSlots().stream())
-                .filter(slot -> slot instanceof KnockoutSlot.Taken)
-                .map(slot -> (KnockoutSlot.Taken)slot)
-                .flatMap(taken -> taken.getLegs().stream())
-                .collect(toMap(CompetitionMatch::getMatchId, CompetitionMatch::isFinished));
+        Map<UUID, Boolean> matchFinishedCache = assignedAndUnassignedMatches
+                .stream().collect(toMap(um -> um.getId().getMatchId(), UnassignedMatch::isFinished));
 
         // traverse both trees slot-by-slot and update the database version of the tree
         var stagesSize = sortedUpsertKnockoutTree.size();
