@@ -21,10 +21,7 @@ import pl.echelon133.competitionservice.competition.repository.LeagueSlotReposit
 import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -1346,5 +1343,230 @@ public class CompetitionServiceTests {
                 .map(KnockoutPhaseDto.KnockoutSlotDto::getType)
                 .toList();
         assertEquals(List.of("EMPTY"), receivedFinalSlots);
+    }
+
+    @Test
+    @DisplayName("updateKnockoutPhase throws when the competition does not exist")
+    public void updateKnockoutPhase_CompetitionNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.empty());
+
+        // when
+        String message = assertThrows(ResourceNotFoundException.class, () -> {
+            competitionService.updateKnockoutPhase(competitionId, any());
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("competition %s could not be found", competitionId), message);
+    }
+
+    @Test
+    @DisplayName("updateKnockoutPhase throws when the competition does not have a knockout phase")
+    public void updateKnockoutPhase_KnockoutPhaseNotFound_Throws() {
+        var competitionId = UUID.randomUUID();
+
+        var competition = TestCompetition.builder().knockoutPhase(null).build();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+
+        // when
+        String message = assertThrows(CompetitionPhaseNotFoundException.class, () -> {
+            competitionService.updateKnockoutPhase(competitionId, any());
+        }).getMessage();
+
+        // then
+        assertEquals("competition does not have the phase required to execute this action", message);
+    }
+
+    @Test
+    @DisplayName("updateKnockoutPhase throws when the already existing tree and the updated tree do NOT have identical stages")
+    public void updateKnockoutPhase_DatabaseAndProvidedTreeDiffer_Throws() {
+        // database version of the knockout tree (contains two stages)
+        var databaseStages = List.of(new Stage(KnockoutStage.SEMI_FINAL), new Stage(KnockoutStage.FINAL));
+        var databaseKnockoutPhase = new KnockoutPhase(databaseStages);
+
+        // updated version of the tree (contains only one stage)
+        var upsertStages = List.of(new UpsertKnockoutTreeDto.UpsertStage(KnockoutStage.FINAL.name(), List.of()));
+        var upsertKnockoutTreeDto = new UpsertKnockoutTreeDto(upsertStages);
+
+        var competitionId = UUID.randomUUID();
+
+        var competition = TestCompetition.builder().knockoutPhase(databaseKnockoutPhase).build();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+
+        // when
+        String message = assertThrows(CompetitionMatchAssignmentException.class, () -> {
+            competitionService.updateKnockoutPhase(competitionId, upsertKnockoutTreeDto);
+        }).getMessage();
+
+        // then
+        assertEquals(
+                "cannot update the knockout tree - updated tree starts at FINAL, existing tree starts at SEMI_FINAL",
+                message
+        );
+    }
+
+    @Test
+    @DisplayName("updateKnockoutPhase throws when a match to be assigned does not exist in the list of assignable matches")
+    public void updateKnockoutPhase_ContainsMatchThatCannotBeAssigned_Throws() {
+        var competitionId = UUID.randomUUID();
+        var matchIdToAssign = UUID.randomUUID();
+
+        // database version of the knockout tree
+        List<KnockoutSlot> databaseSlots = List.of(new KnockoutSlot.Empty());
+        var databaseStage = new Stage(KnockoutStage.FINAL);
+        databaseStage.setSlots(databaseSlots);
+        var databaseKnockoutPhase = new KnockoutPhase(List.of(databaseStage));
+
+        // updated version of the tree
+        List<UpsertKnockoutTreeDto.UpsertKnockoutSlot> slots = List.of(new UpsertKnockoutTreeDto.Taken(matchIdToAssign, null));
+        var upsertStages = List.of(new UpsertKnockoutTreeDto.UpsertStage(KnockoutStage.FINAL.name(), slots));
+        var upsertKnockoutTreeDto = new UpsertKnockoutTreeDto(upsertStages);
+
+        var competition = TestCompetition.builder().knockoutPhase(databaseKnockoutPhase).build();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+        // return empty list when asked for a list of matches that are eligible for assignment
+        given(unassignedMatchRepository.findAllByIdIsInAndAssignedFalse(argThat(ids -> {
+            for (var id : ids) {
+                if (id.getMatchId().equals(matchIdToAssign)) {
+                    return true;
+                }
+            }
+            return false;
+        }))).willReturn(List.of());
+
+        // when
+        String message = assertThrows(CompetitionMatchAssignmentException.class, () -> {
+            competitionService.updateKnockoutPhase(competitionId, upsertKnockoutTreeDto);
+        }).getMessage();
+
+        // then
+        assertEquals(String.format("matches [%s] could not be assigned", matchIdToAssign), message);
+    }
+
+    @Test
+    @DisplayName("updateKnockoutPhase updates the knockout tree with correct shape and correctly sets matches as assigned/unassigned")
+    public void updateKnockoutPhase_TreeToUpdateContainsValidInformation_CorrectlyUpdatesTree() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        // matchA and matchB are already assigned before their update
+        var matchA = UUID.randomUUID();
+        var matchB = UUID.randomUUID();
+        // matchC and matchD are unassigned before the update
+        var matchC = UUID.randomUUID();
+        var matchD = UUID.randomUUID();
+
+        // the update will cause matchB to become unassigned, and matchC and matchD to become assigned
+        var matchIdsToAssign = List.of(matchC, matchD);
+        var matchesToAssign = matchIdsToAssign.stream().map(id -> new UnassignedMatch(id, competitionId)).toList();
+        var matchIdsToUnassign = List.of(matchB);
+        var matchesToUnassign = matchIdsToUnassign.stream().map(id -> {
+            var match = new UnassignedMatch(id, competitionId);
+            match.setAssigned(true);
+            return match;
+        }).toList();
+
+        // database version of the knockout tree
+        //
+        //  SEMIFINAL        FINAL
+        //   Match A
+        //                   Empty
+        //   Match B
+        var databaseSemifinalStage = new Stage(KnockoutStage.SEMI_FINAL);
+        databaseSemifinalStage.setSlots(new ArrayList<>(List.of(
+                new KnockoutSlot.Taken(new CompetitionMatch(matchA)),
+                new KnockoutSlot.Taken(new CompetitionMatch(matchB))
+        )));
+        var databaseFinalStage = new Stage(KnockoutStage.FINAL);
+        databaseFinalStage.setSlots(new ArrayList<>(List.of(new KnockoutSlot.Empty())));
+        var databaseKnockoutPhase = new KnockoutPhase(new ArrayList<>(List.of(databaseSemifinalStage, databaseFinalStage)));
+
+        // updated version of the tree
+        //
+        //  SEMIFINAL        FINAL
+        //   Match A
+        //                   Match D
+        //   Match C
+        List<UpsertKnockoutTreeDto.UpsertKnockoutSlot> upsertSemifinalSlots = List.of(
+                new UpsertKnockoutTreeDto.Taken(matchA, null),
+                new UpsertKnockoutTreeDto.Taken(matchC, null)
+        );
+        var upsertSemifinalStage = new UpsertKnockoutTreeDto.UpsertStage(KnockoutStage.SEMI_FINAL.name(), upsertSemifinalSlots);
+        List<UpsertKnockoutTreeDto.UpsertKnockoutSlot> upsertFinalSlots = List.of(
+                new UpsertKnockoutTreeDto.Taken(matchD, null)
+        );
+        var upsertFinalStage = new UpsertKnockoutTreeDto.UpsertStage(KnockoutStage.FINAL.name(), upsertFinalSlots);
+        var upsertKnockoutTreeDto = new UpsertKnockoutTreeDto(List.of(upsertSemifinalStage, upsertFinalStage));
+
+        var competition = TestCompetition.builder().knockoutPhase(databaseKnockoutPhase).build();
+
+        // given
+        given(competitionRepository.findById(eq(competitionId))).willReturn(Optional.of(competition));
+        given(unassignedMatchRepository.findAllByIdIsInAndAssignedFalse(argThat(ids -> {
+            var matchIds = new ArrayList<>();
+            ids.forEach(id -> matchIds.add(id.getMatchId()));
+            return matchIds.containsAll(matchIdsToAssign);
+        }))).willReturn(matchesToAssign);
+        given(unassignedMatchRepository.findAllById(argThat(ids -> {
+            var matchIds = new ArrayList<>();
+            ids.forEach(id -> matchIds.add(id.getMatchId()));
+            return matchIds.containsAll(matchIdsToUnassign);
+        }))).willReturn(matchesToUnassign);
+
+        // when
+        competitionService.updateKnockoutPhase(competitionId, upsertKnockoutTreeDto);
+
+        // then
+        verify(competitionRepository).save(argThat(c-> c.getKnockoutPhase().equals(competition.getKnockoutPhase())));
+
+        // make sure that:
+        //      matchB became unassigned (i.e. its assigned field is set to false)
+        //      matchC and matchD became assigned (i.e. its assigned field is set to true)
+        verify(unassignedMatchRepository).saveAll(argThat(match -> {
+            for (var m : match) {
+                var matchId = m.getId().getMatchId();
+                if (matchIdsToAssign.contains(matchId)) {
+                    // fail if the match is not assigned
+                    if (!m.isAssigned()) {
+                        return false;
+                    }
+                }
+                if (matchIdsToUnassign.contains(matchId)) {
+                    // fail if the match is assigned
+                    if (m.isAssigned()) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }));
+        // make sure that the knockout tree of the competition got updated in-place
+        var updatedKnockoutPhase = competition.getKnockoutPhase();
+        // expected version of the tree
+        //
+        //  SEMIFINAL        FINAL
+        //   Match A
+        //                   Match D
+        //   Match C
+        var semifinalStage = updatedKnockoutPhase.getStages().get(0);
+        assertEquals(KnockoutStage.SEMI_FINAL, semifinalStage.getStage());
+
+        var receivedMatchA = (KnockoutSlot.Taken)semifinalStage.getSlots().get(0);
+        var receivedMatchC = (KnockoutSlot.Taken)semifinalStage.getSlots().get(1);
+        assertEquals(matchA, receivedMatchA.getLegs().get(0).getMatchId());
+        assertEquals(matchC, receivedMatchC.getLegs().get(0).getMatchId());
+
+        var finalStage = updatedKnockoutPhase.getStages().get(1);
+        assertEquals(KnockoutStage.FINAL, finalStage.getStage());
+
+        var receivedMatchD = (KnockoutSlot.Taken)finalStage.getSlots().get(0);
+        assertEquals(matchD, receivedMatchD.getLegs().get(0).getMatchId());
     }
 }

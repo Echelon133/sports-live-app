@@ -344,8 +344,151 @@ public class CompetitionService {
         return new KnockoutPhaseDto(stageDtos);
     }
 
+    /**
+     * Updates the knockout tree of a competition based on the given information provided by the client.
+     * <p>
+     *     {@link UpsertKnockoutTreeDto} has to be validated prior to being passed to this method, otherwise
+     *     the state of the knockout tree in the database might get corrupted.
+     * </p>
+     * @param competitionId id of the competition
+     * @param upsertKnockoutTreeDto a tree containing information needed to update the knockout tree
+     * @throws ResourceNotFoundException thrown when a competition with given id does not exist
+     * @throws CompetitionPhaseNotFoundException thrown when a competition does not have a knockout phase
+     * @throws CompetitionMatchAssignmentException thrown when some matches could not be assigned to the knockout tree
+     */
     public void updateKnockoutPhase(UUID competitionId, UpsertKnockoutTreeDto upsertKnockoutTreeDto)
             throws ResourceNotFoundException, CompetitionPhaseNotFoundException, CompetitionMatchAssignmentException {
+
+        var competition = findEntityById(competitionId);
+        var knockoutPhase = competition.getKnockoutPhase();
+        if (knockoutPhase == null) {
+            throw new CompetitionPhaseNotFoundException();
+        }
+
+        // order the stages in the tree by number of slots descending, since we want these stages ordered left-to-right
+        // the way they are actually being played in the competition (with the FINAL stage being the last stage)
+        var sortedUpsertKnockoutTree = upsertKnockoutTreeDto
+                .stages()
+                .stream().sorted(Comparator.comparingInt(stage -> -stage.slots().size()))
+                .toList();
+
+        // check if the knockout tree in the database and the knockout tree with update information start on the
+        // same stage (i.e. if the tree in the database has a QUARTER_FINAL, SEMI_FINAL, and FINAL, then trees
+        // which do not have EXACTLY these stages should be rejected)
+        var biggestStageFromUpsert = sortedUpsertKnockoutTree.get(0).stage();
+        var biggestStageFromDatabase = knockoutPhase.getStages().get(0).getStage().name();
+        if (!biggestStageFromUpsert.equals(biggestStageFromDatabase)) {
+            var errorMsg = String.format(
+                    "cannot update the knockout tree - updated tree starts at %s, existing tree starts at %s",
+                    biggestStageFromUpsert,
+                    biggestStageFromDatabase
+            );
+            throw new CompetitionMatchAssignmentException(errorMsg);
+        }
+
+        // we need to know the ids of matches which were already present in the knockout tree prior to it's update,
+        // so that any removed matchId can be marked as an unassigned match and returned to the pool of matches
+        // that can be reassigned to a league/knockout phase of a competition
+        Set<UUID> matchIdsAssignedPriorToUpdate = knockoutPhase
+                .getStages()
+                .stream().flatMap(stage -> stage.getSlots().stream())
+                .filter(slot -> slot instanceof KnockoutSlot.Taken)
+                .map(slot -> (KnockoutSlot.Taken)slot)
+                .flatMap(taken -> taken.getLegs().stream())
+                .map(CompetitionMatch::getMatchId)
+                .collect(Collectors.toSet());
+        // collect all matchIds which are contained in the updated tree
+        Set<UUID> matchIdsInUpdate = upsertKnockoutTreeDto
+                .stages()
+                .stream().flatMap(stage -> stage.slots().stream())
+                .filter(slot -> slot instanceof UpsertKnockoutTreeDto.Taken)
+                .map(slot -> (UpsertKnockoutTreeDto.Taken)slot)
+                .flatMap(taken -> Stream.of(taken.firstLeg(), taken.secondLeg()))
+                // secondLeg could be null, in that case we need to filter it out
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // find all matchIds which do not appear in the updated version of the tree, so that they can be marked
+        // as unassigned, so that they are available for assignment later
+        Set<UUID> matchIdsToUnassign = new HashSet<>(matchIdsAssignedPriorToUpdate);
+        matchIdsToUnassign.removeAll(matchIdsInUpdate);
+
+        // find all matchIds which appear in the updated version but do not appear in the database version of the
+        // knockout tree, so that these matches can be marked as assigned
+        Set<UUID> matchIdsToAssign = new HashSet<>(matchIdsInUpdate);
+        matchIdsToAssign.removeAll(matchIdsAssignedPriorToUpdate);
+
+        // assign all new matches (do not touch matches which are already assigned to this knockout tree)
+        var matchesToAssign = unassignedMatchRepository.findAllByIdIsInAndAssignedFalse(
+                matchIdsToAssign
+                        .stream().map(mId -> new UnassignedMatch.UnassignedMatchId(mId, competitionId))
+                        .toList()
+                );
+
+        // if the sizes are different, then at least one of the matchIds being inserted into the knockout tree
+        // does not actually refer to a match that can be assigned, i.e.:
+        //      * the match does not exist at all
+        //      * the match might exist, but does not belong to this competition
+        if (matchesToAssign.size() != matchIdsToAssign.size()) {
+            var receivedMatchIds = matchesToAssign.stream().map(m -> m.getId().getMatchId()).collect(Collectors.toSet());
+            var missingMatchIds = new HashSet<>(matchIdsToAssign);
+            missingMatchIds.removeAll(receivedMatchIds);
+            throw new CompetitionMatchAssignmentException(missingMatchIds.stream().toList());
+        }
+
+        // if there were exactly as many matches ready to assign as expected, assign them
+        matchesToAssign.forEach(m -> m.setAssigned(true));
+
+        // unassign all matches which should NOT appear in the knockout tree after the update
+        var matchesToUnassign = unassignedMatchRepository.findAllById(
+                matchIdsToUnassign
+                        .stream().map(mId -> new UnassignedMatch.UnassignedMatchId(mId, competitionId))
+                        .toList()
+                );
+        matchesToUnassign.forEach(m -> m.setAssigned(false));
+
+        // save all updates of assigned and unassigned matches
+        var assignedAndUnassignedMatches = Stream.concat(matchesToAssign.stream(), matchesToUnassign.stream()).toList();
+        unassignedMatchRepository.saveAll(assignedAndUnassignedMatches);
+
+        // store information about matchIds and their status (are they finished or not) so that it can be reused
+        // while constructing the updated version of the knockout tree
+        Map<UUID, Boolean> matchFinishedCache = knockoutPhase
+                .getStages()
+                .stream().flatMap(stage -> stage.getSlots().stream())
+                .filter(slot -> slot instanceof KnockoutSlot.Taken)
+                .map(slot -> (KnockoutSlot.Taken)slot)
+                .flatMap(taken -> taken.getLegs().stream())
+                .collect(toMap(CompetitionMatch::getMatchId, CompetitionMatch::isFinished));
+
+        // traverse both trees slot-by-slot and update the database version of the tree
+        var stagesSize = sortedUpsertKnockoutTree.size();
+        for (var stageIndex = 0; stageIndex < stagesSize; stageIndex++) {
+            var stageEntity = knockoutPhase.getStages().get(stageIndex);
+            var upsertStage = sortedUpsertKnockoutTree.get(stageIndex);
+            for (var slotIndex = 0; slotIndex < stageEntity.getStage().getSlots(); slotIndex++) {
+                var upsertSlot = upsertStage.slots().get(slotIndex);
+                var updatedKnockoutSlot = switch (upsertSlot) {
+                    case UpsertKnockoutTreeDto.Empty ignored -> new KnockoutSlot.Empty();
+                    case UpsertKnockoutTreeDto.Bye bye -> new KnockoutSlot.Bye(bye.teamId());
+                    case UpsertKnockoutTreeDto.Taken taken -> {
+                        CompetitionMatch firstLeg = null;
+                        CompetitionMatch secondLeg = null;
+                        if (taken.firstLeg() != null) {
+                            boolean finished = matchFinishedCache.getOrDefault(taken.firstLeg(), false);
+                            firstLeg = new CompetitionMatch(taken.firstLeg(), finished);
+                        }
+                        if (taken.secondLeg() != null) {
+                            boolean finished = matchFinishedCache.getOrDefault(taken.secondLeg(), false);
+                            secondLeg = new CompetitionMatch(taken.secondLeg(), finished);
+                        }
+                        yield new KnockoutSlot.Taken(firstLeg, secondLeg);
+                    }
+                };
+                stageEntity.getSlots().set(slotIndex, updatedKnockoutSlot);
+            }
+        }
+        competitionRepository.save(competition);
     }
 
     /**
