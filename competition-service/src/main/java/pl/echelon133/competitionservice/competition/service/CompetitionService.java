@@ -78,6 +78,38 @@ public class CompetitionService {
     }
 
     /**
+     * Labels all matches from a given competition, filtered by their 'finished' status.
+     * <p>
+     *     Matches from the league phase are labeled with their round number (i.e. "1", "38", etc.), whereas
+     *     matches from the knockout phase are labeled with the name of the stage they belong to
+     *     (i.e. "ROUND_OF_16", "FINAL", etc.).
+     * </p>
+     * @param competitionId id of the competition whose matches we want to fetch and label
+     * @param finished if set to `true`, all results will be matches that are finished
+     * @param pageable information about the wanted page
+     * @return lists of matches labeled by their round or stage name (depending on the competition phase they are from)
+     */
+    public Map<String, List<CompactMatchDto>> findLabeledMatches(UUID competitionId, boolean finished, Pageable pageable) {
+        var labeledMatches = competitionRepository
+                .findMatchesLabeledByRoundOrStage(competitionId, finished, pageable)
+                .getContent()
+                .stream().collect(groupingBy(LabeledMatch::getLabel));
+
+        return labeledMatches
+                .entrySet()
+                .parallelStream()
+                .map(e -> {
+                    var matchIdsToFetch = e.getValue().stream().map(LabeledMatch::getMatchId).toList();
+                    var fetchedMatches = matchServiceClient.getMatchesById(matchIdsToFetch);
+                    // make sure that matches that start first are at the top of the match list
+                    fetchedMatches.sort(Comparator.comparing(CompactMatchDto::startTimeUTC));
+                    return Map.of(e.getKey(), fetchedMatches);
+                })
+                .flatMap(m -> m.entrySet().stream())
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
      * Finds all unassigned matches from a particular competition.
      * <p>
      *     An unassigned match belongs to neither the league nor the knockout phase of a competition.

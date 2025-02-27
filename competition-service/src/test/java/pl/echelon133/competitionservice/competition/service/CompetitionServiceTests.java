@@ -21,6 +21,7 @@ import pl.echelon133.competitionservice.competition.repository.LeagueSlotReposit
 import pl.echelon133.competitionservice.competition.repository.UnassignedMatchRepository;
 
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -1568,5 +1569,140 @@ public class CompetitionServiceTests {
 
         var receivedMatchD = (KnockoutSlot.Taken)finalStage.getSlots().get(0);
         assertEquals(matchD, receivedMatchD.getLegs().get(0).getMatchId());
+    }
+
+    private CompactMatchDto createTestCompactMatchDtoWithStartTimeUTC(UUID id, LocalDateTime startTime) {
+        return new CompactMatchDto(
+                id, "", LocalDateTime.now(), "", UUID.randomUUID(), startTime,
+                new CompactMatchDto.TeamDto(UUID.randomUUID(), "", ""),
+                new CompactMatchDto.TeamDto(UUID.randomUUID(), "", ""),
+                new CompactMatchDto.ScoreInfoDto(0, 0),
+                new CompactMatchDto.ScoreInfoDto(0, 0),
+                new CompactMatchDto.ScoreInfoDto(0, 0),
+                new CompactMatchDto.RedCardInfoDto(0, 0)
+        );
+    }
+
+    @Test
+    @DisplayName("findLabeledMatches fetches finished labeled matches from an external service and groups them by their label")
+    public void findLabeledMatches_MultipleFinishedLabeledMatchesInRepository_FetchesAndGroupsMatches() {
+        var competitionId = UUID.randomUUID();
+        boolean finished = true;
+        var pageable = Pageable.ofSize(10).withPage(0);
+
+        var match0Id = UUID.randomUUID();
+        var match1Id = UUID.randomUUID();
+
+        var content = List.of(
+                LabeledMatch.from("SEMI_FINAL", match0Id),
+                LabeledMatch.from("1", match1Id)
+        );
+        var page = new PageImpl<>(content, pageable, 3);
+
+        // given
+        given(competitionRepository.findMatchesLabeledByRoundOrStage(eq(competitionId), eq(finished), eq(pageable)))
+                .willReturn(page);
+        given(matchServiceClient.getMatchesById(anyList())).willAnswer(inv -> {
+            List<UUID> requestedMatchIds = inv.getArgument(0);
+            // return a test match for every requested matchId
+            return new ArrayList<>(requestedMatchIds.stream().map(this::createTestCompactMatchDto).toList());
+        });
+
+        // when
+        var result = competitionService.findLabeledMatches(competitionId, finished, pageable);
+
+        // then
+        assertEquals(2, result.size());
+        assertEquals(match0Id, result.get("SEMI_FINAL").get(0).id());
+        assertEquals(match1Id, result.get("1").get(0).id());
+    }
+
+    @Test
+    @DisplayName("findLabeledMatches fetches unfinished labeled matches from an external service and groups them by their label")
+    public void findLabeledMatches_MultipleUnfinishedLabeledMatchesInRepository_FetchesAndGroupsMatches() {
+        var competitionId = UUID.randomUUID();
+        boolean finished = false;
+        var pageable = Pageable.ofSize(10).withPage(0);
+
+        var match0Id = UUID.randomUUID();
+        var match1Id = UUID.randomUUID();
+
+        var content = List.of(
+                LabeledMatch.from("SEMI_FINAL", match0Id),
+                LabeledMatch.from("1", match1Id)
+        );
+        var page = new PageImpl<>(content, pageable, 3);
+
+        // given
+        given(competitionRepository.findMatchesLabeledByRoundOrStage(eq(competitionId), eq(finished), eq(pageable)))
+                .willReturn(page);
+        given(matchServiceClient.getMatchesById(anyList())).willAnswer(inv -> {
+            List<UUID> requestedMatchIds = inv.getArgument(0);
+            // return a test match for every requested matchId
+            return new ArrayList<>(requestedMatchIds.stream().map(this::createTestCompactMatchDto).toList());
+        });
+
+        // when
+        var result = competitionService.findLabeledMatches(competitionId, finished, pageable);
+
+        // then
+        assertEquals(2, result.size());
+        assertEquals(match0Id, result.get("SEMI_FINAL").get(0).id());
+        assertEquals(match1Id, result.get("1").get(0).id());
+    }
+
+    @Test
+    @DisplayName("findLabeledMatches sorts fetched matches by startTimeUTC ascending")
+    public void findLabeledMatches_MultipleLabeledMatchesWithSameLabel_SortsGroupedMatches() {
+        var competitionId = UUID.randomUUID();
+        boolean finished = false;
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var stageName = "SEMI_FINAL";
+
+        var match0Id = UUID.randomUUID();
+        var match1Id = UUID.randomUUID();
+        var match2Id = UUID.randomUUID();
+        var match3Id = UUID.randomUUID();
+
+        // expected order: match1, match3, match2, match0
+        var match0StartTime = LocalDateTime.of(2025, Month.JANUARY, 1, 0, 0);
+        var match1StartTime = LocalDateTime.of(2022, Month.JANUARY, 1, 0, 0);
+        var match2StartTime = LocalDateTime.of(2024, Month.JANUARY, 1, 0, 0);
+        var match3StartTime = LocalDateTime.of(2022, Month.APRIL, 1, 0, 0);
+        var expectedOrder = List.of(match1Id, match3Id, match2Id, match0Id);
+
+        var content = List.of(
+                LabeledMatch.from(stageName, match0Id),
+                LabeledMatch.from(stageName, match1Id),
+                LabeledMatch.from(stageName, match2Id),
+                LabeledMatch.from(stageName, match3Id)
+        );
+        var page = new PageImpl<>(content, pageable, 3);
+
+        // given
+        given(competitionRepository.findMatchesLabeledByRoundOrStage(eq(competitionId), eq(finished), eq(pageable)))
+                .willReturn(page);
+        given(matchServiceClient.getMatchesById(anyList())).willReturn(
+                new ArrayList<>(List.of(
+                        createTestCompactMatchDtoWithStartTimeUTC(match0Id, match0StartTime),
+                        createTestCompactMatchDtoWithStartTimeUTC(match1Id, match1StartTime),
+                        createTestCompactMatchDtoWithStartTimeUTC(match2Id, match2StartTime),
+                        createTestCompactMatchDtoWithStartTimeUTC(match3Id, match3StartTime)
+                ))
+        );
+
+        // when
+        var result = competitionService.findLabeledMatches(competitionId, finished, pageable);
+
+        // then
+        assertEquals(1, result.size());
+        var matches = result.get(stageName);
+        assertEquals(4, matches.size());
+        var receivedMatchIds = matches.stream().map(CompactMatchDto::id).toList();
+        for (var i = 0; i < matches.size(); i++) {
+            var receivedMatchId = receivedMatchIds.get(i);
+            var expectedMatchId = expectedOrder.get(i);
+            assertEquals(expectedMatchId, receivedMatchId);
+        }
     }
 }
