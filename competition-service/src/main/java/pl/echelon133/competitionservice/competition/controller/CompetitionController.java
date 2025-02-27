@@ -34,6 +34,13 @@ public class CompetitionController {
         return competitionService.findById(competitionId);
     }
 
+    @GetMapping("/{competitionId}/matches")
+    public Map<String, List<CompactMatchDto>> getLabeledMatchesFromCompetition(
+            @PathVariable UUID competitionId, @RequestParam boolean finished, Pageable pageable
+    ) {
+        return competitionService.findLabeledMatches(competitionId, finished, pageable);
+    }
+
     @GetMapping("/{competitionId}/league/rounds/{roundNumber}")
     public List<CompactMatchDto> getMatchesFromRound(
             @PathVariable UUID competitionId, @PathVariable int roundNumber

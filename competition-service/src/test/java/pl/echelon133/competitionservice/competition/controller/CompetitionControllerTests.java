@@ -28,16 +28,12 @@ import pl.echelon133.competitionservice.competition.exceptions.CompetitionRoundN
 import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -2265,5 +2261,72 @@ public class CompetitionControllerTests {
                                 .content(json)
                 )
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/matches returns 400 when criteria not provided")
+    public void getLabeledMatchesFromCompetition_FinishedCriteriaNotProvided_StatusBadRequest() throws Exception {
+        var competitionId = UUID.randomUUID();
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages[0]", is("query parameter 'finished' not provided")));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/matches returns 200 when fetching matches and pageable is default")
+    public void getLabeledMatchesFromCompetition_OnlyFinishedMatchesAndPageableDefault_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var finished = true;
+
+        // given
+        given(competitionService.findLabeledMatches(
+                eq(competitionId),
+                eq(finished),
+                argThat(p -> p.getPageNumber() == 0 && p.getPageSize() == 20)
+        )).willReturn(Map.of("1", List.of()));
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("finished", String.valueOf(finished))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasEntry("1", List.of())));
+    }
+
+    @Test
+    @DisplayName("GET /api/competitions/:id/matches returns 200 when fetching matches and pageable is custom")
+    public void getLabeledMatchesFromCompetition_OnlyFinishedMatchesAndPageableCustom_StatusOk() throws Exception {
+        var competitionId = UUID.randomUUID();
+        var finished = false;
+        var page = 1;
+        var pageSize = 40;
+
+        // given
+        given(competitionService.findLabeledMatches(
+                eq(competitionId),
+                eq(finished),
+                argThat(p -> p.getPageNumber() == page && p.getPageSize() == pageSize)
+        )).willReturn(Map.of("FINAL", List.of()));
+
+        // when
+        mvc.perform(
+                        get("/api/competitions/" + competitionId + "/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("finished", String.valueOf(finished))
+                                .param("page", String.valueOf(page))
+                                .param("size", String.valueOf(pageSize))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasEntry("FINAL", List.of())));
     }
 }
