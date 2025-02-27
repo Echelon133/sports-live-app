@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import pl.echelon133.competitionservice.competition.model.Competition;
 import pl.echelon133.competitionservice.competition.model.CompetitionDto;
+import pl.echelon133.competitionservice.competition.model.LabeledMatch;
 import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
 
 import java.util.List;
@@ -97,4 +98,57 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
             nativeQuery = true
     )
     Page<PlayerStatsDto> findPlayerStats(UUID competitionId, Pageable pageable);
+
+    /**
+     * Finds all matchIds of matches which happen in the specified competition (filtered by their 'finished' status) and
+     * labels them.
+     * <p>
+     *     For matches which are from a league phase - which are assigned to a round - the label is the number of that
+     *     round.
+     *     For matches which are from a knockout phase - which are assigned to a stage - the label is the name of that
+     *     stage (i.e. ROUND_OF_16, FINAL, etc.)
+     * </p>
+     *
+     * @param competitionId id of the competition whose matches will be fetched
+     * @param finished whether fetched matches have to be finished
+     * @return a list of labeled matchIds
+     */
+    @Query(
+            value = """
+                    SELECT s.stage as label, CAST(cm.match_id as varchar) as matchId, cm.date_created as dateCreated \
+                    FROM competition_match cm \
+                    JOIN knockout_slot_legs ksl ON cm.id = ksl.legs_id \
+                    JOIN stage_slots ss ON ksl."knockout_slot$taken_id" = ss.slots_id \
+                    JOIN stage s ON ss.stage_id = s.id \
+                    JOIN knockout_phase_stages kps ON s.id = kps.stages_id \
+                    JOIN competition c ON kps.knockout_phase_id = c.knockout_phase_id \
+                    WHERE c.id = :competitionId AND cm.finished = :finished \
+                    UNION \
+                    SELECT CAST(ls.round as varchar) as label, CAST(cm.match_id as varchar) as matchId, cm.date_created as dateCreated \
+                    FROM league_slot ls \
+                    JOIN competition_match cm ON ls.match_id = cm.id \
+                    WHERE ls.competition_id = :competitionId AND cm.finished = :finished \
+                    ORDER BY dateCreated ASC \
+                    """,
+            countQuery =
+                    """
+                    SELECT COUNT(*) FROM (
+                        SELECT s.stage as label, cm.match_id as matchId \
+                        FROM competition_match cm \
+                        JOIN knockout_slot_legs ksl ON cm.id = ksl.legs_id \
+                        JOIN stage_slots ss ON ksl."knockout_slot$taken_id" = ss.slots_id \
+                        JOIN stage s ON ss.stage_id = s.id \
+                        JOIN knockout_phase_stages kps ON s.id = kps.stages_id \
+                        JOIN competition c ON kps.knockout_phase_id = c.knockout_phase_id \
+                        WHERE c.id = :competitionId AND cm.finished = :finished \
+                        UNION \
+                        SELECT CAST(ls.round as varchar) as label, cm.match_id as matchId \
+                        FROM league_slot ls \
+                        JOIN competition_match cm ON ls.match_id = cm.id \
+                        WHERE ls.competition_id = :competitionId AND cm.finished = :finished \
+                    ) AS labeled_matches
+                    """,
+            nativeQuery = true
+    )
+    Page<LabeledMatch> findMatchesLabeledByRoundOrStage(UUID competitionId, boolean finished, Pageable pageable);
 }

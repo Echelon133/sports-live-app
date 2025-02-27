@@ -8,6 +8,7 @@ import java.util.List;
 @Entity
 public class Stage extends BaseEntity {
 
+    @Column(columnDefinition = "VARCHAR(25)")
     @Enumerated(value = EnumType.STRING)
     private KnockoutStage stage;
 
