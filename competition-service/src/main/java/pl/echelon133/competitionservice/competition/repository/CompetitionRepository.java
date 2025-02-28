@@ -25,7 +25,8 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
             value = """
-                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl \
+                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl, \
+                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase \
                     FROM competition c \
                     WHERE c.id = :competitionId AND c.deleted = false \
                     """,
@@ -53,7 +54,8 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
             value = """
-                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl \
+                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl, \
+                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase \
                     FROM competition c \
                     WHERE LOWER(c.name) LIKE '%' || LOWER(:phrase) || '%' AND c.deleted = false \
                     """,
@@ -70,7 +72,8 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
     @Query(
             value = """
-                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl \
+                    SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl, \
+                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase \
                     FROM competition c \
                     WHERE c.pinned = true AND c.deleted = false \
                     """,

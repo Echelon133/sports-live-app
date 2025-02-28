@@ -119,7 +119,7 @@ public class CompetitionControllerTests {
     public void getCompetition_CompetitionFound_StatusOk() throws Exception {
         var competitionId = UUID.randomUUID();
 
-        var competitionDto = CompetitionDto.from(competitionId, "test1", "test2", "test3");
+        var competitionDto = CompetitionDto.from(competitionId, "test1", "test2", "test3", true, true);
         var expectedJson = jsonCompetitionDto.write(competitionDto).getJson();
 
         // given
@@ -250,7 +250,7 @@ public class CompetitionControllerTests {
         var testPageSize = 7;
         var testPageNumber = 4;
         var expectedPageable = Pageable.ofSize(testPageSize).withPage(testPageNumber);
-        var expectedContent = List.of(CompetitionDto.from(UUID.randomUUID(), pValue, "test2", "test3"));
+        var expectedContent = List.of(CompetitionDto.from(UUID.randomUUID(), pValue, "test2", "test3", true, true));
 
         Page<CompetitionDto> expectedPage = new PageImpl<>(expectedContent, expectedPageable, 1);
 
@@ -277,7 +277,7 @@ public class CompetitionControllerTests {
     @DisplayName("GET /api/competitions/pinned returns 200")
     public void getPinnedCompetitions_NoRequestParameters_StatusOk() throws Exception {
         var expectedName = "Competition 1";
-        var expectedContent = List.of(CompetitionDto.from(UUID.randomUUID(), expectedName, "test2", "test3"));
+        var expectedContent = List.of(CompetitionDto.from(UUID.randomUUID(), expectedName, "test2", "test3", true, true));
 
         // given
         given(competitionService.findPinnedCompetitions()).willReturn(expectedContent);

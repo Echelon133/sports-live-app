@@ -17,8 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.stream.Collectors.toMap;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 // Disable kubernetes during tests
 @TestPropertySource(properties = "spring.cloud.kubernetes.enabled=false")
@@ -45,6 +44,8 @@ public class CompetitionRepositoryTests {
         assertEquals(entity.getName(), dto.getName());
         assertEquals(entity.getSeason(), dto.getSeason());
         assertEquals(entity.getLogoUrl(), dto.getLogoUrl());
+        assertEquals(entity.getLeaguePhase() != null, dto.getLeaguePhase());
+        assertEquals(entity.getKnockoutPhase() != null, dto.getKnockoutPhase());
     }
 
     @Test
@@ -84,6 +85,51 @@ public class CompetitionRepositoryTests {
         // then
         assertTrue(competitionDto.isPresent());
         assertEntityAndDtoEqual(competition, competitionDto.get());
+    }
+
+    @Test
+    @DisplayName("findCompetitionById native query correctly fetches league phase existence")
+    public void findCompetitionById_CompetitionWithLeaguePhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().knockoutPhase(null).build();
+        var saved = competitionRepository.save(competition);
+
+        // when
+        var competitionDto = competitionRepository.findCompetitionById(saved.getId());
+
+        // then
+        assertTrue(competitionDto.isPresent());
+        assertTrue(competitionDto.get().getLeaguePhase());
+        assertFalse(competitionDto.get().getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findCompetitionById native query correctly fetches knockout phase existence")
+    public void findCompetitionById_CompetitionWithKnockoutPhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().leaguePhase(null).build();
+        var saved = competitionRepository.save(competition);
+
+        // when
+        var competitionDto = competitionRepository.findCompetitionById(saved.getId());
+
+        // then
+        assertTrue(competitionDto.isPresent());
+        assertFalse(competitionDto.get().getLeaguePhase());
+        assertTrue(competitionDto.get().getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findCompetitionById native query correctly fetches league and knockout phase existence")
+    public void findCompetitionById_CompetitionWithBothLeagueAndKnockoutPhase_IsPresent() {
+        var competition = TestCompetition.builder().build();
+        var saved = competitionRepository.save(competition);
+
+        // when
+        var competitionDto = competitionRepository.findCompetitionById(saved.getId());
+
+        // then
+        assertTrue(competitionDto.isPresent());
+        assertTrue(competitionDto.get().getLeaguePhase());
+        assertTrue(competitionDto.get().getKnockoutPhase());
     }
 
     @Test
@@ -186,6 +232,54 @@ public class CompetitionRepositoryTests {
     }
 
     @Test
+    @DisplayName("findAllByNameContaining native query correctly fetches league phase existence")
+    public void findAllByNameContaining_CompetitionWithLeaguePhaseOnly_IsPresent() {
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var competition = TestCompetition.builder().name("ABCD").knockoutPhase(null).build();
+        competitionRepository.save(competition);
+
+        // when
+        Page<CompetitionDto> result = competitionRepository.findAllByNameContaining("ABCD", pageable);
+
+        // then
+        var receivedCompetition = result.getContent().get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertFalse(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllByNameContaining native query correctly fetches knockout phase existence")
+    public void findAllByNameContaining_CompetitionWithKnockoutPhaseOnly_IsPresent() {
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var competition = TestCompetition.builder().name("ABCD").leaguePhase(null).build();
+        competitionRepository.save(competition);
+
+        // when
+        Page<CompetitionDto> result = competitionRepository.findAllByNameContaining("ABCD", pageable);
+
+        // then
+        var receivedCompetition = result.getContent().get(0);
+        assertFalse(receivedCompetition.getLeaguePhase());
+        assertTrue(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllByNameContaining native query correctly fetches league and knockout phase existence")
+    public void findAllByNameContaining_CompetitionWithBothLeagueAndKnockoutPhase_IsPresent() {
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var competition = TestCompetition.builder().name("ABCD").build();
+        competitionRepository.save(competition);
+
+        // when
+        Page<CompetitionDto> result = competitionRepository.findAllByNameContaining("ABCD", pageable);
+
+        // then
+        var receivedCompetition = result.getContent().get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertTrue(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
     @DisplayName("findAllPinned native query only fetches non-deleted competitions which are marked as pinned")
     public void findAllPinned_MultipleCombinationsOfCompetitions_OnlyFindsPinnedNonDeletedCompetitions() {
         // competitions which should NOT be returned by the tested query
@@ -210,6 +304,51 @@ public class CompetitionRepositoryTests {
         // then
         assertEquals(1, result.size());
         assertEntityAndDtoEqual(expectedCompetition, result.get(0));
+    }
+
+    @Test
+    @DisplayName("findAllPinned native query correctly fetches league phase existence")
+    public void findAllPinned_CompetitionWithLeaguePhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().knockoutPhase(null).pinned(true).build();
+        competitionRepository.save(competition);
+
+        // when
+        var result = competitionRepository.findAllPinned();
+
+        // then
+        var receivedCompetition = result.get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertFalse(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllPinned native query correctly fetches knockout phase existence")
+    public void findAllPinned_CompetitionWithKnockoutPhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().leaguePhase(null).pinned(true).build();
+        competitionRepository.save(competition);
+
+        // when
+        var result = competitionRepository.findAllPinned();
+
+        // then
+        var receivedCompetition = result.get(0);
+        assertFalse(receivedCompetition.getLeaguePhase());
+        assertTrue(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllPinned native query correctly fetches league and knockout phase existence")
+    public void findAllPinned_CompetitionWithBothLeagueAndKnockoutPhase_IsPresent() {
+        var competition = TestCompetition.builder().pinned(true).build();
+        competitionRepository.save(competition);
+
+        // when
+        var result = competitionRepository.findAllPinned();
+
+        // then
+        var receivedCompetition = result.get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertTrue(receivedCompetition.getKnockoutPhase());
     }
 
     @Test
