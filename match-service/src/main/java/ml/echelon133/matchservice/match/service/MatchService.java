@@ -6,6 +6,7 @@ import ml.echelon133.common.event.KafkaTopicNames;
 import ml.echelon133.common.event.dto.MatchInfo;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
+import ml.echelon133.matchservice.client.CompetitionServiceClient;
 import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
 import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
@@ -46,6 +47,7 @@ public class MatchService {
     private final RefereeService refereeService;
     private final MatchRepository matchRepository;
     private final KafkaProducer<UUID, MatchInfo> matchInfoKafkaProducer;
+    private final CompetitionServiceClient competitionServiceClient;
 
     @Autowired
     public MatchService(TeamService teamService,
@@ -53,7 +55,8 @@ public class MatchService {
                         VenueService venueService,
                         RefereeService refereeService,
                         MatchRepository matchRepository,
-                        KafkaProducer<UUID, MatchInfo> matchInfoKafkaProducer
+                        KafkaProducer<UUID, MatchInfo> matchInfoKafkaProducer,
+                        CompetitionServiceClient competitionServiceClient
     ) {
         this.teamService = teamService;
         this.teamPlayerService = teamPlayerService;
@@ -61,6 +64,7 @@ public class MatchService {
         this.refereeService = refereeService;
         this.matchRepository = matchRepository;
         this.matchInfoKafkaProducer = matchInfoKafkaProducer;
+        this.competitionServiceClient = competitionServiceClient;
     }
 
     public Match findEntityById(UUID id) throws ResourceNotFoundException {
@@ -202,8 +206,26 @@ public class MatchService {
     }
 
     /**
-     * Finds all matches that happen on the specified date in client's time zone and groups them by the
-     * id of their competition.
+     * Takes a `competition's UUID`->`competition's matches` mapping and fetches full information about that
+     * competition (i.e. name, season, logo, etc.), then returns {@link CompetitionGroupedMatches}, which contains
+     * both the information about the competition, and the information about matches in that competition.
+     *
+     * @param e entry containing a mapping between competition's UUID and its matches
+     * @return object containing information about the competition and the matches in that competition
+     */
+    private CompetitionGroupedMatches enrichWithFullCompetitionInfo(Map.Entry<UUID, List<CompactMatchDto>> e) {
+        CompetitionDto competitionDto = null;
+        try {
+            competitionDto = competitionServiceClient.getCompetitionById(e.getKey());
+        } catch (Exception ignore) {
+            // if the fetch fails, simply let competition remain `null`
+        }
+        return new CompetitionGroupedMatches(competitionDto, e.getValue());
+    }
+
+    /**
+     * Finds all matches that happen on the specified date in client's time zone and groups them by
+     * the competition they happen in.
      *
      * <p>Example - representation of 2023/01/01 in different time zones</p>
      * <table><thead><tr><th>ZoneOffset</th><th>Start (UTC)</th><th>End (UTC)<br></th></tr></thead><tbody><tr><td>00:00</td><td>2023/01/01 00:00</td><td>2023/01/01 23:59</td></tr><tr><td>+01:00</td><td>2022/12/31 23:00</td><td>2023/01/01 22:59</td></tr><tr><td>-08:00</td><td>2023/01/01 08:00</td><td>2023/01/02 07:59<br></td></tr></tbody></table>*
@@ -212,9 +234,9 @@ public class MatchService {
      * @param zoneOffset specifies the difference between the client's time zone and the UTC
      * @param pageable information about the wanted page
      * @return lists of matches happening on a particular day in client's time zone,
-     *      grouped by the id of their competition
+     *      grouped by their competition
      */
-    public Map<UUID, List<CompactMatchDto>> findMatchesByDate(LocalDate date, ZoneOffset zoneOffset, Pageable pageable) {
+    public List<CompetitionGroupedMatches> findMatchesByDate(LocalDate date, ZoneOffset zoneOffset, Pageable pageable) {
         LocalDateTime clientLocalMidnight = LocalDateTime.of(date, LocalTime.MIDNIGHT);
         // represent the midnight in client's time zone in UTC
         LocalDateTime startUTC = LocalDateTime.ofInstant(
@@ -225,9 +247,15 @@ public class MatchService {
         LocalDateTime endUTC = startUTC
                 .plusHours(23)
                 .plusMinutes(59);
-        return matchRepository
+        ;
+        var matchesGroupedByCompetitionId = matchRepository
                 .findAllBetween(startUTC, endUTC, pageable)
-                .stream().collect(Collectors.groupingBy(CompactMatchDto::getCompetitionId));
+                .stream()
+                .collect(Collectors.groupingBy(CompactMatchDto::getCompetitionId));
+        return matchesGroupedByCompetitionId
+                .entrySet().parallelStream()
+                .map(this::enrichWithFullCompetitionInfo)
+                .toList();
     }
 
     /**
@@ -236,9 +264,9 @@ public class MatchService {
      * @param teamId id of the team whose matches we want to fetch
      * @param matchFinished if `true`, only returns matches that are finished and have a final result
      * @param pageable information about the wanted page
-     * @return lists of matches of a particular team that are filtered based on the status of the match
+     * @return list of matches of a particular team that are filtered based on the status of the match
      */
-    public List<CompactMatchDto> findMatchesByTeam(UUID teamId, boolean matchFinished, Pageable pageable) {
+    public List<CompetitionGroupedMatches> findMatchesByTeam(UUID teamId, boolean matchFinished, Pageable pageable) {
         List<String> acceptedStatuses;
         if (matchFinished) {
             // only fetch matches that are finished
@@ -247,7 +275,14 @@ public class MatchService {
             // only fetch matches that are not finished
             acceptedStatuses = MatchStatus.FIXTURE_TYPE_STATUSES;
         }
-        return matchRepository.findAllByTeamIdAndStatuses(teamId, acceptedStatuses, pageable);
+        var matchesGroupedByCompetitionId = matchRepository
+                .findAllByTeamIdAndStatuses(teamId, acceptedStatuses, pageable)
+                .stream()
+                .collect(Collectors.groupingBy(CompactMatchDto::getCompetitionId));
+        return matchesGroupedByCompetitionId
+                .entrySet().parallelStream()
+                .map(this::enrichWithFullCompetitionInfo)
+                .toList();
     }
 
     /**
