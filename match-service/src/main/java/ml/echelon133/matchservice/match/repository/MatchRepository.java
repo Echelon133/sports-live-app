@@ -151,7 +151,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
                     WHERE m.deleted = false \
                     AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) \
                     AND m.status IN :acceptedStatuses \
-                    ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC \
+                    ORDER BY m.start_time_utc ASC \
                     """,
             nativeQuery = true
     )
