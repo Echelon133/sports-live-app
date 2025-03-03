@@ -1017,17 +1017,17 @@ public class MatchControllerTests {
 
         for (String correctUtcOffset : correctUtcOffsets) {
             var competitionId = UUID.randomUUID();
+            var competitionDto = new CompetitionDto(competitionId, "", "", "", true, true);
             var matches = List.of(CompactMatchDto.builder().build());
 
             // given
-            doReturn(Map.of(competitionId, matches)).when(matchService).findMatchesByDate(
+            doReturn(List.of(new CompetitionGroupedMatches(competitionDto, matches))).when(matchService).findMatchesByDate(
                 eq(LocalDate.of(2023, 1, 1)),
                 eq(ZoneOffset.of(correctUtcOffset)),
                 eq(Pageable.ofSize(20).withPage(0))
             );
 
             // when
-            var path = "$." + competitionId;
             mvc.perform(
                             get("/api/matches/grouped")
                                     .contentType(MediaType.APPLICATION_JSON)
@@ -1036,7 +1036,7 @@ public class MatchControllerTests {
                                     .param("utcOffset", correctUtcOffset)
                     )
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath(path, hasSize(1)));
+                    .andExpect(jsonPath("$[0].matches", hasSize(1)));
         }
     }
 

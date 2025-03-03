@@ -1,5 +1,6 @@
 package ml.echelon133.matchservice.match.controller;
 
+import jakarta.validation.Valid;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
@@ -13,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -70,7 +70,7 @@ public class MatchController {
     }
 
     @GetMapping("/grouped")
-    public Map<UUID, List<CompactMatchDto>> getMatchesByCriteria(
+    public List<CompetitionGroupedMatches> getMatchesByCriteria(
             MatchCriteriaRequestParams params,
             BindingResult result,
             Pageable pageable
