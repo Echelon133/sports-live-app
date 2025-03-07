@@ -558,8 +558,8 @@ public class MatchRepositoryTests {
     }
 
     @Test
-    @DisplayName("findAllByTeamIdAndStatuses native query sorts by date ascending")
-    public void findAllByTeamIdAndStatuses_MultipleMatches_SortDateAscending() {
+    @DisplayName("findAllByTeamIdAndStatuses native query sorts by date descending")
+    public void findAllByTeamIdAndStatuses_MultipleMatches_SortDateDescending() {
         var teamId = UUID.randomUUID();
         var team = TestTeam.builder().id(teamId).build();
 
@@ -593,34 +593,34 @@ public class MatchRepositoryTests {
 
         // then
         // expected order:
-        //  0  day0 07:00AM
-        //  1  day0 09:00AM
-        //  2  day1 03:00PM
-        //  3  day1 07:00PM
-        //  4  day2 10:00AM
-        //  5  day2 10:00PM
+        //  0  day2 10:00PM
+        //  1  day2 10:00AM
+        //  2  day1 07:00PM
+        //  3  day1 03:00PM
+        //  4  day0 09:00AM
+        //  5  day0 07:00AM
         assertEquals(
-                LocalDateTime.of(day0, LocalTime.of(7, 0)),
+                LocalDateTime.of(day2, LocalTime.of(22, 0)),
                 results.get(0).getStartTimeUTC()
         );
         assertEquals(
-                LocalDateTime.of(day0, LocalTime.of(9, 0)),
+                LocalDateTime.of(day2, LocalTime.of(10, 0)),
                 results.get(1).getStartTimeUTC()
         );
         assertEquals(
-                LocalDateTime.of(day1, LocalTime.of(15, 0)),
+                LocalDateTime.of(day1, LocalTime.of(19, 0)),
                 results.get(2).getStartTimeUTC()
         );
         assertEquals(
-                LocalDateTime.of(day1, LocalTime.of(19, 0)),
+                LocalDateTime.of(day1, LocalTime.of(15, 0)),
                 results.get(3).getStartTimeUTC()
         );
         assertEquals(
-                LocalDateTime.of(day2, LocalTime.of(10, 0)),
+                LocalDateTime.of(day0, LocalTime.of(9, 0)),
                 results.get(4).getStartTimeUTC()
         );
         assertEquals(
-                LocalDateTime.of(day2, LocalTime.of(22, 0)),
+                LocalDateTime.of(day0, LocalTime.of(7, 0)),
                 results.get(5).getStartTimeUTC()
         );
     }
