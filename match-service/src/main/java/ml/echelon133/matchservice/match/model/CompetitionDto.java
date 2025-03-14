@@ -8,6 +8,7 @@ public record CompetitionDto(
         String season,
         String logoUrl,
         boolean leaguePhase,
+        int maxRounds,
         boolean knockoutPhase
 ) {
 }

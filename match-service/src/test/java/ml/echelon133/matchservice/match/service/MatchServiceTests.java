@@ -804,7 +804,7 @@ public class MatchServiceTests {
     }
 
     private CompetitionDto createTestCompetitionDto(UUID id) {
-        return new CompetitionDto(id, "", "", "", true, true);
+        return new CompetitionDto(id, "", "", "", true, 1, true);
     }
 
     @Test

@@ -8,9 +8,10 @@ public interface CompetitionDto {
     String getSeason();
     String getLogoUrl();
     boolean getLeaguePhase();
+    int getMaxRounds();
     boolean getKnockoutPhase();
 
-    static CompetitionDto from(UUID id, String name, String season, String logoUrl, boolean leaguePhase, boolean knockoutPhase) {
+    static CompetitionDto from(UUID id, String name, String season, String logoUrl, boolean leaguePhase, int maxRounds, boolean knockoutPhase) {
         return new CompetitionDto() {
             @Override
             public UUID getId() {
@@ -35,6 +36,11 @@ public interface CompetitionDto {
             @Override
             public boolean getLeaguePhase() {
                 return leaguePhase;
+            }
+
+            @Override
+            public int getMaxRounds() {
+                return maxRounds;
             }
 
             @Override

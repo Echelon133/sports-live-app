@@ -1613,7 +1613,7 @@ public class TeamControllerTests {
     @DisplayName("GET /api/teams/:teamId/matches returns 200 when 'type' value is 'fixtures' (case insensitive)")
     public void getTeamMatches_TypeFixturesCaseInsensitive_StatusOk() throws Exception {
         var teamId = UUID.randomUUID();
-        var competitionDto = new CompetitionDto(UUID.randomUUID(), "", "", "", true, true);
+        var competitionDto = new CompetitionDto(UUID.randomUUID(), "", "", "", true, 1, true);
         var matches = List.of(CompactMatchDto.builder().build());
 
         // given
@@ -1641,7 +1641,7 @@ public class TeamControllerTests {
     @DisplayName("GET /api/teams/:teamId/matches returns 200 when 'type' value is 'results' (case insensitive)")
     public void getTeamMatches_TypeResultsCaseInsensitive_StatusOk() throws Exception {
         var teamId = UUID.randomUUID();
-        var competitionDto = new CompetitionDto(UUID.randomUUID(), "", "", "", true, true);
+        var competitionDto = new CompetitionDto(UUID.randomUUID(), "", "", "", true, 1, true);
         var matches = List.of(CompactMatchDto.builder().build());
 
         // given

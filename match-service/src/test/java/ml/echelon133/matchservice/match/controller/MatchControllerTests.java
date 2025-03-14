@@ -1017,7 +1017,7 @@ public class MatchControllerTests {
 
         for (String correctUtcOffset : correctUtcOffsets) {
             var competitionId = UUID.randomUUID();
-            var competitionDto = new CompetitionDto(competitionId, "", "", "", true, true);
+            var competitionDto = new CompetitionDto(competitionId, "", "", "", true, 1, true);
             var matches = List.of(CompactMatchDto.builder().build());
 
             // given

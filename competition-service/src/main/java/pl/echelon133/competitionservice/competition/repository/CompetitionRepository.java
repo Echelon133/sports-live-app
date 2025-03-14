@@ -26,8 +26,10 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     @Query(
             value = """
                     SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl, \
-                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase \
+                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase, \
+                    CASE WHEN c.league_phase_id IS NULL THEN 0 ELSE lp.max_rounds END as maxRounds \
                     FROM competition c \
+                    LEFT JOIN league_phase lp ON lp.id = c.league_phase_id \
                     WHERE c.id = :competitionId AND c.deleted = false \
                     """,
             nativeQuery = true
@@ -55,8 +57,10 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     @Query(
             value = """
                     SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl, \
-                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase \
+                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase, \
+                    CASE WHEN c.league_phase_id IS NULL THEN 0 ELSE lp.max_rounds END as maxRounds \
                     FROM competition c \
+                    LEFT JOIN league_phase lp ON lp.id = c.league_phase_id \
                     WHERE LOWER(c.name) LIKE '%' || LOWER(:phrase) || '%' AND c.deleted = false \
                     """,
             countQuery = "SELECT COUNT(*) FROM competition WHERE LOWER(name) LIKE '%' || LOWER(:phrase) || '%' AND deleted = false",
@@ -73,8 +77,10 @@ public interface CompetitionRepository extends JpaRepository<Competition, UUID> 
     @Query(
             value = """
                     SELECT CAST(c.id as varchar) as id, c.name as name, c.season as season, c.logo_url as logoUrl, \
-                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase \
+                    c.league_phase_id IS NOT NULL as leaguePhase, c.knockout_phase_id IS NOT NULL as knockoutPhase, \
+                    CASE WHEN c.league_phase_id IS NULL THEN 0 ELSE lp.max_rounds END as maxRounds \
                     FROM competition c \
+                    LEFT JOIN league_phase lp ON lp.id = c.league_phase_id \
                     WHERE c.pinned = true AND c.deleted = false \
                     """,
             nativeQuery = true
