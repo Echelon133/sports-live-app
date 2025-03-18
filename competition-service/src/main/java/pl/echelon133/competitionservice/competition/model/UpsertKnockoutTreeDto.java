@@ -1,5 +1,6 @@
 package pl.echelon133.competitionservice.competition.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.Valid;
@@ -37,6 +38,11 @@ public record UpsertKnockoutTreeDto(
             @JsonSubTypes.Type(value = Bye.class, name = "BYE"),
             @JsonSubTypes.Type(value = Taken.class, name = "TAKEN"),
     })
+    // Ignoring "type" property during deserialization is required to avoid "UnrecognizedPropertyException"
+    // caused by the deserializer trying to insert "type" property into the record, without the "knowledge" that
+    // this property is not stored as a property on a record, and instead is only a constant accessible via
+    // an accessor method.
+    @JsonIgnoreProperties(value = "type")
     public sealed interface UpsertKnockoutSlot permits Empty, Bye, Taken {
         String type();
     }
