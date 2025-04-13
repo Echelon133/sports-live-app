@@ -2,8 +2,6 @@ package pl.echelon133.competitionservice.competition;
 
 import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
 
-import java.util.List;
-
 public interface TestUpsertCompetitionDto {
 
     static UpsertCompetitionDtoBuilder builder() {
@@ -15,13 +13,8 @@ public interface TestUpsertCompetitionDto {
         private String name = "Test Competition";
         private String season = "2023/24";
         private String logoUrl = "http://test.com/logo.png";
-        private List<UpsertCompetitionDto.UpsertGroupDto> groups = List.of(
-                TestUpsertGroupDto.builder().build(),
-                TestUpsertGroupDto.builder().build()
-        );
-        private List<UpsertCompetitionDto.UpsertLegendDto> legend = List.of(
-                TestUpsertLegendDto.builder().build()
-        );
+        private UpsertCompetitionDto.UpsertLeaguePhaseDto leaguePhase = null;
+        private UpsertCompetitionDto.UpsertKnockoutPhaseDto knockoutPhase = null;
         private boolean pinned;
 
         private UpsertCompetitionDtoBuilder() {}
@@ -41,13 +34,13 @@ public interface TestUpsertCompetitionDto {
             return this;
         }
 
-        public UpsertCompetitionDtoBuilder groups(List<UpsertCompetitionDto.UpsertGroupDto> groups) {
-            this.groups = groups;
+        public UpsertCompetitionDtoBuilder leaguePhase(UpsertCompetitionDto.UpsertLeaguePhaseDto leaguePhase) {
+            this.leaguePhase = leaguePhase;
             return this;
         }
 
-        public UpsertCompetitionDtoBuilder legend(List<UpsertCompetitionDto.UpsertLegendDto> legend) {
-            this.legend = legend;
+        public UpsertCompetitionDtoBuilder knockoutPhase(UpsertCompetitionDto.UpsertKnockoutPhaseDto knockoutPhase) {
+            this.knockoutPhase = knockoutPhase;
             return this;
         }
 
@@ -57,7 +50,7 @@ public interface TestUpsertCompetitionDto {
         }
 
         public UpsertCompetitionDto build() {
-            return new UpsertCompetitionDto(name, season, logoUrl, groups, legend, pinned);
+            return new UpsertCompetitionDto(name, season, logoUrl, leaguePhase, knockoutPhase, pinned);
         }
     }
 }

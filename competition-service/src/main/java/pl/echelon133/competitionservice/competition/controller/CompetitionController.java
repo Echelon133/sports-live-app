@@ -11,10 +11,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import pl.echelon133.competitionservice.competition.exceptions.CompetitionInvalidException;
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
-import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
-import pl.echelon133.competitionservice.competition.model.StandingsDto;
-import pl.echelon133.competitionservice.competition.model.UpsertCompetitionDto;
+import pl.echelon133.competitionservice.competition.model.*;
 import pl.echelon133.competitionservice.competition.service.CompetitionService;
 
 import java.util.List;
@@ -35,6 +32,64 @@ public class CompetitionController {
     @GetMapping("/{competitionId}")
     public CompetitionDto getCompetition(@PathVariable UUID competitionId) throws ResourceNotFoundException {
         return competitionService.findById(competitionId);
+    }
+
+    @GetMapping("/{competitionId}/matches")
+    public Map<String, List<CompactMatchDto>> getLabeledMatchesFromCompetition(
+            @PathVariable UUID competitionId, @RequestParam boolean finished, Pageable pageable
+    ) {
+        return competitionService.findLabeledMatches(competitionId, finished, pageable);
+    }
+
+    @GetMapping("/{competitionId}/league/rounds/{roundNumber}")
+    public List<CompactMatchDto> getMatchesFromRound(
+            @PathVariable UUID competitionId, @PathVariable int roundNumber
+    ) throws Exception {
+        return competitionService.findMatchesByRound(competitionId, roundNumber);
+    }
+
+    @PostMapping("/{competitionId}/league/rounds/{roundNumber}")
+    public void assignMatchesToRound(
+            @PathVariable UUID competitionId,
+            @PathVariable int roundNumber,
+            @Valid @RequestBody UpsertRoundDto upsertRoundDto,
+            BindingResult result
+    ) throws Exception {
+
+        if (result.hasErrors()) {
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        competitionService.assignMatchesToRound(competitionId, roundNumber, upsertRoundDto.matchIds());
+    }
+
+    @DeleteMapping("/{competitionId}/league/rounds/{roundNumber}")
+    public void unassignMatchesFromRound(@PathVariable UUID competitionId, @PathVariable int roundNumber) throws Exception {
+        competitionService.unassignMatchesFromRound(competitionId, roundNumber);
+    }
+
+    @GetMapping("/{competitionId}/knockout")
+    public KnockoutPhaseDto getKnockoutPhase(@PathVariable UUID competitionId) throws Exception {
+        return competitionService.findKnockoutPhase(competitionId);
+    }
+
+    @PutMapping("/{competitionId}/knockout")
+    public void updateKnockoutPhase(
+            @PathVariable UUID competitionId,
+            @Valid @RequestBody UpsertKnockoutTreeDto upsertKnockoutTreeDto,
+            BindingResult result
+    ) throws Exception {
+
+        if (result.hasErrors()) {
+            throw new RequestBodyContentInvalidException(ValidationResultMapper.resultIntoErrorMap(result));
+        }
+
+        competitionService.updateKnockoutPhase(competitionId, upsertKnockoutTreeDto);
+    }
+
+    @GetMapping("/{competitionId}/matches/unassigned")
+    public Page<CompactMatchDto> getUnassignedMatches(@PathVariable UUID competitionId, Pageable pageable) {
+        return competitionService.findUnassignedMatches(competitionId, pageable);
     }
 
     @DeleteMapping("/{competitionId}")

@@ -1,6 +1,5 @@
 package pl.echelon133.competitionservice.competition.repository;
 
-import pl.echelon133.competitionservice.competition.model.CompetitionDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,15 +9,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.TestPropertySource;
 import pl.echelon133.competitionservice.competition.TestCompetition;
-import pl.echelon133.competitionservice.competition.model.Competition;
-import pl.echelon133.competitionservice.competition.model.PlayerStats;
-import pl.echelon133.competitionservice.competition.model.PlayerStatsDto;
+import pl.echelon133.competitionservice.competition.model.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static java.util.stream.Collectors.toMap;
+import static org.junit.jupiter.api.Assertions.*;
 
 // Disable kubernetes during tests
 @TestPropertySource(properties = "spring.cloud.kubernetes.enabled=false")
@@ -27,11 +26,17 @@ public class CompetitionRepositoryTests {
 
     private final CompetitionRepository competitionRepository;
     private final PlayerStatsRepository playerStatsRepository;
+    private final LeagueSlotRepository leagueSlotRepository;
 
     @Autowired
-    public CompetitionRepositoryTests(CompetitionRepository competitionRepository, PlayerStatsRepository playerStatsRepository) {
+    public CompetitionRepositoryTests(
+            CompetitionRepository competitionRepository,
+            PlayerStatsRepository playerStatsRepository,
+            LeagueSlotRepository leagueSlotRepository
+    ) {
         this.competitionRepository = competitionRepository;
         this.playerStatsRepository = playerStatsRepository;
+        this.leagueSlotRepository = leagueSlotRepository;
     }
 
     private static void assertEntityAndDtoEqual(Competition entity, CompetitionDto dto) {
@@ -39,6 +44,8 @@ public class CompetitionRepositoryTests {
         assertEquals(entity.getName(), dto.getName());
         assertEquals(entity.getSeason(), dto.getSeason());
         assertEquals(entity.getLogoUrl(), dto.getLogoUrl());
+        assertEquals(entity.getLeaguePhase() != null, dto.getLeaguePhase());
+        assertEquals(entity.getKnockoutPhase() != null, dto.getKnockoutPhase());
     }
 
     @Test
@@ -78,6 +85,54 @@ public class CompetitionRepositoryTests {
         // then
         assertTrue(competitionDto.isPresent());
         assertEntityAndDtoEqual(competition, competitionDto.get());
+    }
+
+    @Test
+    @DisplayName("findCompetitionById native query correctly fetches league phase existence (with maxRounds set)")
+    public void findCompetitionById_CompetitionWithLeaguePhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().knockoutPhase(null).build();
+        var saved = competitionRepository.save(competition);
+
+        // when
+        var competitionDto = competitionRepository.findCompetitionById(saved.getId());
+
+        // then
+        assertTrue(competitionDto.isPresent());
+        assertTrue(competitionDto.get().getLeaguePhase());
+        assertEquals(38, competitionDto.get().getMaxRounds());
+        assertFalse(competitionDto.get().getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findCompetitionById native query correctly fetches knockout phase existence (with maxRounds zeroed)")
+    public void findCompetitionById_CompetitionWithKnockoutPhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().leaguePhase(null).build();
+        var saved = competitionRepository.save(competition);
+
+        // when
+        var competitionDto = competitionRepository.findCompetitionById(saved.getId());
+
+        // then
+        assertTrue(competitionDto.isPresent());
+        assertFalse(competitionDto.get().getLeaguePhase());
+        assertEquals(0, competitionDto.get().getMaxRounds());
+        assertTrue(competitionDto.get().getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findCompetitionById native query correctly fetches league and knockout phase existence (with maxRounds set)")
+    public void findCompetitionById_CompetitionWithBothLeagueAndKnockoutPhase_IsPresent() {
+        var competition = TestCompetition.builder().build();
+        var saved = competitionRepository.save(competition);
+
+        // when
+        var competitionDto = competitionRepository.findCompetitionById(saved.getId());
+
+        // then
+        assertTrue(competitionDto.isPresent());
+        assertTrue(competitionDto.get().getLeaguePhase());
+        assertEquals(38, competitionDto.get().getMaxRounds());
+        assertTrue(competitionDto.get().getKnockoutPhase());
     }
 
     @Test
@@ -180,6 +235,57 @@ public class CompetitionRepositoryTests {
     }
 
     @Test
+    @DisplayName("findAllByNameContaining native query correctly fetches league phase existence (with maxRounds set)")
+    public void findAllByNameContaining_CompetitionWithLeaguePhaseOnly_IsPresent() {
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var competition = TestCompetition.builder().name("ABCD").knockoutPhase(null).build();
+        competitionRepository.save(competition);
+
+        // when
+        Page<CompetitionDto> result = competitionRepository.findAllByNameContaining("ABCD", pageable);
+
+        // then
+        var receivedCompetition = result.getContent().get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertEquals(38, receivedCompetition.getMaxRounds());
+        assertFalse(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllByNameContaining native query correctly fetches knockout phase existence (with maxRounds zeroed)")
+    public void findAllByNameContaining_CompetitionWithKnockoutPhaseOnly_IsPresent() {
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var competition = TestCompetition.builder().name("ABCD").leaguePhase(null).build();
+        competitionRepository.save(competition);
+
+        // when
+        Page<CompetitionDto> result = competitionRepository.findAllByNameContaining("ABCD", pageable);
+
+        // then
+        var receivedCompetition = result.getContent().get(0);
+        assertFalse(receivedCompetition.getLeaguePhase());
+        assertEquals(0, receivedCompetition.getMaxRounds());
+        assertTrue(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllByNameContaining native query correctly fetches league and knockout phase existence (with maxRounds set)")
+    public void findAllByNameContaining_CompetitionWithBothLeagueAndKnockoutPhase_IsPresent() {
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var competition = TestCompetition.builder().name("ABCD").build();
+        competitionRepository.save(competition);
+
+        // when
+        Page<CompetitionDto> result = competitionRepository.findAllByNameContaining("ABCD", pageable);
+
+        // then
+        var receivedCompetition = result.getContent().get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertEquals(38, receivedCompetition.getMaxRounds());
+        assertTrue(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
     @DisplayName("findAllPinned native query only fetches non-deleted competitions which are marked as pinned")
     public void findAllPinned_MultipleCombinationsOfCompetitions_OnlyFindsPinnedNonDeletedCompetitions() {
         // competitions which should NOT be returned by the tested query
@@ -204,6 +310,54 @@ public class CompetitionRepositoryTests {
         // then
         assertEquals(1, result.size());
         assertEntityAndDtoEqual(expectedCompetition, result.get(0));
+    }
+
+    @Test
+    @DisplayName("findAllPinned native query correctly fetches league phase existence (with maxRounds set)")
+    public void findAllPinned_CompetitionWithLeaguePhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().knockoutPhase(null).pinned(true).build();
+        competitionRepository.save(competition);
+
+        // when
+        var result = competitionRepository.findAllPinned();
+
+        // then
+        var receivedCompetition = result.get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertEquals(38, receivedCompetition.getMaxRounds());
+        assertFalse(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllPinned native query correctly fetches knockout phase existence (with maxRounds zeroed)")
+    public void findAllPinned_CompetitionWithKnockoutPhaseOnly_IsPresent() {
+        var competition = TestCompetition.builder().leaguePhase(null).pinned(true).build();
+        competitionRepository.save(competition);
+
+        // when
+        var result = competitionRepository.findAllPinned();
+
+        // then
+        var receivedCompetition = result.get(0);
+        assertFalse(receivedCompetition.getLeaguePhase());
+        assertEquals(0, receivedCompetition.getMaxRounds());
+        assertTrue(receivedCompetition.getKnockoutPhase());
+    }
+
+    @Test
+    @DisplayName("findAllPinned native query correctly fetches league and knockout phase existence (with maxRounds set)")
+    public void findAllPinned_CompetitionWithBothLeagueAndKnockoutPhase_IsPresent() {
+        var competition = TestCompetition.builder().pinned(true).build();
+        competitionRepository.save(competition);
+
+        // when
+        var result = competitionRepository.findAllPinned();
+
+        // then
+        var receivedCompetition = result.get(0);
+        assertTrue(receivedCompetition.getLeaguePhase());
+        assertEquals(38, receivedCompetition.getMaxRounds());
+        assertTrue(receivedCompetition.getKnockoutPhase());
     }
 
     @Test
@@ -298,5 +452,78 @@ public class CompetitionRepositoryTests {
         assertEquals(entity.getAssists(), dto.getAssists());
         assertEquals(entity.getYellowCards(), dto.getYellowCards());
         assertEquals(entity.getRedCards(), dto.getRedCards());
+    }
+
+    @Test
+    @DisplayName("findMatchesLabeledByRoundOrStage native query does not fetch anything when competition does not exist")
+    public void findMatchesLabeledByRoundOrStage_CompetitionNotFound_EmptyResults() {
+        var competitionId = UUID.randomUUID();
+        var pageable = Pageable.ofSize(10).withPage(0);
+
+        // when
+        var finishedResults = competitionRepository.findMatchesLabeledByRoundOrStage(competitionId, true, pageable);
+        var unfinishedResults = competitionRepository.findMatchesLabeledByRoundOrStage(competitionId, false, pageable);
+
+        // then
+        assertEquals(0, finishedResults.getContent().size());
+        assertEquals(0, unfinishedResults.getContent().size());
+    }
+
+    @Test
+    @DisplayName("findMatchesLabeledByRoundOrStage native query fetches matches from both league and knockout phases and filters them by their finished status")
+    public void findMatchesLabeledByRoundOrStage_CompetitionWithMatchesInBothPhases_ExpectedResults() {
+        var testRound = 1;
+
+        // leaguePhase matches
+        var leaguePhaseFinishedCompetitionMatch = new CompetitionMatch(UUID.randomUUID(), true);
+        var leaguePhaseUnfinishedCompetitionMatch = new CompetitionMatch(UUID.randomUUID(), false);
+        // knockoutPhase matches
+        var knockoutPhaseFinishedCompetitionMatch = new CompetitionMatch(UUID.randomUUID(), true);
+        var knockoutPhaseUnfinishedCompetitionMatch = new CompetitionMatch(UUID.randomUUID(), false);
+
+        // create league phase of the tested competition
+        var group = new Group("A", List.of(
+                new TeamStats(UUID.randomUUID(), "TeamA", ""),
+                new TeamStats(UUID.randomUUID(), "TeamB", "")
+        ));
+        var legend = new Legend(Set.of(1, 2), "", Legend.LegendSentiment.POSITIVE_A);
+        var leaguePhase = new LeaguePhase(List.of(group), List.of(legend));
+
+        // create knockout phase of the tested competition
+        var semiFinal = new Stage(KnockoutStage.SEMI_FINAL);
+        semiFinal.setSlots(List.of(
+                new KnockoutSlot.Taken(knockoutPhaseFinishedCompetitionMatch),
+                new KnockoutSlot.Taken(knockoutPhaseUnfinishedCompetitionMatch)
+        ));
+        var knockoutPhase = new KnockoutPhase(List.of(semiFinal));
+
+        var competition = TestCompetition.builder().leaguePhase(leaguePhase).knockoutPhase(knockoutPhase).build();
+        competitionRepository.save(competition);
+        var competitionId = competition.getId();
+
+        // assign matches to the league phase
+        var leagueSlots = List.of(
+                new LeagueSlot(leaguePhaseFinishedCompetitionMatch, competitionId, testRound),
+                new LeagueSlot(leaguePhaseUnfinishedCompetitionMatch, competitionId, testRound)
+        );
+        leagueSlotRepository.saveAll(leagueSlots);
+
+        // when
+        var pageable = Pageable.ofSize(10).withPage(0);
+        var finishedResults = competitionRepository.findMatchesLabeledByRoundOrStage(competitionId, true, pageable);
+        var unfinishedResults = competitionRepository.findMatchesLabeledByRoundOrStage(competitionId, false, pageable);
+
+        // then
+        var finishedMatches = finishedResults.getContent();
+        assertEquals(2, finishedMatches.size());
+        Map<UUID, String> finishedResultsMap = finishedMatches.stream().collect(toMap(LabeledMatch::getMatchId, LabeledMatch::getLabel));
+        assertEquals("1", finishedResultsMap.get(leaguePhaseFinishedCompetitionMatch.getMatchId()));
+        assertEquals("SEMI_FINAL", finishedResultsMap.get(knockoutPhaseFinishedCompetitionMatch.getMatchId()));
+
+        var unfinishedMatches = unfinishedResults.getContent();
+        assertEquals(2, unfinishedMatches.size());
+        Map<UUID, String> unfinishedResultsMap = unfinishedMatches.stream().collect(toMap(LabeledMatch::getMatchId, LabeledMatch::getLabel));
+        assertEquals("1", unfinishedResultsMap.get(leaguePhaseUnfinishedCompetitionMatch.getMatchId()));
+        assertEquals("SEMI_FINAL", unfinishedResultsMap.get(knockoutPhaseUnfinishedCompetitionMatch.getMatchId()));
     }
 }

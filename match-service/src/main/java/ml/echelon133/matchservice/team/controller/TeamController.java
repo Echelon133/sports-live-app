@@ -1,10 +1,11 @@
 package ml.echelon133.matchservice.team.controller;
 
+import jakarta.validation.Valid;
 import ml.echelon133.common.exception.RequestBodyContentInvalidException;
 import ml.echelon133.common.exception.RequestParamsInvalidException;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.exception.ValidationResultMapper;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
+import ml.echelon133.matchservice.match.model.CompetitionGroupedMatches;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.team.exception.NumberAlreadyTakenException;
 import ml.echelon133.matchservice.team.model.*;
@@ -16,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -157,7 +157,7 @@ public class TeamController {
     }
 
     @GetMapping("/{teamId}/matches")
-    public List<CompactMatchDto> getTeamMatches(
+    public List<CompetitionGroupedMatches> getTeamMatches(
             @PathVariable UUID teamId,
             @RequestParam String type,
             Pageable pageable

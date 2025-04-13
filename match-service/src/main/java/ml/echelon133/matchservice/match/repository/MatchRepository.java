@@ -18,6 +18,35 @@ import java.util.UUID;
 public interface MatchRepository extends JpaRepository<Match, UUID> {
 
     /**
+     * Finds all matches whose ids are in the id list.
+     *
+     * @param matchIds requested match ids
+     * @return a list of matches
+     */
+    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
+    @Query(
+            value = """
+                    SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, \
+                       m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, \
+                       m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, \
+                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
+                       m.home_penalties as homePenalties, m.away_penalties as awayPenalties, \
+                       m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, \
+                       m.status_last_modified_utc as statusLastModifiedUTC, \
+                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
+                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
+                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
+                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted \
+                    FROM match m \
+                    JOIN team ht ON m.home_team_id = ht.id \
+                    JOIN team at ON m.away_team_id = at.id \
+                    WHERE m.deleted = false AND m.id IN :matchIds \
+                    """,
+            nativeQuery = true
+    )
+    List<CompactMatchDto> findAllByMatchIds(List<UUID> matchIds);
+
+    /**
      * Finds a non-deleted match with the specified id.
      *
      * @param matchId id of the match
@@ -93,41 +122,6 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
     List<CompactMatchDto> findAllBetween(LocalDateTime startUTC, LocalDateTime endUTC, Pageable pageable);
 
     /**
-     * Finds all matches that belong to a competition with the specified id and their status is
-     * on the list of accepted statuses.
-     *
-     * @param competitionId id of the competition to which the match belongs
-     * @param acceptedStatuses a list of accepted {@link ml.echelon133.common.match.MatchStatus} values (represented
-     *                         as strings). The query will only return matches with statuses that appear on the list.
-     * @param pageable information about the wanted page
-     * @return a list of matches in the specified competition, whose statuses belong to the specified list of statuses
-     */
-    // CAST(id as varchar) is a workaround for https://github.com/spring-projects/spring-data-jpa/issues/1796
-    @Query(
-            value = """
-                    SELECT CAST(m.id as varchar) as id, m.status as status, m.result as result, \
-                       m.start_time_utc as startTimeUTC, CAST(m.competition_id as varchar) as competitionId, \
-                       m.half_time_home_goals as halfTimeHomeGoals, m.half_time_away_goals as halfTimeAwayGoals, \
-                       m.home_goals as homeGoals, m.away_goals as awayGoals, \
-                       m.home_penalties as homePenalties, m.away_penalties as awayPenalties, \
-                       m.home_red_cards as homeRedCards, m.away_red_cards as awayRedCards, \
-                       m.status_last_modified_utc as statusLastModifiedUTC, \
-                    CAST(ht.id as varchar) as homeTeamId, ht.name as homeTeamName, \
-                       ht.crest_url as homeTeamCrestUrl, ht.deleted as homeTeamDeleted, \
-                    CAST(at.id as varchar) as awayTeamId, at.name as awayTeamName, \
-                       at.crest_url as awayTeamCrestUrl, at.deleted as awayTeamDeleted \
-                    FROM match m \
-                    JOIN team ht ON m.home_team_id = ht.id \
-                    JOIN team at ON m.away_team_id = at.id \
-                    WHERE m.deleted = false AND m.competition_id = :competitionId \
-                    AND m.status IN :acceptedStatuses \
-                    ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC \
-                    """,
-            nativeQuery = true
-    )
-    List<CompactMatchDto> findAllByCompetitionAndStatuses(UUID competitionId, List<String> acceptedStatuses, Pageable pageable);
-
-    /**
      * Finds all matches of a team with the specified id, whose status is on the list
      * of accepted statuses.
      *
@@ -157,7 +151,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
                     WHERE m.deleted = false \
                     AND (m.home_team_id = :teamId OR m.away_team_id = :teamId) \
                     AND m.status IN :acceptedStatuses \
-                    ORDER BY CAST(m.start_time_utc as date) DESC, CAST(m.start_time_utc as time) ASC \
+                    ORDER BY m.start_time_utc DESC \
                     """,
             nativeQuery = true
     )

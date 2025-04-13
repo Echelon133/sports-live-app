@@ -5,9 +5,7 @@ import ml.echelon133.matchservice.MatchServiceApplication;
 import ml.echelon133.matchservice.TestValidatorFactory;
 import ml.echelon133.matchservice.coach.constraints.CoachExists;
 import ml.echelon133.matchservice.coach.repository.CoachRepository;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
-import ml.echelon133.matchservice.match.model.ScoreInfoDto;
-import ml.echelon133.matchservice.match.model.ShortTeamDto;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.service.MatchService;
 import ml.echelon133.matchservice.player.constraints.PlayerExists;
 import ml.echelon133.matchservice.player.repository.PlayerRepository;
@@ -1615,6 +1613,8 @@ public class TeamControllerTests {
     @DisplayName("GET /api/teams/:teamId/matches returns 200 when 'type' value is 'fixtures' (case insensitive)")
     public void getTeamMatches_TypeFixturesCaseInsensitive_StatusOk() throws Exception {
         var teamId = UUID.randomUUID();
+        var competitionDto = new CompetitionDto(UUID.randomUUID(), "", "", "", true, 1, true);
+        var matches = List.of(CompactMatchDto.builder().build());
 
         // given
         var correctTypes = List.of("FIXTURES", "fixtures", "fixTURES");
@@ -1622,7 +1622,7 @@ public class TeamControllerTests {
                 eq(teamId),
                 eq(false),
                 eq(Pageable.ofSize(20).withPage(0))
-        )).willReturn(List.of(CompactMatchDto.builder().build()));
+        )).willReturn(List.of(new CompetitionGroupedMatches(competitionDto, matches)));
 
         // when
         for (var correctType: correctTypes) {
@@ -1641,6 +1641,8 @@ public class TeamControllerTests {
     @DisplayName("GET /api/teams/:teamId/matches returns 200 when 'type' value is 'results' (case insensitive)")
     public void getTeamMatches_TypeResultsCaseInsensitive_StatusOk() throws Exception {
         var teamId = UUID.randomUUID();
+        var competitionDto = new CompetitionDto(UUID.randomUUID(), "", "", "", true, 1, true);
+        var matches = List.of(CompactMatchDto.builder().build());
 
         // given
         var correctTypes = List.of("RESULTS", "results", "resULTS");
@@ -1648,7 +1650,7 @@ public class TeamControllerTests {
                 eq(teamId),
                 eq(true),
                 eq(Pageable.ofSize(20).withPage(0))
-        )).willReturn(List.of(CompactMatchDto.builder().build()));
+        )).willReturn(List.of(new CompetitionGroupedMatches(competitionDto, matches)));
 
         // when
         for (var correctType: correctTypes) {

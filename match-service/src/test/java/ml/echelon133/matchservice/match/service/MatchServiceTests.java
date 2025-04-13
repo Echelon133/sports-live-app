@@ -1,26 +1,26 @@
 package ml.echelon133.matchservice.match.service;
 
+import ml.echelon133.common.event.dto.MatchInfo;
 import ml.echelon133.common.exception.ResourceNotFoundException;
 import ml.echelon133.common.match.MatchStatus;
-import ml.echelon133.matchservice.match.model.CompactMatchDto;
-import ml.echelon133.matchservice.match.model.LineupFormationsDto;
-import ml.echelon133.matchservice.team.model.TeamPlayerDto;
+import ml.echelon133.matchservice.client.CompetitionServiceClient;
 import ml.echelon133.matchservice.match.TestMatch;
 import ml.echelon133.matchservice.match.TestMatchDto;
 import ml.echelon133.matchservice.match.TestUpsertMatchDto;
 import ml.echelon133.matchservice.match.exceptions.LineupPlayerInvalidException;
-import ml.echelon133.matchservice.match.model.Match;
-import ml.echelon133.matchservice.match.model.UpsertLineupDto;
+import ml.echelon133.matchservice.match.model.*;
 import ml.echelon133.matchservice.match.repository.MatchRepository;
 import ml.echelon133.matchservice.referee.model.Referee;
 import ml.echelon133.matchservice.referee.service.RefereeService;
 import ml.echelon133.matchservice.team.TestTeamPlayerDto;
 import ml.echelon133.matchservice.team.model.Team;
 import ml.echelon133.matchservice.team.model.TeamPlayer;
+import ml.echelon133.matchservice.team.model.TeamPlayerDto;
 import ml.echelon133.matchservice.team.service.TeamPlayerService;
 import ml.echelon133.matchservice.team.service.TeamService;
 import ml.echelon133.matchservice.venue.model.Venue;
 import ml.echelon133.matchservice.venue.service.VenueService;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +61,12 @@ public class MatchServiceTests {
 
     @Mock
     private MatchRepository matchRepository;
+
+    @Mock
+    private CompetitionServiceClient competitionServiceClient;
+
+    @Mock
+    private KafkaProducer<UUID, MatchInfo> matchInfoKafkaProducer;
 
     @InjectMocks
     private MatchService matchService;
@@ -314,6 +320,11 @@ public class MatchServiceTests {
         );
 
         // then
+        verify(matchInfoKafkaProducer).send(argThat(m ->
+                m.key().equals(expectedMatch.getId()) &&
+                m.value().matchId().equals(expectedMatch.getId()) &&
+                m.value().competitionId().equals(expectedMatch.getCompetitionId())
+        ));
         assertEquals(expectedMatch.getId(), receivedDto.getId());
         assertNull(receivedDto.getReferee());
     }
@@ -411,6 +422,11 @@ public class MatchServiceTests {
         );
 
         // then
+        verify(matchInfoKafkaProducer).send(argThat(m ->
+           m.key().equals(expectedMatch.getId()) &&
+           m.value().matchId().equals(expectedMatch.getId()) &&
+           m.value().competitionId().equals(expectedMatch.getCompetitionId())
+        ));
         assertEquals(expectedMatch.getId(), receivedDto.getId());
         assertEquals(refereeEntity.getId(), receivedDto.getReferee().getId());
     }
@@ -787,6 +803,10 @@ public class MatchServiceTests {
         verify(matchRepository).findAllBetween(eq(expectedStartUTC), eq(expectedEndUTC), eq(pageable));
     }
 
+    private CompetitionDto createTestCompetitionDto(UUID id) {
+        return new CompetitionDto(id, "", "", "", true, 1, true);
+    }
+
     @Test
     @DisplayName("findMatchesByDate correctly groups results by competitionId")
     public void findMatchesByDate_MultipleResults_GroupsResultsByCompetitionId() {
@@ -800,59 +820,27 @@ public class MatchServiceTests {
 
         // given
         given(matchRepository.findAllBetween(any(), any(), any())).willReturn(testResults);
+        given(competitionServiceClient.getCompetitionById(any(UUID.class)))
+                .willAnswer(inv -> createTestCompetitionDto(inv.getArgument(0)));
 
         // when
-        Map<UUID, List<CompactMatchDto>> results = matchService.findMatchesByDate(
+        List<CompetitionGroupedMatches> results = matchService.findMatchesByDate(
                 LocalDate.now(), ZoneOffset.UTC, Pageable.unpaged()
         );
 
         // then
         assertEquals(2, results.size());
         // check competition0
-        assertEquals(1, results.get(competition0).size());
-        assertEquals(competition0, results.get(competition0).get(0).getCompetitionId());
+        var competition0Results = results.stream().filter(r -> r.competition().id().equals(competition0)).toList().get(0);
+        assertEquals(1, competition0Results.matches().size());
+        assertEquals(competition0, competition0Results.matches().get(0).getCompetitionId());
         // check competition1
-        assertEquals(2, results.get(competition1).size());
-        var first = results.get(competition1).get(0);
-        var second = results.get(competition1).get(1);
+        var competition1Results = results.stream().filter(r -> r.competition().id().equals(competition1)).toList().get(0);
+        assertEquals(2, competition1Results.matches().size());
+        var first = competition1Results.matches().get(0);
+        var second = competition1Results.matches().get(1);
         assertEquals(competition1, first.getCompetitionId());
         assertEquals(competition1, second.getCompetitionId());
-    }
-
-    @Test
-    @DisplayName("findMatchesByCompetition fetches finished matches when matchFinished is true")
-    public void findMatchesByCompetition_MatchFinishedTrue_FetchesFinishedMatches() {
-        var competitionId = UUID.randomUUID();
-        var matchFinished = true;
-        var pageable = Pageable.ofSize(3).withPage(6);
-
-        // when
-        matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
-
-        // then
-        verify(matchRepository).findAllByCompetitionAndStatuses(
-                eq(competitionId),
-                eq(MatchStatus.RESULT_TYPE_STATUSES),
-                eq(pageable)
-        );
-    }
-
-    @Test
-    @DisplayName("findMatchesByCompetition fetches unfinished matches when matchFinished is false")
-    public void findMatchesByCompetition_MatchFinishedFalse_FetchesUnfinishedMatches() {
-        var competitionId = UUID.randomUUID();
-        var matchFinished = false;
-        var pageable = Pageable.ofSize(3).withPage(6);
-
-        // when
-        matchService.findMatchesByCompetition(competitionId, matchFinished, pageable);
-
-        // then
-        verify(matchRepository).findAllByCompetitionAndStatuses(
-                eq(competitionId),
-                eq(MatchStatus.FIXTURE_TYPE_STATUSES),
-                eq(pageable)
-        );
     }
 
     @Test
@@ -889,6 +877,46 @@ public class MatchServiceTests {
                 eq(MatchStatus.FIXTURE_TYPE_STATUSES),
                 eq(pageable)
         );
+    }
+
+    @Test
+    @DisplayName("findMatchesByTeam correctly groups results by competitionId")
+    public void findMatchesByTeam_MultipleResults_GroupsResultsByCompetitionId() {
+        var teamId = UUID.randomUUID();
+        var finished = false;
+
+        var competition0 = UUID.randomUUID();
+        var competition1 = UUID.randomUUID();
+        List<CompactMatchDto> testResults = List.of(
+                CompactMatchDto.builder().competitionId(competition0).build(),
+                CompactMatchDto.builder().competitionId(competition1).build(),
+                CompactMatchDto.builder().competitionId(competition1).build()
+        );
+
+        // given
+        given(matchRepository.findAllByTeamIdAndStatuses(eq(teamId), eq(MatchStatus.FIXTURE_TYPE_STATUSES), any()))
+                .willReturn(testResults);
+        given(competitionServiceClient.getCompetitionById(any(UUID.class)))
+                .willAnswer(inv -> createTestCompetitionDto(inv.getArgument(0)));
+
+        // when
+        List<CompetitionGroupedMatches> results = matchService.findMatchesByTeam(
+                teamId, finished, Pageable.unpaged()
+        );
+
+        // then
+        assertEquals(2, results.size());
+        // check competition0
+        var competition0Results = results.stream().filter(r -> r.competition().id().equals(competition0)).toList().get(0);
+        assertEquals(1, competition0Results.matches().size());
+        assertEquals(competition0, competition0Results.matches().get(0).getCompetitionId());
+        // check competition1
+        var competition1Results = results.stream().filter(r -> r.competition().id().equals(competition1)).toList().get(0);
+        assertEquals(2, competition1Results.matches().size());
+        var first = competition1Results.matches().get(0);
+        var second = competition1Results.matches().get(1);
+        assertEquals(competition1, first.getCompetitionId());
+        assertEquals(competition1, second.getCompetitionId());
     }
 
     @Test
@@ -1232,5 +1260,22 @@ public class MatchServiceTests {
                 m.getAwayLineup().getFormation().equals(awayFormation)
 
         ));
+    }
+
+    @Test
+    @DisplayName("findMatchesByIds correctly calls the repository method")
+    public void findMatchesByIds_CustomIds_CorrectlyCallsRepository() {
+        var id = UUID.randomUUID();
+        var expectedDto = CompactMatchDto.builder().id(id).build();
+        var requestedIds = List.of(id);
+
+        // given
+        given(matchRepository.findAllByMatchIds(requestedIds)).willReturn(List.of(expectedDto));
+
+        // when
+        var result = matchService.findMatchesByIds(requestedIds);
+
+        // then
+        assertEquals(1, result.size());
     }
 }

@@ -39,6 +39,7 @@ public class MatchEventService {
     private final MatchEventRepository matchEventRepository;
     private final MatchEventWebsocketService matchEventWebsocketService;
     private final KafkaProducer<UUID, MatchEventDetails> matchEventDetailsProducer;
+    private final KafkaProducer<UUID, MatchInfo> matchInfoProducer;
 
     @Autowired
     public MatchEventService(
@@ -47,7 +48,8 @@ public class MatchEventService {
             TeamPlayerService teamPlayerService,
             MatchEventRepository matchEventRepository,
             MatchEventWebsocketService matchEventWebsocketService,
-            KafkaProducer<UUID, MatchEventDetails> matchEventDetailsProducer
+            KafkaProducer<UUID, MatchEventDetails> matchEventDetailsProducer,
+            KafkaProducer<UUID, MatchInfo> matchInfoProducer
     ) {
         this.clock = clock;
         this.matchService = matchService;
@@ -55,6 +57,7 @@ public class MatchEventService {
         this.matchEventRepository = matchEventRepository;
         this.matchEventWebsocketService = matchEventWebsocketService;
         this.matchEventDetailsProducer = matchEventDetailsProducer;
+        this.matchInfoProducer = matchInfoProducer;
     }
 
     /**
@@ -92,7 +95,22 @@ public class MatchEventService {
         var match = matchService.findEntityById(matchId);
 
         MatchEvent matchEvent = switch (eventDto) {
-            case UpsertStatusEventDto statusEventDto -> processStatusEvent(match, statusEventDto);
+            case UpsertStatusEventDto statusEventDto -> {
+                var event = processStatusEvent(match, statusEventDto);
+                // handle the FINISHED check here, to ensure that the event will be fired at most once (a match that's
+                // finished will reject all subsequent StatusEvents)
+                if (match.getStatus().equals(FINISHED)) {
+                    // let other services know about this match being finished
+                    matchInfoProducer.send(
+                            new ProducerRecord<>(
+                                    KafkaTopicNames.MATCH_INFO,
+                                    match.getId(),
+                                    new MatchInfo.FinishEvent(match.getCompetitionId(), match.getId())
+                            )
+                    );
+                }
+                yield event;
+            }
             case UpsertCommentaryEventDto commentaryEventDto -> processCommentaryEvent(match, commentaryEventDto);
             case UpsertCardEventDto cardEventDto -> processCardEvent(match, cardEventDto);
             case UpsertGoalEventDto goalEventDto -> processGoalEvent(match, goalEventDto);

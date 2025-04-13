@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Configuration
-public class KafkaConfig {
+public class MatchEventKafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;

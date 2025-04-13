@@ -1,12 +1,7 @@
 package pl.echelon133.competitionservice.competition.model;
 
+import jakarta.persistence.*;
 import ml.echelon133.common.entity.BaseEntity;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.OneToMany;
-import java.util.List;
 
 @Entity
 public class Competition extends BaseEntity {
@@ -20,11 +15,13 @@ public class Competition extends BaseEntity {
     @Column(name = "logo_url", nullable = false, length = 500)
     private String logoUrl;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Group> groups;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "league_phase_id")
+    private LeaguePhase leaguePhase;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Legend> legend;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "knockout_phase_id")
+    private KnockoutPhase knockoutPhase;
 
     private boolean pinned;
 
@@ -33,11 +30,6 @@ public class Competition extends BaseEntity {
         this.name = name;
         this.season = season;
         this.logoUrl = logoUrl;
-    }
-    public Competition(String name, String season, String logoUrl, List<Group> groups, List<Legend> legend) {
-        this(name, season, logoUrl);
-        this.groups = groups;
-        this.legend = legend;
     }
 
     public String getName() {
@@ -64,20 +56,20 @@ public class Competition extends BaseEntity {
         this.logoUrl = logoUrl;
     }
 
-    public List<Group> getGroups() {
-        return groups;
+    public LeaguePhase getLeaguePhase() {
+        return leaguePhase;
     }
 
-    public void setGroups(List<Group> groups) {
-        this.groups = groups;
+    public void setLeaguePhase(LeaguePhase leaguePhase) {
+        this.leaguePhase = leaguePhase;
     }
 
-    public List<Legend> getLegend() {
-        return legend;
+    public KnockoutPhase getKnockoutPhase() {
+        return knockoutPhase;
     }
 
-    public void setLegend(List<Legend> legend) {
-        this.legend = legend;
+    public void setKnockoutPhase(KnockoutPhase knockoutPhase) {
+        this.knockoutPhase = knockoutPhase;
     }
 
     public boolean isPinned() {

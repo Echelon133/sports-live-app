@@ -161,6 +161,39 @@ public class MatchControllerTests {
     }
 
     @Test
+    @DisplayName("GET /api/matches returns 400 when `matchIds` is not provided")
+    public void getMatchesById_MatchIdsNotProvided_StatusBadRequest() throws Exception {
+        // when
+        mvc.perform(
+                        get("/api/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messages", hasItem("query parameter 'matchIds' not provided")));
+    }
+
+    @Test
+    @DisplayName("GET /api/matches returns 200 when `matchIds` is provided")
+    public void getMatchesById_MatchIdsProvided_StatusOk() throws Exception {
+        var requestedMatchIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+        String matchIdsParam = String.format("%s,%s", requestedMatchIds.get(0), requestedMatchIds.get(1));
+
+        // given
+        given(matchService.findMatchesByIds(eq(requestedMatchIds))).willReturn(List.of());
+
+        // when
+        mvc.perform(
+                        get("/api/matches")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .param("matchIds", matchIdsParam)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()", is(0)));
+    }
+
+    @Test
     @DisplayName("POST /api/matches returns 422 when homeTeamId is not provided")
     public void createMatch_HomeTeamIdNotProvided_StatusUnprocessableEntity() throws Exception {
         var contentDto = TestUpsertMatchDto.builder().homeTeamId(null).build();
@@ -919,47 +952,13 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 400 when both `competitionId` and `date` are not provided")
-    public void getMatchesByCriteria_BothKeyRequestParamsNotProvided_StatusBadRequest() throws Exception {
-
-        mvc.perform(
-                    get("/api/matches")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .accept(MediaType.APPLICATION_JSON)
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages", hasItems(
-                        "query parameter 'competitionId' not provided",
-                        "query parameter 'date' not provided"
-                )));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 400 when mutually exclusive `competitionId` and `date` are provided at the same time")
-    public void getMatchesByCriteria_MutuallyExclusiveRequestParamsProvided_StatusBadRequest() throws Exception {
-
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("competitionId", "test")
-                                .param("date", "asdf")
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages", hasItems(
-                        "query parameter 'competitionId' cannot be provided together with 'date'",
-                        "query parameter 'date' cannot be provided together with 'competitionId'"
-                )));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 400 when provided `date` has an incorrect format")
+    @DisplayName("GET /api/matches/grouped returns 400 when provided `date` has an incorrect format")
     public void getMatchesByCriteria_IncorrectDateProvided_StatusBadRequest() throws Exception {
         var incorrectDates = List.of("2023-01-01", "01/01/23", "2023/01/01 20:00");
 
         for (String incorrectDate : incorrectDates) {
             mvc.perform(
-                            get("/api/matches")
+                            get("/api/matches/grouped")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .param("date", incorrectDate)
@@ -972,12 +971,12 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 200 and sets default `utcOffset` value when valid `date` is provided")
+    @DisplayName("GET /api/matches/grouped returns 200 and sets default `utcOffset` value when valid `date` is provided")
     public void getMatchesByCriteria_ValidDateProvided_StatusOkAndDefaultUtcOffsetSet() throws Exception {
         var defaultUtcOffset = ZoneOffset.UTC;
 
         mvc.perform(
-                        get("/api/matches")
+                        get("/api/matches/grouped")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .param("date", "2023/01/01")
@@ -992,13 +991,13 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 400 when `date` is provided and provided `utcOffset` has an incorrect format")
+    @DisplayName("GET /api/matches/grouped returns 400 when `date` is provided and provided `utcOffset` has an incorrect format")
     public void getMatchesByCriteria_DateProvidedAndIncorrectUtcOffsetFormat_StatusBadRequest() throws Exception {
         var incorrectUtcOffsets = List.of("asdf", "+-000:000", "+AA:BB", "-25:99");
 
         for (String incorrectUtcOffset: incorrectUtcOffsets) {
             mvc.perform(
-                            get("/api/matches")
+                            get("/api/matches/grouped")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .param("date", "2023/01/01")
@@ -1012,40 +1011,40 @@ public class MatchControllerTests {
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 200 when `date` is provided and `utcOffset` contains positive or negative offsets")
+    @DisplayName("GET /api/matches/grouped returns 200 when `date` is provided and `utcOffset` contains positive or negative offsets")
     public void getMatchesByCriteria_DateAndUtcOffsetProvided_StatusOk() throws Exception {
         var correctUtcOffsets = List.of("+00:00", "+05:59", "-08:30", "-01:00");
 
         for (String correctUtcOffset : correctUtcOffsets) {
             var competitionId = UUID.randomUUID();
+            var competitionDto = new CompetitionDto(competitionId, "", "", "", true, 1, true);
             var matches = List.of(CompactMatchDto.builder().build());
 
             // given
-            doReturn(Map.of(competitionId, matches)).when(matchService).findMatchesByDate(
+            doReturn(List.of(new CompetitionGroupedMatches(competitionDto, matches))).when(matchService).findMatchesByDate(
                 eq(LocalDate.of(2023, 1, 1)),
                 eq(ZoneOffset.of(correctUtcOffset)),
                 eq(Pageable.ofSize(20).withPage(0))
             );
 
             // when
-            var path = "$." + competitionId;
             mvc.perform(
-                            get("/api/matches")
+                            get("/api/matches/grouped")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .accept(MediaType.APPLICATION_JSON)
                                     .param("date", "2023/01/01")
                                     .param("utcOffset", correctUtcOffset)
                     )
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath(path, hasSize(1)));
+                    .andExpect(jsonPath("$[0].matches", hasSize(1)));
         }
     }
 
     @Test
-    @DisplayName("GET /api/matches returns 200 when custom `page` and `size` are provided alongside `date` and `utcOffset`")
+    @DisplayName("GET /api/matches/grouped returns 200 when custom `page` and `size` are provided alongside `date` and `utcOffset`")
     public void getMatchesByCriteria_DateProvidedAndCustomPageAndSize_StatusOkAndUsesCustomPageable() throws Exception {
         mvc.perform(
-                        get("/api/matches")
+                        get("/api/matches/grouped")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .accept(MediaType.APPLICATION_JSON)
                                 .param("date", "2023/01/01")
@@ -1059,126 +1058,6 @@ public class MatchControllerTests {
                 eq(LocalDate.of(2023, 1, 1)),
                 eq(ZoneOffset.of("+02:00")),
                 eq(Pageable.ofSize(35).withPage(2))
-        );
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 400 when `competitionId` is provided but `type` is not")
-    public void getMatchesByCriteria_CompetitionIdProvidedAndTypeNotProvided_StatusBadRequest() throws Exception {
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("competitionId", UUID.randomUUID().toString())
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages", hasItem(
-                    "query parameter 'type' not provided"
-                )));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 400 when `competitionId` is not a uuid")
-    public void getMatchesByCriteria_InvalidCompetitionId_StatusBadRequest() throws Exception {
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("competitionId", "asdf")
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages", hasItem(
-                        "query parameter 'competitionId' not a uuid"
-                )));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 400 when `competitionId` is provided and `type` is incorrect")
-    public void getMatchesByCriteria_CompetitionIdProvidedAndTypeIncorrect_StatusBadRequest() throws Exception {
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("competitionId", UUID.randomUUID().toString())
-                                .param("type", "ADSDF")
-                )
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.messages", hasItem(
-                        "query parameter 'type' should be either 'fixtures' or 'results'"
-                )));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 200 when `competitionId` is provided and `type` is 'results'")
-    public void getMatchesByCriteria_CompetitionIdProvidedAndTypeIsResults_StatusOkAndCorrectlyCallsService() throws Exception {
-        var competitionId = UUID.randomUUID();
-
-        // given
-        var matches = List.of(CompactMatchDto.builder().build());
-        given(matchService.findMatchesByCompetition(
-                eq(competitionId),
-                eq(true),
-                eq(Pageable.ofSize(20).withPage(0))
-        )).willReturn(Map.of(competitionId, matches));
-
-        // when
-        var path = "$." + competitionId;
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("competitionId", competitionId.toString())
-                                .param("type", "results")
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath(path, hasSize(1)));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 200 when `competitionId` is provided and `type` is 'fixtures'")
-    public void getMatchesByCriteria_CompetitionIdProvidedAndTypeIsFixtures_StatusOkAndCorrectlyCallsService() throws Exception {
-        var competitionId = UUID.randomUUID();
-
-        // given
-        var matches = List.of(CompactMatchDto.builder().build());
-        given(matchService.findMatchesByCompetition(
-                eq(competitionId),
-                eq(false),
-                eq(Pageable.ofSize(20).withPage(0))
-        )).willReturn(Map.of(competitionId, matches));
-
-        // when
-        var path = "$." + competitionId;
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("competitionId", competitionId.toString())
-                                .param("type", "fixtures")
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath(path, hasSize(1)));
-    }
-
-    @Test
-    @DisplayName("GET /api/matches returns 200 when custom `page` and `size` are provided alongside `competitionId` and `type`")
-    public void getMatchesByCriteria_CompetitionIdProvidedAndCustomPageAndSize_StatusOkAndUsesCustomPageable() throws Exception {
-        var competitionId = UUID.randomUUID();
-        mvc.perform(
-                        get("/api/matches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .accept(MediaType.APPLICATION_JSON)
-                                .param("competitionId", competitionId.toString())
-                                .param("type", "fixtures")
-                                .param("page", "4")
-                                .param("size", "50")
-                )
-                .andExpect(status().isOk());
-
-        verify(matchService).findMatchesByCompetition(
-                eq(competitionId),
-                eq(false),
-                eq(Pageable.ofSize(50).withPage(4))
         );
     }
 
